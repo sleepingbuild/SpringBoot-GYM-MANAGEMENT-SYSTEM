@@ -1,0 +1,74 @@
+spring:
+  application:
+    name: gym-management-system
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/gms_db
+    username: gms_user
+    password: gms_password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate   # Flyway quản lý schema, JPA chỉ validate
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ""
+
+server:
+  port: 8080
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+# ==== Cấu hình riêng GMS ====
+gms:
+  jwt:
+    secret: "CHANGE_ME_TO_A_LONG_RANDOM_SECRET"
+    access-token-expiration-ms: 900000        # 15 phút
+    refresh-token-expiration-ms: 604800000    # 7 ngày
+
+  checkin:
+    anti-passback-window-seconds: 300         # 5 phút
+
+  vietqr:
+    client-id: "CHANGE_ME"
+    api-key: "CHANGE_ME"
+    base-url: "https://api.vietqr.io"
+
+  momo:
+    partner-code: "CHANGE_ME"
+    access-key: "CHANGE_ME"
+    secret-key: "CHANGE_ME"
+    endpoint: "CHANGE_ME"
+    return-url: "CHANGE_ME"
+    ipn-url: "CHANGE_ME"
+
+  zalo-zns:
+    app-id: "CHANGE_ME"
+    secret-key: "CHANGE_ME"
+    template-id: "CHANGE_ME"
+
+  sms-brandname:
+    api-key: "CHANGE_ME"
+    brandname: "GYM-GMS"
+
+logging:
+  level:
+    com.gym.management: DEBUG
+    org.springframework.security: INFO

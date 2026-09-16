@@ -1,0 +1,36 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IDE
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+bin/
+
+# Spring Boot
+*.log
+HELP.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / secrets — KHÔNG BAO GIỜ commit file cấu hình thật
+application-local.yml
+application-prod.yml
+.env
+*.env
+
+# Build output
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+*.war
