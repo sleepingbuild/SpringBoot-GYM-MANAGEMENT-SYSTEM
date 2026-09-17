@@ -123,7 +123,7 @@
 | payment_method | VARCHAR(20) | VIETQR, MOMO, CASH |
 | transaction_code | VARCHAR(100) UNIQUE | dùng cho idempotency |
 | status | VARCHAR(20) | PENDING, SUCCESS, FAILED, EXPIRED |
-| gateway_response | JSONB | raw response lưu để đối soát |
+| gateway_response | NVARCHAR(MAX) | raw response (JSON string) lưu để đối soát — SQL Server 2022 hỗ trợ hàm JSON (`JSON_VALUE`, `ISJSON`) trên cột kiểu text này |
 | created_at / updated_at | TIMESTAMP | |
 
 ### `products` (Agent 4)
@@ -215,7 +215,8 @@
 
 ## Quy ước chung
 
+- **Engine:** Microsoft SQL Server 2022. Các kiểu logic trong bảng ở trên map sang T-SQL như sau khi viết migration: `UUID` → `UNIQUEIDENTIFIER` (default `NEWID()`), `TIMESTAMP` → `DATETIME2`, `TEXT`/`JSONB` → `NVARCHAR(MAX)`, `BOOLEAN` → `BIT`. Cột chứa text tiếng Việt có dấu (tên người, mô tả, địa chỉ...) dùng `NVARCHAR` thay vì `VARCHAR`; cột chỉ chứa ASCII (email, mã giao dịch, enum trạng thái...) giữ `VARCHAR` cho nhẹ.
 - Khoá chính: **UUID** cho mọi bảng (tránh lộ số lượng bản ghi, dễ hợp nhất dữ liệu multi-branch sau này).
 - Mọi bảng nghiệp vụ chính có `created_at`; bảng có vòng đời cập nhật có thêm `updated_at`.
-- Tên bảng/cột: `snake_case`; tên enum lưu dạng `VARCHAR` (không dùng Postgres native enum) để dễ mở rộng giá trị mà không cần migration đổi kiểu.
+- Tên bảng/cột: `snake_case`; tên enum lưu dạng `VARCHAR` (không dùng CHECK constraint ép cứng giá trị) để dễ mở rộng giá trị mà không cần migration đổi kiểu.
 - Mỗi module migration là 1 file riêng (`V1`…`V6`) đúng theo agent sở hữu — **không sửa migration đã merge**, chỉ thêm migration mới nếu cần đổi schema.

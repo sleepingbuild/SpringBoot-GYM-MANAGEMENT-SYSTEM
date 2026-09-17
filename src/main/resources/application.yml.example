@@ -3,10 +3,10 @@ spring:
     name: gym-management-system
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/gms_db
-    username: gms_user
-    password: gms_password
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:sqlserver://localhost:1433;databaseName=gms_db;encrypt=true;trustServerCertificate=true
+    username: sa
+    password: "GmsStrongP@ss123"
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
   jpa:
     hibernate:

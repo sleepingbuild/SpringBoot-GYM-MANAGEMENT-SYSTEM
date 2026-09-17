@@ -19,7 +19,7 @@ Quản lý vận hành toàn diện: hội viên, gói tập, kiểm soát ra/v�
 | Phân vùng | Công nghệ |
 |---|---|
 | Core Framework | Java 17+, Spring Boot 3.x, Spring Data JPA, Spring Security |
-| Database | PostgreSQL / MySQL 8.0 (Flyway migration) |
+| Database | Microsoft SQL Server 2022 (Flyway migration) |
 | Cache & Session | Redis (JWT blacklist, rate limiting, check-in cache) |
 | Auth & AuthZ | JWT (Access + Refresh Token), RBAC |
 | Tích hợp | VietQR / MoMo API, Zalo ZNS / SMS Brandname, Hardware Gateway (RFID/QR/FaceID) |
@@ -30,17 +30,19 @@ Quản lý vận hành toàn diện: hội viên, gói tập, kiểm soát ra/v�
 ### Yêu cầu
 - JDK 17+
 - Maven 3.9+
-- Docker & Docker Compose (chạy PostgreSQL + Redis)
+- Docker & Docker Compose (chạy SQL Server 2022 + Redis)
 
 ### Chạy local
 
 ```bash
-# 1. Khởi động database + redis
+# 1. Khởi động SQL Server + Redis (lần đầu container sqlserver cần ~15-30s để healthy
+#    trước khi sqlserver-init tạo database gms_db tự động)
 docker compose up -d
 
 # 2. Copy file cấu hình mẫu
 cp src/main/resources/application.yml.example src/main/resources/application-local.yml
 # → điền các biến môi trường thật (DB, Redis, JWT secret, VietQR key...)
+# → mật khẩu sa mặc định trong docker-compose.yml: GmsStrongP@ss123 (đổi lại nếu deploy thật)
 
 # 3. Chạy migration + start app
 mvn flyway:migrate

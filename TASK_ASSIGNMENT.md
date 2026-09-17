@@ -39,7 +39,7 @@
 - [ ] RBAC: enum `RoleName` (SUPER_ADMIN, RECEPTIONIST, TRAINER, SALES, MEMBER), annotation `@PreAuthorize`.
 - [ ] `GlobalExceptionHandler` + `ErrorCode` chuẩn hoá response lỗi cho toàn bộ API.
 - [ ] `ApiResponse<T>` wrapper chuẩn cho mọi response thành công.
-- [ ] Cấu hình Redis (cache, rate-limit, JWT blacklist) và Docker Compose (Postgres + Redis + app) để cả team chạy local giống nhau.
+- [ ] Cấu hình Redis (cache, rate-limit, JWT blacklist) và Docker Compose (SQL Server + Redis + app) để cả team chạy local giống nhau.
 - [ ] Review & merge PR của Agent 2–6 vào các file SHARED.
 - [ ] Duy trì `ARCHITECTURE.md`, `DATABASE_SCHEMA.md`, `API_DESIGN.md` cập nhật theo tiến độ.
 

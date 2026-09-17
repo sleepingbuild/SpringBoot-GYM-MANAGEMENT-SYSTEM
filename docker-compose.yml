@@ -1,16 +1,33 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: gms-postgres
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: gms-sqlserver
     restart: unless-stopped
     environment:
-      POSTGRES_DB: gms_db
-      POSTGRES_USER: gms_user
-      POSTGRES_PASSWORD: gms_password
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "GmsStrongP@ss123"
+      MSSQL_PID: "Developer"
     ports:
-      - "5432:5432"
+      - "1433:1433"
     volumes:
-      - gms-postgres-data:/var/lib/postgresql/data
+      - gms-sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Job chạy 1 lần để tự tạo database gms_db (image SQL Server không có biến env tạo sẵn DB như Postgres)
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql-tools18
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - >
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "GmsStrongP@ss123" -C -Q
+        "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'gms_db') CREATE DATABASE gms_db;"
 
   redis:
     image: redis:7-alpine
@@ -20,4 +37,4 @@ services:
       - "6379:6379"
 
 volumes:
-  gms-postgres-data:
+  gms-sqlserver-data:

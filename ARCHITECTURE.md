@@ -16,7 +16,7 @@
         │  └───────────┘ └───────────┘ └─────────┬──────────┘ │
         │        ▲              │                 │            │
         │        │        ┌─────┴──────┐          ▼            │
-        │   Spring        │Integration │   PostgreSQL / MySQL  │
+        │   Spring        │Integration │   SQL Server 2022     │
         │   Security/JWT  │(VietQR,Zalo│                        │
         │        │        │ Hardware)  │                        │
         └────────┼────────┴─────┬──────┴────────────────────────┘

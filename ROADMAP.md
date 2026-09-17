@@ -3,7 +3,7 @@
 ## Giai đoạn 1: Base & Security — Tuần 1–2
 **Chủ trì:** Agent 1 | **Hỗ trợ:** Agent 2
 
-- [ ] Khởi tạo project Spring Boot, cấu hình `pom.xml`, Docker Compose (Postgres + Redis)
+- [ ] Khởi tạo project Spring Boot, cấu hình `pom.xml`, Docker Compose (SQL Server + Redis)
 - [ ] Thiết kế Database Schema chuẩn (`V1__init_schema.sql`: users, roles, user_roles, branches)
 - [ ] Spring Security + JWT (access/refresh token), RBAC
 - [ ] Global Exception Handler + chuẩn `ApiResponse<T>`
