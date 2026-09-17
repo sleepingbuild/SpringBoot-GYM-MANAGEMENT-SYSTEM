@@ -27,6 +27,11 @@ spring:
       port: 6379
       password: ""
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
 server:
   port: 8080
 
@@ -45,6 +50,8 @@ gms:
 
   checkin:
     anti-passback-window-seconds: 300         # 5 phút
+    off-peak-start-hour: 8                    # gói Off-peak chỉ được tập trong khung 8h-15h
+    off-peak-end-hour: 15
 
   vietqr:
     client-id: "CHANGE_ME"

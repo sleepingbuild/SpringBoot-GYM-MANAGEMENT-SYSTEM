@@ -42,6 +42,10 @@ Wrapper `ApiResponse<T>` và enum `ErrorCode` do **Agent 1** định nghĩa tron
 | `MEMBERSHIP_EXPIRED` | Gói đã hết hạn | 400 |
 | `MEMBERSHIP_NO_SESSION` | Hết buổi tập | 400 |
 | `CHECKIN_ANTI_PASSBACK` | Check-in quá gần lần trước | 400 |
+| `CHECKIN_NO_ACTIVE_PACKAGE` | Không có gói tập nào đang hoạt động | 400 |
+| `FACE_NOT_RECOGNIZED` | Không nhận diện được khuôn mặt | 401 |
+| `FACE_PROFILE_NOT_FOUND` | Hội viên/PT chưa đăng ký ảnh khuôn mặt | 404 |
+| `FACE_IMAGE_INVALID` | File ảnh không hợp lệ/quá dung lượng | 400 |
 | `CHECKIN_OUT_OF_TIME_RANGE` | Ngoài khung giờ gói (Off-peak) | 400 |
 | `PAYMENT_DUPLICATE_TRANSACTION` | Giao dịch trùng (idempotency) | 409 |
 | `PAYMENT_WEBHOOK_INVALID_SIGNATURE` | Chữ ký webhook không hợp lệ | 400 |
@@ -71,9 +75,18 @@ Wrapper `ApiResponse<T>` và enum `ErrorCode` do **Agent 1** định nghĩa tron
 ### Check-in (Agent 3)
 | Method | Endpoint | Role |
 |---|---|---|
-| POST | `/api/v1/checkin` | Device/Receptionist |
-| GET | `/api/v1/checkin/history/me` | Member |
-| GET | `/api/v1/checkin/history` | Receptionist/Admin (filter theo branch, ngày) |
+| POST | `/api/v1/checkin/face` | Public (kiosk/camera tại cửa — danh tính xác định qua khuôn mặt, không qua JWT) |
+| GET | `/api/v1/checkin/history/me` | Member/Trainer (đã đăng nhập) |
+| GET | `/api/v1/checkin/history?branchId=...` | Receptionist/Admin |
+
+### Face Profile — đăng ký ảnh khuôn mặt (Agent 3)
+| Method | Endpoint | Role |
+|---|---|---|
+| POST | `/api/v1/members/{userId}/face-profile` (multipart, field `image`) | Receptionist/Admin |
+| GET | `/api/v1/members/{userId}/face-profile` | Receptionist/Admin |
+| DELETE | `/api/v1/members/{userId}/face-profile` | Receptionist/Admin |
+
+> ⚠️ Nhận diện hiện tại (`MockFaceMatcher`) là **mock so khớp SHA-256 byte-for-byte**, không phải AI thật — chỉ nhận ra khi ảnh quét giống hệt ảnh đã đăng ký. Xem TODO trong `integration/hardware/MockFaceMatcher.java` để biết cách thay bằng Cloud API/model thật mà không đổi API phía trên.
 
 ### Payment & POS (Agent 4)
 | Method | Endpoint | Role |

@@ -48,6 +48,13 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("Email hoặc mật khẩu không đúng", ErrorCode.AUTH_INVALID_CREDENTIALS));
     }
 
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSize(org.springframework.web.multipart.MaxUploadSizeExceededException ex) {
+        return ResponseEntity
+                .status(ErrorCode.FACE_IMAGE_INVALID.getHttpStatus())
+                .body(ApiResponse.error("File tải lên vượt quá dung lượng cho phép", ErrorCode.FACE_IMAGE_INVALID));
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity

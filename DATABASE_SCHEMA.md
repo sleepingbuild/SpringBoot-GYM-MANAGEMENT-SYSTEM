@@ -110,6 +110,18 @@
 | status | VARCHAR(20) | SUCCESS, DENIED_EXPIRED, DENIED_TIME, DENIED_NO_SESSION, DENIED_ANTI_PASSBACK |
 | device_id | VARCHAR(100) | nullable |
 
+### `face_profiles` (Agent 3)
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| id | UUID | |
+| user_id | UUID FK → users | UNIQUE — mỗi user chỉ 1 ảnh đang active, upload lại sẽ ghi đè |
+| image | VARBINARY(MAX) | ảnh gốc do Admin/Lễ tân upload |
+| image_hash | VARCHAR(64) | SHA-256 hex của `image` — dùng cho so khớp Mock (byte-for-byte) |
+| registered_by | UUID FK → users | Admin/Lễ tân đã thực hiện đăng ký |
+| created_at / updated_at | TIMESTAMP | |
+
+> Khi thay Mock bằng nhận diện thật (Cloud API/model local): thêm cột `face_embedding` (vector) qua migration mới, giữ nguyên `image`/`image_hash` để tương thích ngược.
+
 ---
 
 ### `payment_transactions` (Agent 4)

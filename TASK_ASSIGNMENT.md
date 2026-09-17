@@ -51,7 +51,9 @@
 
 **Vai trò:** Toàn bộ nghiệp vụ hội viên và gói tập — phần lõi tạo doanh thu.
 
-**Khu vực sở hữu:** `entity/Package.java`, `entity/MemberPackage.java`, `entity/FreezeHistory.java`, `controller/MembershipController.java`, `controller/PackageController.java`, `service/*Membership*`, `service/*Package*`, migration `V2__membership.sql`.
+> ✅ **Đã bootstrap sẵn (bởi Agent 1) bản tối thiểu để Check-in Engine chạy được:** entity `Package`/`MemberPackage` + migration `V2__membership.sql` chỉ có các trường cốt lõi (status, start/end date, remaining_sessions, package_type, peak_type). Agent 2 tiếp quản, bổ sung: CRUD đầy đủ, `FreezeHistory`, logic nâng cấp/chuyển nhượng, job tự động EXPIRED — viết migration **mới** (V4 trở lên hoặc migration riêng cho phần mở rộng), không sửa lại V2 đã merge.
+
+**Khu vực sở hữu:** `entity/Package.java`, `entity/MemberPackage.java`, `entity/FreezeHistory.java`, `controller/MembershipController.java`, `controller/PackageController.java`, `service/*Membership*`, `service/*Package*`, migration `V2__membership.sql` (đã có phần base) + migration mở rộng sau.
 
 **Nhiệm vụ cụ thể:**
 - [ ] CRUD `packages` (loại: `TIME_BASED`, `SESSION_BASED`, `PT_1ON1`; khung giờ `OFF_PEAK` / `FULL_TIME`).
@@ -72,7 +74,9 @@
 
 **Vai trò:** Module kỹ thuật phức tạp nhất — xử lý luồng ra/vào real-time, tích hợp phần cứng.
 
-**Khu vực sở hữu:** `entity/CheckIn.java`, `controller/CheckInController.java`, `service/CheckInService.java`, `integration/hardware/*`, migration `V3__checkin.sql`.
+> ✅ **Đã bootstrap sẵn (bởi Agent 1) để có bản chạy được sớm:** `CheckIn`/`FaceProfile` entity, `CheckInService`/`FaceProfileService` (luồng 6 bước đầy đủ cho phương thức FACE), `MockFaceMatcher` (so khớp SHA-256 byte-for-byte, TẠM THỜI), `CheckInController`/`FaceProfileController`, migration `V3__checkin.sql`. Agent 3 tiếp quản từ đây — việc còn lại: (1) thêm phương thức QR/CARD, (2) thay `MockFaceMatcher` bằng nhận diện khuôn mặt thật (Cloud API/model local) mà **không đổi interface `FaceMatcher`**, (3) chuyển anti-passback từ query DB sang cache Redis cho hiệu năng, (4) driver phần cứng thật cho RFID/FaceID.
+
+**Khu vực sở hữu:** `entity/CheckIn.java`, `entity/FaceProfile.java`, `controller/CheckInController.java`, `controller/FaceProfileController.java`, `service/CheckInService.java`, `service/FaceProfileService.java`, `integration/hardware/*`, migration `V3__checkin.sql`.
 
 **Nhiệm vụ cụ thể:**
 - [ ] Implement đúng luồng 6 bước trong `Project-Core.md` mục 5.2 (tồn tại user → tìm `member_package` ACTIVE → kiểm tra thời hạn → kiểm tra `remaining_sessions` nếu gói theo lượt → kiểm tra khung giờ Peak/Off-peak → kiểm tra Anti-passback > 5 phút).
