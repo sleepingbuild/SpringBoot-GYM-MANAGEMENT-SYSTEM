@@ -17,9 +17,11 @@ services:
       timeout: 5s
       retries: 10
 
-  # Job chạy 1 lần để tự tạo database gms_db (image SQL Server không có biến env tạo sẵn DB như Postgres)
+  # Job chạy 1 lần để tự tạo database gms_db (image SQL Server không có biến env tạo sẵn DB như Postgres).
+  # Dùng lại chính image sqlserver ở trên (đã có sẵn sqlcmd bên trong) thay vì 1 image riêng
+  # như mcr.microsoft.com/mssql-tools18 (không tồn tại/không pull được), tránh lỗi "not found".
   sqlserver-init:
-    image: mcr.microsoft.com/mssql-tools18
+    image: mcr.microsoft.com/mssql/server:2022-latest
     depends_on:
       sqlserver:
         condition: service_healthy
