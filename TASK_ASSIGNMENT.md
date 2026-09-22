@@ -1,176 +1,174 @@
 # TASK_ASSIGNMENT.md — Phân công Nhiệm vụ Đội ngũ (6 Agents)
 
-> Dự án: **Gym Management System (GMS)**
+> Dự án: **Gym Management System (GMS)** — bản làm lại đầy đủ, tham chiếu `REQUIREMENTS.md` (đúc kết từ dự án song song .NET đã hoàn thiện) để không lặp lại các bug/thiếu sót đã từng xảy ra.
 > Mô hình làm việc: 6 AI Agent làm việc song song trên cùng repo, mỗi agent sở hữu 1 module nghiệp vụ riêng biệt để tối thiểu hoá xung đột code (merge conflict).
 > Người điều phối (Product Owner / Reviewer cuối): **Phi**.
+> ⚠️ Trước khi code bất kỳ module nào, đọc đúng phần tương ứng trong `REQUIREMENTS.md` — mỗi mục dưới đây chỉ tóm tắt, chi tiết đầy đủ (state machine, rule, bug cần tránh) nằm ở đó.
 
 ---
 
 ## 0. Nguyên tắc phối hợp chung (đọc trước khi code)
 
 1. **Không `git add .`** — luôn dùng `git add -p` hoặc add đích danh từng file để tránh ghi đè công việc của agent khác đang chạy song song.
-2. **Nhánh git theo chuẩn:** `feature/agentN-ten-module` (vd: `feature/agent3-checkin-engine`).
-3. **Commit theo Conventional Commits:** `feat(checkin): thêm logic anti-passback`, `fix(payment): sửa lỗi double-amount VietQR`.
+2. **Nhánh git theo chuẩn:** `feature/agentN-ten-module` (vd: `feature/agent3-booking`).
+3. **Commit theo Conventional Commits:** `feat(booking): thêm auto NoShow lazy-check`, `fix(membership): sửa nguồn dữ liệu gói hiện tại`.
 4. **File/khu vực dùng chung (SHARED — cần xin phép trước khi sửa):**
-   - `entity/User.java`, `entity/Role.java`, `entity/BaseEntity.java`
-   - `config/SecurityConfig.java`, `security/JwtTokenProvider.java`
-   - `exception/GlobalExceptionHandler.java`, `exception/ErrorCode.java`
+   - `entity/User.java`, `entity/Role.java`, `entity/BaseEntity.java`, `entity/Branch.java`
+   - `config/SecurityConfig.java`, `security/JwtTokenProvider.java`, `security/CurrentUser*.java`
+   - `exception/GlobalExceptionHandler.java`, `exception/ErrorCode.java`, `exception/ApiResponse.java`
    - `src/main/resources/db/migration/*` (migration mới phải là file **mới**, không sửa file cũ đã merge)
    - Những file này chỉ do **Agent 1** merge sau khi review.
 5. **Mỗi agent chỉ tạo entity/service/controller/repository trong đúng package nghiệp vụ của mình** (xem bảng "Khu vực sở hữu" bên dưới).
-4. **Đồng bộ tiến độ theo 4 giai đoạn (gate)** trùng với `ROADMAP.md`. Agent nào chưa xong task của giai đoạn trước thì báo sớm — không block cả team.
-5. **Định nghĩa "Done":** code compile được + có Flyway migration tương ứng (nếu có bảng mới) + có ít nhất 1 test cơ bản (unit hoặc integration) + cập nhật `API_DESIGN.md` với endpoint mới + PR có mô tả rõ Acceptance Criteria.
-6. **Swagger annotation bắt buộc** (`@Operation`, `@ApiResponse`) trên mọi endpoint public để Agent 6 tổng hợp OpenAPI cuối kỳ.
+6. **1 nguồn chân lý cho mỗi khái niệm nghiệp vụ** (xem `REQUIREMENTS.md` mục 7) — vd "gói tập hiện tại của user" chỉ được định nghĩa ở đúng 1 method, mọi nơi khác gọi lại, không tự định nghĩa riêng.
+7. **Validate SAU khi đã gán đủ các trường bắt buộc** (đặc biệt FK/user_id) — không phải trước.
+8. **Auto-status theo thời gian dùng lazy-check** (kiểm tra khi có người đọc dữ liệu), không cần `@Scheduled`/cron trừ khi thực sự cần (vd nhắc gia hạn qua SMS).
+9. **Định nghĩa "Done":** code compile được + có Flyway migration tương ứng (nếu có bảng mới) + có ít nhất 1 test cơ bản (unit hoặc integration) + cập nhật `API_DESIGN.md` với endpoint mới + PR có mô tả rõ Acceptance Criteria.
+10. **Swagger annotation bắt buộc** (`@Operation`, `@ApiResponse`) trên mọi endpoint public để Agent 6 tổng hợp OpenAPI cuối kỳ.
 
 ---
 
 ## Agent 1 — Kiến trúc sư trưởng / Backend Lead (Bạn — Claude)
 
-**Vai trò:** Dựng nền móng toàn dự án, đảm bảo các agent khác có thể bắt tay code ngay từ Giai đoạn 1, giữ vai trò reviewer/merge cho các file dùng chung.
+**Vai trò:** Dựng nền móng toàn dự án, module Hồ sơ cá nhân, giữ vai trò reviewer/merge cho các file dùng chung.
 
-**Khu vực sở hữu:** `config/`, `security/`, `exception/`, `entity/BaseEntity.java`, `entity/User.java`, `entity/Role.java`, `entity/UserRole.java`, `db/migration/V1__*`, `pom.xml`, `application.yml`.
+**Khu vực sở hữu:** `config/`, `security/`, `exception/`, `entity/BaseEntity.java`, `entity/User.java`, `entity/Role.java`, `entity/Branch.java`, `entity/UserProfile.java`, `controller/ProfileController.java`, `db/migration/V1__*`, `pom.xml`, `application.yml`.
 
 **Nhiệm vụ cụ thể:**
-- [ ] Khởi tạo project Spring Boot 3.x (Maven), cấu hình `pom.xml` đầy đủ dependency (Web, Data JPA, Security, Validation, Flyway, Redis, OpenAPI, Lombok, MapStruct).
-- [ ] Thiết kế & viết migration nền `V1__init_schema.sql` (toàn bộ bảng core: `users`, `roles`, `user_roles`, `branches`).
-- [ ] `BaseEntity` (id UUID, `created_at`, `updated_at`, soft-delete `deleted_at`).
-- [ ] `SecurityConfig` (Spring Security 6, stateless JWT, CORS, path matcher theo role).
-- [ ] `JwtTokenProvider` (access token + refresh token, blacklist trong Redis khi logout).
-- [ ] RBAC: enum `RoleName` (SUPER_ADMIN, RECEPTIONIST, TRAINER, SALES, MEMBER), annotation `@PreAuthorize`.
-- [ ] `GlobalExceptionHandler` + `ErrorCode` chuẩn hoá response lỗi cho toàn bộ API.
-- [ ] `ApiResponse<T>` wrapper chuẩn cho mọi response thành công.
-- [ ] Cấu hình Redis (cache, rate-limit, JWT blacklist) và Docker Compose (SQL Server + Redis + app) để cả team chạy local giống nhau.
+- [x] Khởi tạo project Spring Boot 3.x (Maven), `pom.xml` đầy đủ dependency (Web, Data JPA, Security, Validation, Flyway, Redis, OpenAPI, Lombok, MapStruct, mssql-jdbc).
+- [x] Migration nền `V1__init_schema.sql` (`users`, `roles` — 5 role: SUPER_ADMIN/RECEPTIONIST/SALES/TRAINER/MEMBER, `user_roles`, `branches`).
+- [x] `BaseEntity`, `SecurityConfig` (JWT stateless, CORS), `JwtTokenProvider`, `GlobalExceptionHandler` + `ErrorCode` + `ApiResponse<T>`, `@CurrentUser`.
+- [ ] **Module Hồ sơ cá nhân (Profile)** — mới, áp dụng cho Member + Trainer: `UserProfile` (tuổi, cân nặng, chiều cao, mục tiêu, avatar_url). Validate tuổi ≥ 18 so với **`created_at`** (ngày đăng ký), KHÔNG so với ngày hiện tại (tránh lỗi tuổi bị tính lại mỗi năm).
+- [ ] Cấu hình Redis (cache, rate-limit, JWT blacklist) và Docker Compose (SQL Server + Redis + app).
 - [ ] Review & merge PR của Agent 2–6 vào các file SHARED.
-- [ ] Duy trì `ARCHITECTURE.md`, `DATABASE_SCHEMA.md`, `API_DESIGN.md` cập nhật theo tiến độ.
+- [ ] Duy trì `ARCHITECTURE.md`, `DATABASE_SCHEMA.md`, `API_DESIGN.md`, `REQUIREMENTS.md` cập nhật theo tiến độ.
 
-**Deliverable Giai đoạn 1:** Repo build được (`mvn spring-boot:run`), đăng ký/đăng nhập hoạt động, RBAC test qua Postman.
+**Deliverable Giai đoạn 1:** Repo build được, đăng ký/đăng nhập hoạt động, RBAC 5 role test qua Swagger, CRUD Profile hoàn chỉnh.
 
 ---
 
-## Agent 2 — Membership & Package Module
+## Agent 2 — Membership, Package & Payment Module
 
-**Vai trò:** Toàn bộ nghiệp vụ hội viên và gói tập — phần lõi tạo doanh thu.
+**Vai trò:** Toàn bộ nghiệp vụ hội viên, gói tập, và thanh toán — phần lõi tạo doanh thu. **Đọc kỹ `REQUIREMENTS.md` mục 2 trước khi code — có state machine đã tinh chỉnh qua thực tế, không phải chỉ ACTIVE/EXPIRED đơn giản.**
 
-> ✅ **Đã bootstrap sẵn (bởi Agent 1) bản tối thiểu để Check-in Engine chạy được:** entity `Package`/`MemberPackage` + migration `V2__membership.sql` chỉ có các trường cốt lõi (status, start/end date, remaining_sessions, package_type, peak_type). Agent 2 tiếp quản, bổ sung: CRUD đầy đủ, `FreezeHistory`, logic nâng cấp/chuyển nhượng, job tự động EXPIRED — viết migration **mới** (V4 trở lên hoặc migration riêng cho phần mở rộng), không sửa lại V2 đã merge.
-
-**Khu vực sở hữu:** `entity/Package.java`, `entity/MemberPackage.java`, `entity/FreezeHistory.java`, `controller/MembershipController.java`, `controller/PackageController.java`, `service/*Membership*`, `service/*Package*`, migration `V2__membership.sql` (đã có phần base) + migration mở rộng sau.
+**Khu vực sở hữu:** `entity/Package.java`, `entity/MemberPackage.java`, `entity/PaymentTransaction.java`, `controller/MembershipController.java`, `controller/PackageController.java`, `controller/PaymentController.java`, `service/*Membership*`, `service/*Payment*`, migration `V2__membership.sql` (đã có phần base — mở rộng qua migration mới, không sửa lại).
 
 **Nhiệm vụ cụ thể:**
-- [ ] CRUD `packages` (loại: `TIME_BASED`, `SESSION_BASED`, `PT_1ON1`; khung giờ `OFF_PEAK` / `FULL_TIME`).
-- [ ] Đăng ký gói tập mới cho hội viên (`member_packages`), tính `end_date` tự động theo `duration_days`.
-- [ ] Logic **Bảo lưu (Freeze):** tạm dừng N ngày → cộng dồn N ngày vào `end_date`, ghi log vào `freeze_history`, giới hạn số lần/số ngày bảo lưu tối đa (cấu hình được).
-- [ ] Logic **Nâng cấp/Chuyển nhượng gói:** đổi `user_id` sở hữu, hoặc tính bù chênh lệch giá khi lên gói cao hơn (`upgrade_amount` → tạo `payment_transaction` tương ứng).
-- [ ] Job định kỳ (Spring `@Scheduled`) tự động chuyển trạng thái `ACTIVE → EXPIRED` khi qua `end_date`.
-- [ ] API cho Lễ tân: bán gói mới, gia hạn gói, tra cứu lịch sử gói của hội viên.
-- [ ] API cho Hội viên: xem thời hạn gói, số buổi còn lại.
+- [ ] CRUD `packages` (`TIME_BASED`/`SESSION_BASED`/`PT_1ON1`, `OFF_PEAK`/`FULL_TIME`, `max_sessions_per_week`).
+- [ ] Đăng ký gói mới → trạng thái `PENDING` → thanh toán tại chỗ (`ConfirmLocalPaymentAsync` tương đương) → `ACTIVE` (start/end tính từ **lúc thanh toán xong**, không phải lúc đăng ký).
+- [ ] **Nâng cấp**: hủy gói cũ ngay, tạo gói mới `PENDING`. **Hạ cấp**: gói cũ giữ nguyên, tạo bản ghi `SCHEDULED` bắt đầu đúng ngày gói cũ hết hạn.
+- [ ] Lazy-check: `ACTIVE` quá `end_date` → `EXPIRED`; `SCHEDULED` tới ngày → `ACTIVE`. Chạy mỗi khi đọc dữ liệu, không cần `@Scheduled`.
+- [ ] ⚠️ **Viết đúng 1 method `getCurrentMembership(userId)`** (định nghĩa = `status = 'ACTIVE'`) — dùng lại cho MỌI nơi cần hiển thị "gói đang dùng", không để 2 chỗ tự query khác nhau.
+- [ ] Chặn đăng ký mới nếu đang có gói `PENDING`; KHÔNG chặn nếu đang có gói `ACTIVE`.
+- [ ] API cho Lễ tân: bán gói mới/gia hạn hộ, tra cứu lịch sử gói. API cho Hội viên: xem thời hạn, số buổi còn lại, gói chưa thanh toán.
+- [ ] `PaymentTransaction`: log mọi giao dịch (gói tập lẫn POS của Agent 5), 1 method xác nhận thanh toán dùng chung.
 
-**Phụ thuộc:** cần `BaseEntity`, `User`, RBAC từ Agent 1 (sync sau khi Agent 1 xong Giai đoạn 1).
+**Phụ thuộc:** `BaseEntity`, `User`, RBAC từ Agent 1.
 
-**Deliverable Giai đoạn 1:** CRUD gói tập + đăng ký gói hoàn chỉnh, có test.
+**Deliverable:** Đăng ký/nâng cấp/hạ cấp/gia hạn gói chạy đúng state machine, có test cho từng nhánh (đặc biệt nâng vs hạ cấp).
 
 ---
 
-## Agent 3 — Check-in Engine & Access Control
+## Agent 3 — Lịch làm việc PT & Đặt lịch (Booking Engine)
 
-**Vai trò:** Module kỹ thuật phức tạp nhất — xử lý luồng ra/vào real-time, tích hợp phần cứng.
+**Vai trò:** Module có nhiều rule chồng chéo nhất — đọc kỹ `REQUIREMENTS.md` mục 3, đặc biệt phần "bug đã biết".
 
-> ✅ **Đã bootstrap sẵn (bởi Agent 1) để có bản chạy được sớm:** `CheckIn`/`FaceProfile` entity, `CheckInService`/`FaceProfileService` (luồng 6 bước đầy đủ cho phương thức FACE), `MockFaceMatcher` (so khớp SHA-256 byte-for-byte, TẠM THỜI), `CheckInController`/`FaceProfileController`, migration `V3__checkin.sql`. Agent 3 tiếp quản từ đây — việc còn lại: (1) thêm phương thức QR/CARD, (2) thay `MockFaceMatcher` bằng nhận diện khuôn mặt thật (Cloud API/model local) mà **không đổi interface `FaceMatcher`**, (3) chuyển anti-passback từ query DB sang cache Redis cho hiệu năng, (4) driver phần cứng thật cho RFID/FaceID.
-
-**Khu vực sở hữu:** `entity/CheckIn.java`, `entity/FaceProfile.java`, `controller/CheckInController.java`, `controller/FaceProfileController.java`, `service/CheckInService.java`, `service/FaceProfileService.java`, `integration/hardware/*`, migration `V3__checkin.sql`.
+**Khu vực sở hữu:** `entity/TrainerSchedule.java`, `entity/Booking.java`, `controller/ScheduleController.java`, `controller/BookingController.java`, `service/*Schedule*`, `service/*Booking*`, migration `V4__schedule_booking.sql`.
 
 **Nhiệm vụ cụ thể:**
-- [ ] Implement đúng luồng 6 bước trong `Project-Core.md` mục 5.2 (tồn tại user → tìm `member_package` ACTIVE → kiểm tra thời hạn → kiểm tra `remaining_sessions` nếu gói theo lượt → kiểm tra khung giờ Peak/Off-peak → kiểm tra Anti-passback > 5 phút).
-- [ ] Trả mã lỗi chi tiết cho từng trường hợp KHÔNG HỢP LỆ (`DENIED_EXPIRED`, `DENIED_TIME`, `DENIED_NO_SESSION`, `DENIED_ANTI_PASSBACK`...).
-- [ ] Dùng **Redis** để cache trạng thái check-in gần nhất theo `user_id` (phục vụ anti-passback, tránh query DB liên tục).
-- [ ] Driver tích hợp thiết bị phần cứng (`integration/hardware/`): interface chung `HardwareGatewayClient` (QR, RFID Card, FaceID) — mock implementation trước, thực tế theo SDK sau.
-- [ ] API endpoint nhận request từ thiết bị đầu đọc (`POST /api/checkin`) — cần tối ưu độ trễ (< 500ms).
-- [ ] Trừ `remaining_sessions` khi check-in hợp lệ (gọi qua service của Agent 2, không viết trực tiếp vào entity của Agent 2 — chỉ gọi qua interface public).
-- [ ] Lịch sử check-in cho hội viên (`GET /api/checkin/history`) và cho Lễ tân (theo chi nhánh, theo ngày).
+- [ ] `TrainerSchedule` theo **`work_date` (DATE cụ thể)**, KHÔNG theo `day_of_week` lặp lại (đã đổi 1 lần bên .NET vì lý do cụ thể — xem REQUIREMENTS mục 3).
+- [ ] Validate tạo/sửa ca: chặn ngày quá khứ; nếu ngày = hôm nay, giờ bắt đầu ≥ giờ hiện tại.
+- [ ] Booking: chặn giờ quá khứ + dưới 30 phút; tối đa 1 người/slot/PT; chặn member trùng giờ 2 PT khác nhau; không đặt ngoài ca làm việc thật; không hủy buổi đã diễn ra. Áp dụng đủ cho **cả 3 luồng**: member tự đặt, lễ tân/admin đặt hộ, sửa lịch.
+- [ ] ⚠️ **Gán đủ `user_id`/FK bắt buộc TRƯỚC khi validate**, không phải sau (bug "fail âm thầm" đã xảy ra bên .NET).
+- [ ] Lazy auto-status: `PENDING` ≤1h chưa xác nhận → `CANCELLED`; `CONFIRMED` quá 30 phút giờ hẹn chưa hoàn thành → `PT_NO_SHOW`; quá giờ kết thúc mà `check_in_time IS NULL` → `NO_SHOW`.
+- [ ] Xác nhận "học viên đã tập" (PT): nút chỉ hiện khi `check_in_time` có giá trị; chặn cả ở server.
+- [ ] Giới hạn buổi/tuần theo `package.max_sessions_per_week` — áp dụng đủ 3 luồng như trên (gọi service Agent 2 để lấy gói hiện tại).
 
-**Phụ thuộc:** `MemberPackage` (Agent 2) phải có interface/service public trước khi Agent 3 tích hợp — 2 agent cần đồng bộ vào cuối Giai đoạn 1.
+**Phụ thuộc:** `getCurrentMembership` (Agent 2), `User` (Agent 1).
 
-**Deliverable Giai đoạn 2:** Check-in engine đầy đủ 6 bước, có test cho từng nhánh lỗi.
+**Deliverable:** Booking full rule chạy đúng, có test riêng cho từng rule (đặc biệt lazy auto-status và giới hạn buổi/tuần).
 
 ---
 
-## Agent 4 — Payment & POS Module
+## Agent 4 — Face Attendance & Chấm công (Staff Attendance)
 
-**Vai trò:** Dòng tiền vào hệ thống — thanh toán gói tập và bán hàng tại quầy.
+**Vai trò:** Điểm danh khuôn mặt CHO ĐÚNG (không mock) + chấm công PT/Lễ tân. Đọc kỹ `REQUIREMENTS.md` mục 4 và 5 — có kiến trúc cụ thể đã chứng minh hiệu quả, làm đúng theo, không tự sáng tạo lại.
 
-**Khu vực sở hữu:** `entity/PaymentTransaction.java`, `entity/Product.java`, `entity/PosOrder.java`, `entity/PosOrderItem.java`, `controller/PaymentController.java`, `controller/PosController.java`, `integration/vietqr/*`, migration `V4__payment_pos.sql`.
+**Khu vực sở hữu:** `entity/FaceProfile.java`, `entity/CheckIn.java`, `entity/StaffAttendance.java`, `controller/FaceProfileController.java`, `controller/CheckInController.java`, `controller/AttendanceController.java`, `service/FaceMatchService.java`, migration `V3__checkin.sql` (đã có phần base, cần **sửa lại schema `face_profiles`** sang lưu `descriptor` thay vì `image_hash` — viết migration mới `V5__face_descriptor.sql`, không sửa V3 đã merge).
 
 **Nhiệm vụ cụ thể:**
-- [ ] Tích hợp **VietQR động**: sinh mã QR theo từng đơn hàng (gói tập hoặc POS), gọi API VietQR/MoMo.
-- [ ] Endpoint nhận **Webhook** từ ngân hàng/MoMo → xác thực chữ ký → cập nhật `payment_transactions.status` → kích hoạt gói tập ngay lập tức (gọi service Agent 2) hoặc hoàn tất đơn POS.
-- [ ] CRUD sản phẩm (`products`): nước uống, thực phẩm bổ sung, phụ kiện — có `stock_quantity`.
-- [ ] Luồng bán hàng POS: tạo đơn, trừ tồn kho tự động, tính tổng tiền, áp dụng thanh toán (tiền mặt / VietQR).
-- [ ] Idempotency cho webhook (tránh xử lý trùng 1 giao dịch 2 lần khi ngân hàng gửi lại).
-- [ ] Retry/reconciliation job cho các giao dịch `PENDING` quá lâu.
-- [ ] Không sửa trực tiếp `member_packages` — chỉ gọi qua service interface của Agent 2 khi kích hoạt gói.
+- [ ] **Đổi kiến trúc Face Matcher**: bỏ `MockFaceMatcher` (so hash byte-for-byte), thay bằng nhận **descriptor 128 chiều** (JSON array số thực) do client trích xuất (face-api.js hoặc tương đương) gửi lên → server tự tính **khoảng cách Euclidean** so với các descriptor đã đăng ký → tự quyết định khớp (ngưỡng mặc định **0.45**, đã kiểm chứng thực tế). KHÔNG BAO GIỜ tin client tự báo "đã khớp với user X".
+- [ ] 3 luồng: Kiosk (Lễ tân/Admin, 1:N), Tự điểm danh (Member/Trainer, 1:1 — chỉ so với chính mình), Đăng ký hộ (Lễ tân/Admin upload ảnh tĩnh, backend tự trích descriptor).
+- [ ] Check-in/check-out thông minh: lần quét đầu trong ngày = check-in, lần tiếp theo = check-out. Áp dụng cho cả `Booking.check_in_time/check_out_time` (member) và `StaffAttendance` (PT/Lễ tân).
+- [ ] `StaffAttendance`: unique `(staff_id, date)`; tính trạng thái động lúc xem báo cáo (Đúng giờ/Đi muộn/Về sớm/Vắng mặt) so với `shift_start_time`/`shift_end_time` cấu hình riêng từng người (mặc định 07:00–21:00).
+- [ ] Timezone nhất quán `Asia/Ho_Chi_Minh` xuyên suốt — không trộn UTC/local.
+- [ ] Nếu build phần trích descriptor client-side: cân nhắc trang demo HTML/JS đơn giản gọi webcam + face-api.js (không cần làm SPA đầy đủ, chỉ cần đủ để test API).
 
-**Phụ thuộc:** interface kích hoạt gói tập từ Agent 2; entity `User` từ Agent 1.
+**Phụ thuộc:** `getCurrentMembership`/`Booking` (Agent 2/3) để biết trừ buổi khi check-in hợp lệ.
 
-**Deliverable Giai đoạn 2:** Thanh toán VietQR + webhook hoạt động end-to-end trên môi trường sandbox, POS CRUD đầy đủ.
+**Deliverable:** Đăng ký khuôn mặt + nhận diện 1:1 và 1:N chạy đúng, test riêng cho race condition (2 request check-in gần như đồng thời không được tạo 2 bản ghi).
 
 ---
 
-## Agent 5 — PT Booking, Commission & Group X Module
+## Agent 5 — POS & Commission Module
 
-**Vai trò:** Nghiệp vụ đặt lịch và hoa hồng — ảnh hưởng trực tiếp thu nhập PT/Sales.
+**Vai trò:** 2 tính năng hoàn toàn mới (không có tiền lệ), rủi ro đụng code thấp nhất.
 
-**Khu vực sở hữu:** `entity/PtSchedule.java`, `entity/PtBooking.java`, `entity/GroupXClass.java`, `entity/ClassBooking.java`, `entity/Commission.java`, `controller/PtController.java`, `controller/GroupXController.java`, migration `V5__pt_groupx_commission.sql`.
+**Khu vực sở hữu:** `entity/Product.java`, `entity/PosOrder.java`, `entity/PosOrderItem.java`, `entity/Commission.java`, `controller/PosController.java`, `controller/CommissionController.java`, migration `V6__pos_commission.sql`.
 
 **Nhiệm vụ cụ thể:**
-- [ ] CRUD lịch rảnh của PT (`pt_schedules`) — theo tuần lặp lại (RECURRING) hoặc ngày cụ thể (SPECIFIC_DATE), kiểm tra chồng lịch (overlap check).
-- [ ] Đặt lịch PT 1:1 (`pt_bookings`): hội viên chọn khung giờ trống → tạo booking `PENDING`.
-- [ ] Xác nhận buổi tập (2 chiều: PT xác nhận + hội viên xác nhận, hoặc quét QR) → chuyển `COMPLETED` → **tự động tính hoa hồng** theo `commission_rate` cấu hình trên hồ sơ PT → ghi vào bảng `commissions`.
-- [ ] Group X: CRUD lớp học (`group_x_classes`) với `max_slots`; đăng ký lớp (`class_bookings`) tự động khoá khi đủ số lượng (transaction-safe, tránh race condition khi nhiều người đăng ký cùng lúc — dùng pessimistic lock hoặc `SELECT ... FOR UPDATE`).
-- [ ] Hoa hồng Sales: khi Lead (nếu có, phối hợp Agent 6) chuyển đổi thành hội viên mua gói → tính hoa hồng bán gói, ghi vào `commissions` với `type = SALES`.
-- [ ] API tổng hợp hoa hồng theo PT/Sales theo kỳ (tháng) cho báo cáo của Agent 6.
+- [ ] CRUD `products` (tên, danh mục, giá, `stock_quantity`).
+- [ ] POS: tạo đơn (`pos_orders`/`pos_order_items`), trừ tồn kho tự động, tính tổng tiền, ghi `PaymentTransaction` (gọi service Agent 2).
+- [ ] Commission PT: khi `Booking.status = COMPLETED` (lazy-check của Agent 3 đã set) → tính hoa hồng theo `commission_rate` cấu hình trên hồ sơ PT → ghi `commissions`.
+- [ ] Commission Sales: khi Lead (Agent 6) chuyển đổi thành công → tính hoa hồng bán gói.
+- [ ] API tổng hợp hoa hồng theo PT/Sales theo kỳ (tháng) cho Dashboard (Agent 6).
+- [ ] *(Tuỳ chọn/bonus nếu còn thời gian)*: Group X — lớp tập nhóm (`group_x_classes`/`class_bookings`), giới hạn `max_slots`, transaction-safe chống double-booking. Không bắt buộc theo scope 5-role hiện tại, chỉ làm nếu dư thời gian.
 
-**Phụ thuộc:** `MemberPackage`/`User` (Agent 1, 2); nếu cần trừ buổi PT trong gói `PT_1ON1` thì gọi service Agent 2.
+**Phụ thuộc:** `PaymentTransaction` (Agent 2), `Booking.status` (Agent 3), `Lead` (Agent 6).
 
-**Deliverable Giai đoạn 3:** Đặt lịch PT + xác nhận + tính hoa hồng tự động chạy được end-to-end; Group X đăng ký không bị double-booking khi test tải đồng thời.
+**Deliverable:** POS bán hàng + trừ tồn kho end-to-end; hoa hồng PT tự tính đúng khi booking hoàn thành.
 
 ---
 
-## Agent 6 — Notification, Leads, Dashboard & Open API
+## Agent 6 — Leads/CRM, Dashboard & Open API
 
-**Vai trò:** Lớp "ngoại vi" kết nối hệ thống ra bên ngoài — thông báo, báo cáo, và tài liệu API cho frontend.
+**Vai trò:** Lớp nghiệp vụ Sales + báo cáo tổng hợp + tài liệu API.
 
-**Khu vực sở hữu:** `entity/Lead.java`, `entity/Notification.java`, `controller/ReportController.java`, `controller/LeadController.java`, `integration/zalo/*`, `config/OpenApiConfig.java`, migration `V6__leads_notification.sql`.
+**Khu vực sở hữu:** `entity/Lead.java`, `controller/ReportController.java`, `controller/LeadController.java`, `config/OpenApiConfig.java`, migration `V7__leads.sql`.
 
 **Nhiệm vụ cụ thể:**
-- [ ] Quản lý Leads (khách tiềm năng) cho Sales/CSKH: CRUD, gán Sales phụ trách, trạng thái (`NEW`, `CONTACTED`, `CONVERTED`, `LOST`), chuyển đổi Lead → `User` khi mua gói (trigger hoa hồng Sales bên Agent 5).
-- [ ] Tích hợp **Zalo ZNS / SMS Brandname**: interface chung `NotificationSender`, job tự động nhắc gia hạn gói trước 7 ngày hết hạn (`@Scheduled`), gửi thông báo xác nhận thanh toán thành công.
-- [ ] Log lịch sử gửi thông báo (`notifications` table: kênh, trạng thái gửi, thời gian).
-- [ ] API báo cáo cho Dashboard Super Admin: doanh thu theo ngày/tháng/chi nhánh, tỷ lệ gia hạn gói, lưu lượng check-in theo khung giờ, top gói bán chạy, tổng hoa hồng đã trả.
-- [ ] Cấu hình & hoàn thiện **Swagger UI / springdoc-openapi** cho toàn bộ dự án (gom annotation từ tất cả agent, thêm mô tả, group theo tag/role) để frontend (React/Vue/Flutter) kết nối ở Giai đoạn 4.
-- [ ] Rà soát tất cả endpoint của 5 agent còn lại để đảm bảo response format thống nhất (`ApiResponse<T>` của Agent 1).
+- [ ] Quản lý Leads: CRUD, gán Sales phụ trách, trạng thái `NEW`/`CONTACTED`/`CONVERTED`/`LOST`.
+- [ ] Chuyển đổi Lead → `User` thật khi mua gói → trigger hoa hồng Sales (gọi service Agent 5).
+- [ ] Workflow "chăm sóc hội viên sắp hết hạn": danh sách member có `end_date` trong N ngày tới (dựa `getCurrentMembership` của Agent 2), gán cho Sales theo dõi.
+- [ ] API báo cáo Dashboard Super Admin: doanh thu theo ngày/tháng, tỷ lệ gia hạn, lưu lượng check-in, top gói bán chạy, tổng hoa hồng đã trả.
+- [ ] Hoàn thiện Swagger UI/springdoc-openapi cho toàn bộ dự án, rà soát response format thống nhất (`ApiResponse<T>`).
+- [ ] *(Tuỳ chọn)*: Zalo ZNS/SMS nhắc gia hạn tự động — chỉ làm nếu còn thời gian, không phải core scope 5-role.
 
-**Phụ thuộc:** cần hầu hết entity/API của các agent khác đã có cơ bản — nên nhận việc Dashboard/Swagger tổng hợp vào cuối Giai đoạn 3 / đầu Giai đoạn 4, còn Leads + Notification có thể làm song song từ sớm.
+**Phụ thuộc:** cần hầu hết entity/API của các agent khác — nhận việc Dashboard/Swagger tổng hợp vào cuối lịch trình, Leads có thể làm song song từ sớm.
 
-**Deliverable Giai đoạn 4:** Swagger UI đầy đủ, API báo cáo hoạt động, thông báo nhắc hạn tự động chạy qua scheduler.
+**Deliverable:** Swagger UI đầy đủ, API báo cáo hoạt động, luồng Lead → User → hoa hồng chạy end-to-end.
 
 ---
 
-## Bảng tổng hợp theo Giai đoạn (khớp `ROADMAP.md`)
+## Lộ trình theo tuần (10 tuần — xem chi tiết `ROADMAP.md`)
 
 | Giai đoạn | Tuần | Agent chính | Agent hỗ trợ |
 |---|---|---|---|
-| 1. Base & Security | 1–2 | Agent 1 | Agent 2 (song song, chờ interface) |
-| 2. Check-in & Thanh toán | 3–4 | Agent 3, Agent 4 | Agent 1 (review), Agent 2 (interface) |
-| 3. PT, Group X & Hoa hồng | 5–6 | Agent 5 | Agent 6 (Leads song song) |
-| 4. Dashboard & Open API | 7–8 | Agent 6 | Agent 1 (review), tất cả agent bổ sung Swagger |
+| 1. Nền tảng + Profile | 1–2 | Agent 1 | — |
+| 2. Membership/Payment + TrainerSchedule/Booking | 3–5 | Agent 2, Agent 3 | Agent 1 (review) |
+| 3. Face Attendance + Staff Attendance | 6–7 | Agent 4 | Agent 2/3 (interface) |
+| 4. POS/Commission + Leads/CRM | 8–9 | Agent 5, Agent 6 | — |
+| 5. Dashboard, Swagger, hoàn thiện, buffer test | 10 | Agent 6 | Tất cả (bổ sung Swagger + fix bug) |
 
 ## Ma trận phụ thuộc nhanh
 
 ```
-Agent 1 (nền tảng) ──► Agent 2 (membership) ──► Agent 3 (check-in)
-      │                        │                      │
-      └──────► Agent 4 (payment) ◄───────────────────┘
-                        │
-              Agent 5 (PT/GroupX/commission)
-                        │
-              Agent 6 (notification/dashboard/API) — tổng hợp cuối cùng
+Agent 1 (nền tảng + profile)
+      │
+      ├──► Agent 2 (membership/payment) ──► Agent 5 (POS/commission)
+      │              │                              ▲
+      │              └──► Agent 3 (schedule/booking) ┘
+      │                              │
+      │                              └──► Agent 4 (face/staff attendance)
+      │
+      └──► Agent 6 (leads/dashboard/API) — phụ thuộc hầu hết agent khác, tổng hợp cuối
 ```

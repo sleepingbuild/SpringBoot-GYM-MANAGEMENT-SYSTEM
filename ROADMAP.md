@@ -1,46 +1,52 @@
-# ROADMAP.md — Lộ trình Triển khai (8 Tuần / 4 Giai đoạn)
+# ROADMAP.md — Lộ trình Triển khai (10 Tuần / 5 Giai đoạn)
 
-## Giai đoạn 1: Base & Security — Tuần 1–2
-**Chủ trì:** Agent 1 | **Hỗ trợ:** Agent 2
+> Phạm vi đầy đủ xem `REQUIREMENTS.md`. Phân công chi tiết xem `TASK_ASSIGNMENT.md`.
 
-- [ ] Khởi tạo project Spring Boot, cấu hình `pom.xml`, Docker Compose (SQL Server + Redis)
-- [ ] Thiết kế Database Schema chuẩn (`V1__init_schema.sql`: users, roles, user_roles, branches)
-- [ ] Spring Security + JWT (access/refresh token), RBAC
-- [ ] Global Exception Handler + chuẩn `ApiResponse<T>`
-- [ ] CRUD Quản lý Hội viên (User) và Quản lý Gói tập (Package)
-- [ ] **Mốc nghiệm thu:** đăng ký/đăng nhập + RBAC hoạt động qua Postman; CRUD gói tập hoàn chỉnh
+## Giai đoạn 1: Nền tảng & Hồ sơ cá nhân — Tuần 1–2
+**Chủ trì:** Agent 1
 
-## Giai đoạn 2: Check-in Engine & Thanh toán — Tuần 3–4
-**Chủ trì:** Agent 3, Agent 4 | **Review:** Agent 1
+- [x] Spring Boot + SQL Server + Redis (Docker Compose), Security/JWT/RBAC (5 role)
+- [x] `ApiResponse<T>`, `ErrorCode`, `GlobalExceptionHandler` chuẩn hoá
+- [ ] Module Hồ sơ cá nhân (tuổi/cân nặng/chiều cao/mục tiêu/avatar), validate tuổi ≥18 theo `created_at`
+- [ ] **Mốc nghiệm thu:** đăng ký/đăng nhập + RBAC 5 role qua Swagger; CRUD Profile hoàn chỉnh
 
-- [ ] Service xử lý Check-in đầy đủ 6 bước (thời hạn, khung giờ, số buổi, anti-passback)
-- [ ] Redis cache cho trạng thái check-in gần nhất
-- [ ] Tích hợp VietQR động + xử lý Webhook thanh toán (idempotent)
-- [ ] Module POS: sản phẩm, đơn hàng, trừ tồn kho
-- [ ] **Mốc nghiệm thu:** check-in trả đúng mã lỗi cho từng trường hợp; thanh toán VietQR sandbox end-to-end kích hoạt gói tự động
+## Giai đoạn 2: Membership/Payment & Booking Engine — Tuần 3–5
+**Chủ trì:** Agent 2, Agent 3
 
-## Giai đoạn 3: PT, Group X & Hoa hồng — Tuần 5–6
-**Chủ trì:** Agent 5 | **Song song:** Agent 6 (Leads)
+- [ ] State machine gói tập đầy đủ (PENDING/ACTIVE/EXPIRED/SCHEDULED), nâng cấp/hạ cấp, `getCurrentMembership` 1 nguồn chân lý
+- [ ] `TrainerSchedule` theo `work_date`, `Booking` đủ rule (slot, chặn trùng giờ, giờ quá khứ, ngoài ca làm việc)
+- [ ] Lazy auto-status: EXPIRED/SCHEDULED→ACTIVE (membership), CANCELLED/PT_NO_SHOW/NO_SHOW (booking)
+- [ ] **Mốc nghiệm thu:** đăng ký→thanh toán→active chạy đúng; đặt lịch PT full rule có test; auto NoShow hoạt động đúng qua lazy-check
 
-- [ ] Đặt lịch PT 1:1 (lịch rảnh, đặt lịch, xác nhận 2 chiều)
-- [ ] Tự động tính hoa hồng PT khi buổi tập `COMPLETED`
-- [ ] Xếp lịch & đăng ký lớp Group X (transaction-safe, chống double-booking)
-- [ ] Quản lý Leads + hoa hồng Sales khi chuyển đổi thành công
-- [ ] **Mốc nghiệm thu:** đặt lịch + hoa hồng PT chạy end-to-end; test tải đăng ký Group X không vượt `max_slots`
+## Giai đoạn 3: Face Attendance & Chấm công — Tuần 6–7
+**Chủ trì:** Agent 4
 
-## Giai đoạn 4: Dashboard & Open API — Tuần 7–8
-**Chủ trì:** Agent 6 | **Review:** Agent 1, tất cả agent bổ sung Swagger
+- [ ] Kiến trúc descriptor + Euclidean distance (server verify, không tin client), ngưỡng 0.45
+- [ ] 3 luồng: Kiosk (1:N), Tự điểm danh (1:1), Đăng ký hộ
+- [ ] Check-in/check-out thông minh (lần 1 = in, lần 2 = out) cho cả Booking và StaffAttendance
+- [ ] Chấm công PT/Lễ tân: trạng thái động (Đúng giờ/Đi muộn/Về sớm)
+- [ ] **Mốc nghiệm thu:** nhận diện đúng người trong bộ test ≥95%, không tạo double check-in/out do race condition
 
-- [ ] API báo cáo doanh thu, tỷ lệ gia hạn, lưu lượng check-in
-- [ ] Thông báo tự động (Zalo ZNS/SMS) nhắc gia hạn trước 7 ngày
-- [ ] Hoàn thiện Swagger UI/OpenAPI cho toàn bộ API, đồng bộ format response
-- [ ] Rà soát bảo mật, rate limiting, chuẩn bị bàn giao cho Frontend (React/Vue/Flutter)
-- [ ] **Mốc nghiệm thu:** Swagger UI đầy đủ endpoint, có thể generate client SDK cho frontend
+## Giai đoạn 4: POS, Commission & Leads/CRM — Tuần 8–9
+**Chủ trì:** Agent 5, Agent 6
+
+- [ ] POS: sản phẩm, đơn hàng, trừ tồn kho tự động
+- [ ] Commission PT (khi Booking COMPLETED) + Commission Sales (khi Lead CONVERTED)
+- [ ] Leads/CRM: CRUD, chuyển đổi Lead→User, workflow chăm sóc hội viên sắp hết hạn
+- [ ] **Mốc nghiệm thu:** bán hàng POS trừ kho đúng; hoa hồng PT/Sales tự tính đúng số tiền qua vài kịch bản test
+
+## Giai đoạn 5: Dashboard, Open API & Hoàn thiện — Tuần 10
+**Chủ trì:** Agent 6 | **Tất cả agent:** bổ sung Swagger, fix bug tồn đọng, buffer test
+
+- [ ] API báo cáo: doanh thu, tỷ lệ gia hạn, lưu lượng check-in, top gói, tổng hoa hồng
+- [ ] Swagger UI/OpenAPI hoàn thiện toàn bộ, response format thống nhất
+- [ ] Rà soát bảo mật, chuẩn bị bàn giao frontend/demo
+- [ ] **Mốc nghiệm thu:** demo end-to-end đủ 5 vai trò, Swagger UI đầy đủ endpoint
 
 ---
 
 ## Sau v1.0 (đề xuất, chưa lên lịch)
-- Multi-branch reporting nâng cao (so sánh hiệu suất giữa các chi nhánh)
-- Mobile app (đã loại khỏi scope v1.0, cân nhắc lại sau khi core ổn định)
-- Face ID nhận diện thực tế thay mock hardware gateway
-- Tách Check-in Engine / Payment thành microservice riêng nếu tải tăng
+- Group X / lớp tập nhóm (đã hạ mức ưu tiên xuống "tuỳ chọn" trong `TASK_ASSIGNMENT.md`)
+- Zalo ZNS/SMS nhắc gia hạn tự động qua job định kỳ
+- Deploy production (Render backend + Vercel frontend, hoặc Azure — chưa chốt, xem thảo luận trong lịch sử trò chuyện)
+- Multi-branch reporting nâng cao
