@@ -70,7 +70,7 @@ Swagger UI sau khi chạy: `http://localhost:8080/swagger-ui.html`
 - **Lễ tân (Receptionist)** — check-in, bán/gia hạn gói, POS
 - **Huấn luyện viên (PT)** — quản lý lịch dạy, xác nhận buổi tập
 - **Sales/CSKH** — quản lý Leads, hoa hồng bán gói
-- **Hội viên (Member)** — xem gói, đặt lịch PT/Group X
+- **Hội viên (Member)** — xem gói, đặt lịch PT, điểm danh khuôn mặt, xem lịch sử check-in
 
 ## 📄 License
 

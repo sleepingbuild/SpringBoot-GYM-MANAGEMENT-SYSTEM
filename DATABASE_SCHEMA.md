@@ -1,234 +1,232 @@
-# DATABASE_SCHEMA.md — Thiết kế Cơ sở Dữ liệu
+# DATABASE_SCHEMA.md — Thiết kế Cơ sở Dữ liệu (bản đầy đủ, khớp `REQUIREMENTS.md`)
 
-> Toàn bộ bảng bên dưới tương ứng với migration `V1`–`V6` trong `src/main/resources/db/migration/`, chia theo module phụ trách (xem `TASK_ASSIGNMENT.md`).
+> Mỗi bảng dưới đây tương ứng đúng 1 migration trong `src/main/resources/db/migration/`, đặt tên theo agent sở hữu (xem `TASK_ASSIGNMENT.md`). Không sửa lại migration đã merge — mọi thay đổi schema sau này là migration **mới**.
+
+## Quy ước chung
+
+- **Engine:** Microsoft SQL Server 2022. `UUID` (logic) → `UNIQUEIDENTIFIER` (`NEWID()`), `TIMESTAMP` → `DATETIME2` (`SYSUTCDATETIME()`), `TEXT`/mảng JSON → `NVARCHAR(MAX)`, `BOOLEAN` → `BIT`. Text có dấu tiếng Việt → `NVARCHAR`; mã/email/enum trạng thái (ASCII) → `VARCHAR`.
+- **Khoá chính:** UUID cho mọi bảng.
+- **Timezone:** mọi timestamp lưu và xử lý nhất quán theo `Asia/Ho_Chi_Minh` ở tầng ứng dụng (xem `REQUIREMENTS.md` mục 7).
+- **Enum trạng thái:** lưu dạng `VARCHAR`, không dùng CHECK constraint cứng — dễ mở rộng giá trị mà không cần đổi kiểu cột.
+- **Numbering migration** (đúng theo `TASK_ASSIGNMENT.md`):
+
+| File | Agent | Nội dung |
+|---|---|---|
+| `V1__init_schema.sql` | 1 | `roles`, `users`, `user_roles`, `branches` |
+| `V2__membership.sql` | 2 | `packages`, `member_packages` |
+| `V2b__user_profiles.sql` | 1 | `user_profiles` (module Hồ sơ cá nhân) |
+| `V3__checkin.sql` | 4 (base cũ) | `check_ins`(→ đổi tên dùng thực tế là bảng `bookings` từ V4, xem ghi chú), `face_profiles` (schema gốc) |
+| `V4__schedule_booking.sql` | 3 | `trainer_schedules`, `bookings` |
+| `V5__face_descriptor.sql` | 4 | ALTER `face_profiles`: thêm `descriptor`, bỏ dần `image`/`image_hash` |
+| `V5b__staff_attendance.sql` | 4 | `staff_attendances` |
+| `V6__pos_commission.sql` | 5 | `products`, `pos_orders`, `pos_order_items`, `commissions` |
+| `V7__leads.sql` | 6 | `leads` |
+
+> ⚠️ Bảng `check_ins` từ `V3` (bản check-in mock cũ) **không còn là nguồn chính** cho điểm danh buổi tập — vai trò đó nay do `bookings.check_in_time/check_out_time` (V4) đảm nhiệm, vì điểm danh luôn gắn với 1 buổi đã đặt lịch cụ thể (đúng theo cách .NET đã làm). `check_ins` có thể giữ lại chỉ cho mục đích log thô "ai quét mặt lúc nào" (audit), không phải bảng nghiệp vụ chính — Agent 4 quyết định cụ thể khi triển khai, ghi rõ trong PR.
+
+---
 
 ## ERD tổng quan
 
 ```
 [roles] >──< [user_roles] >──< [users] ──< [branches]
                                   │
-        ┌─────────────────────────┼──────────────────────────────┐
-        │                         │                                │
-        ▼                         ▼                                ▼
- [member_packages] >──[packages]  [check_ins]                 [pt_bookings] >──[pt_schedules]
-        │                              │                            │
-        ├──< [freeze_history]          │                       [commissions]
-        │                              │
-        └──< [payment_transactions]    │
-                                        │
- [group_x_classes] >──< [class_bookings]
- [products] ──< [pos_order_items] >──[pos_orders]
- [leads] ──(convert)──> [users]
- [notifications]
+                    ┌─────────────┼───────────────────────────────┐
+                    │             │                                 │
+                    ▼             ▼                                 ▼
+            [user_profiles]  [member_packages] >──[packages]   [face_profiles]
+                                  │
+                                  └──< [payment_transactions]
+
+[trainer_schedules] ──(trainer)── [users]
+[bookings] ──(member, trainer, branch)── [users]/[branches]
+[staff_attendances] ──(staff)── [users]
+
+[products] ──< [pos_order_items] >──[pos_orders] ──(member?, staff)── [users]
+[commissions] ──(staff)── [users], nguồn từ [bookings] hoặc [leads]
+[leads] ──(assigned_sales, converted_user)── [users]
 ```
 
-## Chi tiết bảng
-
-### `roles` (Agent 1)
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| id | UUID PK | |
-| name | VARCHAR(50) UNIQUE | SUPER_ADMIN, RECEPTIONIST, TRAINER, SALES, MEMBER |
-| description | TEXT | |
-
-### `users` (Agent 1)
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| id | UUID PK | |
-| full_name | VARCHAR(150) | |
-| email | VARCHAR(150) UNIQUE | |
-| phone | VARCHAR(20) UNIQUE | |
-| password_hash | VARCHAR(255) | BCrypt |
-| status | VARCHAR(20) | ACTIVE, INACTIVE, BANNED |
-| avatar_url | VARCHAR(255) | nullable |
-| created_at / updated_at | TIMESTAMP | |
-
-### `user_roles` (Agent 1)
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| user_id | UUID FK → users | Composite PK |
-| role_id | UUID FK → roles | Composite PK |
-
-### `branches` (Agent 1)
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| id | UUID PK | |
-| name | VARCHAR(150) | |
-| address | VARCHAR(255) | |
-| phone | VARCHAR(20) | |
-| status | VARCHAR(20) | ACTIVE, CLOSED |
-
 ---
 
-### `packages` (Agent 2)
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| id | UUID PK | |
-| name | VARCHAR(150) | |
-| description | TEXT | |
-| price | DECIMAL(12,2) | |
-| duration_days | INT | nullable (null nếu SESSION_BASED thuần) |
-| session_count | INT | nullable (null nếu TIME_BASED thuần) |
-| package_type | VARCHAR(20) | TIME_BASED, SESSION_BASED, PT_1ON1 |
-| peak_type | VARCHAR(20) | OFF_PEAK, FULL_TIME |
-| is_active | BOOLEAN | |
+## Agent 1 — Core & Profile
 
-### `member_packages` (Agent 2)
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| id | UUID PK | |
-| user_id | UUID FK → users | |
-| package_id | UUID FK → packages | |
-| branch_id | UUID FK → branches | |
-| start_date / end_date | DATE | |
-| remaining_sessions | INT | nullable |
-| status | VARCHAR(20) | ACTIVE, EXPIRED, FROZEN, PENDING |
-| total_frozen_days | INT | default 0 |
-| created_at / updated_at | TIMESTAMP | |
+### `roles`, `users`, `user_roles`, `branches`
+*(Không đổi so với bản trước — xem migration `V1__init_schema.sql` đã có. 5 role: `SUPER_ADMIN`, `RECEPTIONIST`, `SALES`, `TRAINER`, `MEMBER`.)*
 
-### `freeze_history` (Agent 2)
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| id | UUID PK | |
-| member_package_id | UUID FK | |
-| freeze_start / freeze_end | DATE | |
-| days | INT | |
-| reason | VARCHAR(255) | nullable |
-| created_at | TIMESTAMP | |
-
----
-
-### `check_ins` (Agent 3)
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| id | UUID PK | |
-| user_id | UUID FK → users | |
-| member_package_id | UUID FK → member_packages | nullable nếu bị từ chối trước khi xác định gói |
-| branch_id | UUID FK → branches | |
-| checkin_time | TIMESTAMP | |
-| method | VARCHAR(20) | QR, CARD, FACE |
-| status | VARCHAR(20) | SUCCESS, DENIED_EXPIRED, DENIED_TIME, DENIED_NO_SESSION, DENIED_ANTI_PASSBACK |
-| device_id | VARCHAR(100) | nullable |
-
-### `face_profiles` (Agent 3)
+### `user_profiles` (mới — `V2b`)
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
 | id | UUID | |
-| user_id | UUID FK → users | UNIQUE — mỗi user chỉ 1 ảnh đang active, upload lại sẽ ghi đè |
-| image | VARBINARY(MAX) | ảnh gốc do Admin/Lễ tân upload |
-| image_hash | VARCHAR(64) | SHA-256 hex của `image` — dùng cho so khớp Mock (byte-for-byte) |
-| registered_by | UUID FK → users | Admin/Lễ tân đã thực hiện đăng ký |
-| created_at / updated_at | TIMESTAMP | |
+| user_id | UUID FK → users | UNIQUE — 1 user 1 profile |
+| age | INT | nullable |
+| weight_kg | DECIMAL(5,2) | nullable |
+| height_cm | DECIMAL(5,2) | nullable |
+| goal | NVARCHAR(255) | nullable — mục tiêu tập luyện |
+| avatar_url | VARCHAR(255) | nullable |
+| created_at / updated_at | DATETIME2 | |
 
-> Khi thay Mock bằng nhận diện thật (Cloud API/model local): thêm cột `face_embedding` (vector) qua migration mới, giữ nguyên `image`/`image_hash` để tương thích ngược.
+Validate tuổi ≥18 so với `users.created_at` (ngày đăng ký), không so ngày hiện tại.
 
 ---
 
-### `payment_transactions` (Agent 4)
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| id | UUID PK | |
-| user_id | UUID FK → users | |
-| related_type | VARCHAR(20) | MEMBERSHIP, POS |
-| related_id | UUID | id của member_package hoặc pos_order |
-| amount | DECIMAL(12,2) | |
-| payment_method | VARCHAR(20) | VIETQR, MOMO, CASH |
-| transaction_code | VARCHAR(100) UNIQUE | dùng cho idempotency |
-| status | VARCHAR(20) | PENDING, SUCCESS, FAILED, EXPIRED |
-| gateway_response | NVARCHAR(MAX) | raw response (JSON string) lưu để đối soát — SQL Server 2022 hỗ trợ hàm JSON (`JSON_VALUE`, `ISJSON`) trên cột kiểu text này |
-| created_at / updated_at | TIMESTAMP | |
+## Agent 2 — Membership, Package & Payment
 
-### `products` (Agent 4)
+### `packages`
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
-| id | UUID PK | |
-| name | VARCHAR(150) | |
-| category | VARCHAR(50) | DRINK, SUPPLEMENT, ACCESSORY |
+| id | UUID | |
+| name | NVARCHAR(150) | |
+| description | NVARCHAR(500) | nullable |
+| price | DECIMAL(12,2) | |
+| duration_days | INT | nullable |
+| session_count | INT | nullable |
+| package_type | VARCHAR(20) | `TIME_BASED` / `SESSION_BASED` / `PT_1ON1` |
+| peak_type | VARCHAR(20) | `OFF_PEAK` / `FULL_TIME` |
+| max_sessions_per_week | INT | NULL = không giới hạn, 0 = không cho đặt PT, N = tối đa N buổi/tuần |
+| is_active | BIT | |
+
+### `member_packages`
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| id | UUID | |
+| user_id | UUID FK → users | |
+| package_id | UUID FK → packages | |
+| branch_id | UUID FK → branches | nullable |
+| status | VARCHAR(20) | `PENDING` / `ACTIVE` / `EXPIRED` / `SCHEDULED` / `CANCELLED` |
+| start_date | DATE | với `PENDING`: dự kiến; với `ACTIVE`: ngày thanh toán thành công thật; với `SCHEDULED`: ngày gói hiện tại hết hạn |
+| end_date | DATE | nullable |
+| remaining_sessions | INT | nullable |
+| created_at / updated_at | DATETIME2 | |
+
+⚠️ Method `getCurrentMembership(userId)` (Agent 2, dùng chung toàn hệ thống) định nghĩa "gói hiện tại" = **bản ghi duy nhất có `status = 'ACTIVE'`** của user đó. Không nơi nào khác được tự query định nghĩa khác.
+
+### `payment_transactions`
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| id | UUID | |
+| user_id | UUID FK → users | |
+| related_type | VARCHAR(20) | `MEMBERSHIP` / `POS` |
+| related_id | UUID | id của `member_packages` hoặc `pos_orders` |
+| amount | DECIMAL(12,2) | |
+| payment_method | VARCHAR(20) | `CASH` / `LOCAL_CONFIRM` / (VietQR/MoMo nếu bổ sung sau) |
+| status | VARCHAR(20) | `PENDING` / `SUCCESS` / `FAILED` |
+| transaction_code | VARCHAR(100) | UNIQUE, dùng cho idempotency nếu có cổng thanh toán ngoài |
+| created_at | DATETIME2 | |
+
+---
+
+## Agent 3 — Lịch làm việc PT & Booking
+
+### `trainer_schedules`
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| id | UUID | |
+| trainer_id | UUID FK → users | |
+| work_date | DATE | **ngày cụ thể**, KHÔNG phải day-of-week lặp lại |
+| start_time | TIME | |
+| end_time | TIME | |
+| is_active | BIT | `false` = ca "Tạm nghỉ" |
+| created_at | DATETIME2 | |
+
+Unique gợi ý: không bắt buộc unique cứng ở DB (trùng giờ trong cùng ngày được xử lý ở tầng service bằng thuật toán "lane" khi hiển thị, không phải lỗi).
+
+### `bookings`
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| id | UUID | |
+| member_id | UUID FK → users | |
+| trainer_id | UUID FK → users | |
+| branch_id | UUID FK → branches | nullable |
+| booking_date | DATE | |
+| start_time | TIME | |
+| end_time | TIME | |
+| status | VARCHAR(20) | `PENDING` / `CONFIRMED` / `COMPLETED` / `CANCELLED` / `NO_SHOW` / `PT_NO_SHOW` |
+| check_in_time | DATETIME2 | nullable — set khi member face check-in |
+| check_in_method | VARCHAR(20) | `FACE` (mở rộng sau nếu cần) |
+| check_out_time | DATETIME2 | nullable |
+| check_out_method | VARCHAR(20) | nullable |
+| notes | NVARCHAR(500) | nullable |
+| created_at / updated_at | DATETIME2 | |
+
+Index gợi ý: `(trainer_id, booking_date)`, `(member_id, booking_date)` — phục vụ check trùng lịch/slot nhanh.
+
+---
+
+## Agent 4 — Face Attendance & Chấm công
+
+### `face_profiles` (đổi từ schema mock ban đầu)
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| id | UUID | |
+| user_id | UUID FK → users | UNIQUE |
+| descriptor | NVARCHAR(MAX) | JSON array 128 số thực (vector đặc trưng khuôn mặt) |
+| registered_by | UUID FK → users | nullable — ai đã đăng ký/đăng ký lại |
+| created_at / updated_at | DATETIME2 | |
+
+> Cột `image`/`image_hash` (bản mock cũ) bị loại bỏ khỏi thiết kế chính thức qua migration `V5`. Nếu vẫn muốn lưu ảnh gốc làm bằng chứng/audit, thêm cột `reference_image` riêng (không dùng để so khớp).
+
+### `staff_attendances`
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| id | UUID | |
+| staff_id | UUID FK → users | PT hoặc Lễ tân |
+| date | DATE | |
+| check_in_time | DATETIME2 | nullable |
+| check_out_time | DATETIME2 | nullable |
+| method | VARCHAR(20) | `MANUAL` / `FACE` |
+| notes | NVARCHAR(255) | nullable |
+| created_at | DATETIME2 | |
+
+Unique: `(staff_id, date)`. Trạng thái (Đúng giờ/Đi muộn/Về sớm/Vắng mặt) **tính động lúc đọc**, không lưu cột riêng — so với `shift_start_time`/`shift_end_time` (đề xuất: thêm 2 cột nullable này vào `users` hoặc 1 bảng cấu hình riêng `staff_shifts`, mặc định 07:00–21:00 nếu trống — Agent 4 quyết định cụ thể, ghi migration tương ứng).
+
+---
+
+## Agent 5 — POS & Commission
+
+### `products`
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| id | UUID | |
+| name | NVARCHAR(150) | |
+| category | VARCHAR(50) | `DRINK` / `SUPPLEMENT` / `ACCESSORY` |
 | price | DECIMAL(12,2) | |
 | stock_quantity | INT | |
-| unit | VARCHAR(20) | |
-| is_active | BOOLEAN | |
+| unit | VARCHAR(20) | nullable |
+| is_active | BIT | |
 
-### `pos_orders` / `pos_order_items` (Agent 4)
+### `pos_orders` / `pos_order_items`
 | Bảng | Cột chính |
 |---|---|
-| pos_orders | id, user_id (nullable — khách vãng lai), staff_id, branch_id, total_amount, payment_method, status, created_at |
-| pos_order_items | id, order_id FK, product_id FK, quantity, unit_price, subtotal |
+| `pos_orders` | id, member_id (UUID FK → users, nullable — khách vãng lai), staff_id (UUID FK → users), branch_id, total_amount, payment_method, status, created_at |
+| `pos_order_items` | id, order_id FK, product_id FK, quantity, unit_price, subtotal |
 
----
-
-### `pt_schedules` (Agent 5)
+### `commissions`
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
-| id | UUID PK | |
-| trainer_id | UUID FK → users | |
-| type | VARCHAR(20) | RECURRING, SPECIFIC_DATE |
-| day_of_week | INT | nullable, dùng khi RECURRING |
-| specific_date | DATE | nullable, dùng khi SPECIFIC_DATE |
-| start_time / end_time | TIME | |
-| is_available | BOOLEAN | |
-
-### `pt_bookings` (Agent 5)
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| id | UUID PK | |
-| member_id | UUID FK → users | |
-| pt_id | UUID FK → users | |
-| branch_id | UUID FK → branches | |
-| booking_time | TIMESTAMP | |
-| duration_minutes | INT | |
-| status | VARCHAR(20) | PENDING, COMPLETED, CANCELLED |
-| confirmed_by_member / confirmed_by_pt | BOOLEAN | |
-| commission_amount | DECIMAL(12,2) | nullable, set khi COMPLETED |
-
-### `group_x_classes` / `class_bookings` (Agent 5)
-| Bảng | Cột chính |
-|---|---|
-| group_x_classes | id, name, trainer_id FK, branch_id FK, room, start_time, end_time, max_slots, current_slots, status |
-| class_bookings | id, class_id FK, user_id FK, status (BOOKED/CANCELLED), booked_at |
-
-### `commissions` (Agent 5)
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| id | UUID PK | |
+| id | UUID | |
 | staff_id | UUID FK → users | PT hoặc Sales |
-| type | VARCHAR(20) | PT, SALES |
-| source_type | VARCHAR(20) | PT_BOOKING, PACKAGE_SALE |
-| source_id | UUID | |
+| type | VARCHAR(20) | `PT` / `SALES` |
+| source_type | VARCHAR(20) | `BOOKING` / `LEAD_CONVERSION` |
+| source_id | UUID | id của `bookings` hoặc `leads` |
 | amount | DECIMAL(12,2) | |
-| status | VARCHAR(20) | PENDING, PAID |
-| paid_at | TIMESTAMP | nullable |
-| created_at | TIMESTAMP | |
+| status | VARCHAR(20) | `PENDING` / `PAID` |
+| paid_at | DATETIME2 | nullable |
+| created_at | DATETIME2 | |
 
 ---
 
-### `leads` (Agent 6)
+## Agent 6 — Leads/CRM
+
+### `leads`
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
-| id | UUID PK | |
-| full_name | VARCHAR(150) | |
+| id | UUID | |
+| full_name | NVARCHAR(150) | |
 | phone | VARCHAR(20) | |
-| source | VARCHAR(50) | FACEBOOK, WALK_IN, REFERRAL... |
-| status | VARCHAR(20) | NEW, CONTACTED, CONVERTED, LOST |
+| source | VARCHAR(50) | nullable |
+| status | VARCHAR(20) | `NEW` / `CONTACTED` / `CONVERTED` / `LOST` |
 | assigned_sales_id | UUID FK → users | nullable |
-| notes | TEXT | nullable |
-| created_at | TIMESTAMP | |
-
-### `notifications` (Agent 6)
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| id | UUID PK | |
-| user_id | UUID FK → users | |
-| channel | VARCHAR(20) | SMS, ZALO_ZNS |
-| type | VARCHAR(30) | RENEWAL_REMINDER, PAYMENT_SUCCESS, BOOKING_CONFIRM |
-| content | TEXT | |
-| status | VARCHAR(20) | SENT, FAILED |
-| sent_at | TIMESTAMP | |
-
-## Quy ước chung
-
-- **Engine:** Microsoft SQL Server 2022. Các kiểu logic trong bảng ở trên map sang T-SQL như sau khi viết migration: `UUID` → `UNIQUEIDENTIFIER` (default `NEWID()`), `TIMESTAMP` → `DATETIME2`, `TEXT`/`JSONB` → `NVARCHAR(MAX)`, `BOOLEAN` → `BIT`. Cột chứa text tiếng Việt có dấu (tên người, mô tả, địa chỉ...) dùng `NVARCHAR` thay vì `VARCHAR`; cột chỉ chứa ASCII (email, mã giao dịch, enum trạng thái...) giữ `VARCHAR` cho nhẹ.
-- Khoá chính: **UUID** cho mọi bảng (tránh lộ số lượng bản ghi, dễ hợp nhất dữ liệu multi-branch sau này).
-- Mọi bảng nghiệp vụ chính có `created_at`; bảng có vòng đời cập nhật có thêm `updated_at`.
-- Tên bảng/cột: `snake_case`; tên enum lưu dạng `VARCHAR` (không dùng CHECK constraint ép cứng giá trị) để dễ mở rộng giá trị mà không cần migration đổi kiểu.
-- Mỗi module migration là 1 file riêng (`V1`…`V6`) đúng theo agent sở hữu — **không sửa migration đã merge**, chỉ thêm migration mới nếu cần đổi schema.
+| converted_user_id | UUID FK → users | nullable — set khi `CONVERTED` |
+| notes | NVARCHAR(500) | nullable |
+| created_at / updated_at | DATETIME2 | |
