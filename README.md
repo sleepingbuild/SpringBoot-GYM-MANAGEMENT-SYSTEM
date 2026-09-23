@@ -57,6 +57,7 @@ Swagger UI sau khi chạy: `http://localhost:8080/swagger-ui.html`
 |---|---|
 | [`REQUIREMENTS.md`](./REQUIREMENTS.md) | **Đọc trước tiên** — đặc tả đầy đủ, state machine, rule nghiệp vụ, bug cần tránh (đúc kết từ dự án .NET song song) |
 | [`TASK_ASSIGNMENT.md`](./TASK_ASSIGNMENT.md) | Phân công chi tiết 6 agent |
+| [`ISSUES.md`](./ISSUES.md) | Milestones + Issues chi tiết (sẵn sàng tạo lên GitHub) |
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Kiến trúc hệ thống, cấu trúc thư mục, luồng xử lý chính |
 | [`DATABASE_SCHEMA.md`](./DATABASE_SCHEMA.md) | Thiết kế CSDL đầy đủ + ERD |
 | [`API_DESIGN.md`](./API_DESIGN.md) | Chuẩn response, mã lỗi, danh sách endpoint |
