@@ -14,8 +14,9 @@ import java.time.LocalDate;
 
 /**
  * Agent 2 - Membership & Package Module.
- * Bản TỐI THIỂU (start_date/end_date/remaining_sessions/status) để CheckInService
- * (Agent 3) chạy được luồng 6 bước. Agent 2 mở rộng thêm freeze/upgrade sau.
+ * Bản TỐI THIỂU (start_date/end_date/remaining_sessions/status) để BookingService
+ * (Agent 3) áp được rule "giới hạn buổi/tuần" và trừ buổi khi hoàn thành. Agent 2
+ * mở rộng thêm nghiệp vụ nâng/hạ cấp đầy đủ sau (xem REQUIREMENTS.md mục 2).
  */
 @Entity
 @Table(name = "member_packages")
@@ -36,6 +37,14 @@ public class MemberPackage extends BaseEntity {
     @JoinColumn(name = "branch_id")
     private Branch branch;
 
+    /**
+     * PENDING (chờ thanh toán) → ACTIVE (start_date = lúc thanh toán xong) → EXPIRED (lazy-check).
+     * SCHEDULED dành cho hạ cấp (chờ gói cũ hết hạn) → tự chuyển ACTIVE đúng ngày.
+     * Xem REQUIREMENTS.md mục 2 — "getCurrentMembership" định nghĩa gói hiện tại = status ACTIVE.
+     */
+    @Column(nullable = false, length = 20)
+    private String status = "PENDING";
+
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
@@ -44,10 +53,4 @@ public class MemberPackage extends BaseEntity {
 
     @Column(name = "remaining_sessions")
     private Integer remainingSessions;
-
-    @Column(nullable = false, length = 20)
-    private String status = "ACTIVE"; // ACTIVE, EXPIRED, FROZEN, PENDING
-
-    @Column(name = "total_frozen_days", nullable = false)
-    private int totalFrozenDays = 0;
 }

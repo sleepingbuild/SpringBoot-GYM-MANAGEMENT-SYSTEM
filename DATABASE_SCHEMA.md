@@ -12,17 +12,15 @@
 
 | File | Agent | Nội dung |
 |---|---|---|
-| `V1__init_schema.sql` | 1 | `roles`, `users`, `user_roles`, `branches` |
-| `V2__membership.sql` | 2 | `packages`, `member_packages` |
-| `V2b__user_profiles.sql` | 1 | `user_profiles` (module Hồ sơ cá nhân) |
-| `V3__checkin.sql` | 4 (base cũ) | `check_ins`(→ đổi tên dùng thực tế là bảng `bookings` từ V4, xem ghi chú), `face_profiles` (schema gốc) |
-| `V4__schedule_booking.sql` | 3 | `trainer_schedules`, `bookings` |
-| `V5__face_descriptor.sql` | 4 | ALTER `face_profiles`: thêm `descriptor`, bỏ dần `image`/`image_hash` |
-| `V5b__staff_attendance.sql` | 4 | `staff_attendances` |
-| `V6__pos_commission.sql` | 5 | `products`, `pos_orders`, `pos_order_items`, `commissions` |
-| `V7__leads.sql` | 6 | `leads` |
+| `V1__init_schema.sql` | 1 | `roles`, `users`, `user_roles`, `branches` (đã có) |
+| `V2__membership.sql` | 2 | `packages`, `member_packages` (đã có bản base, Agent 2 mở rộng CRUD/nghiệp vụ qua service, không cần sửa lại file) |
+| `V2b__user_profiles.sql` | 1 | `user_profiles` (đã có) |
+| `V3__schedule_booking.sql` | 3 | `trainer_schedules`, `bookings` |
+| `V4__face_attendance.sql` | 4 | `face_profiles` (descriptor), `staff_attendances` |
+| `V5__pos_commission.sql` | 5 | `products`, `pos_orders`, `pos_order_items`, `commissions` |
+| `V6__leads.sql` | 6 | `leads` |
 
-> ⚠️ Bảng `check_ins` từ `V3` (bản check-in mock cũ) **không còn là nguồn chính** cho điểm danh buổi tập — vai trò đó nay do `bookings.check_in_time/check_out_time` (V4) đảm nhiệm, vì điểm danh luôn gắn với 1 buổi đã đặt lịch cụ thể (đúng theo cách .NET đã làm). `check_ins` có thể giữ lại chỉ cho mục đích log thô "ai quét mặt lúc nào" (audit), không phải bảng nghiệp vụ chính — Agent 4 quyết định cụ thể khi triển khai, ghi rõ trong PR.
+> Điểm danh buổi tập dùng trực tiếp `bookings.check_in_time/check_out_time` (không có bảng `check_ins` riêng) — vì mỗi lượt điểm danh luôn gắn với đúng 1 buổi đã đặt lịch cụ thể (đúng theo cách .NET đã làm, xem `REQUIREMENTS.md` mục 4).
 
 ---
 
@@ -164,7 +162,7 @@ Index gợi ý: `(trainer_id, booking_date)`, `(member_id, booking_date)` — ph
 | registered_by | UUID FK → users | nullable — ai đã đăng ký/đăng ký lại |
 | created_at / updated_at | DATETIME2 | |
 
-> Cột `image`/`image_hash` (bản mock cũ) bị loại bỏ khỏi thiết kế chính thức qua migration `V5`. Nếu vẫn muốn lưu ảnh gốc làm bằng chứng/audit, thêm cột `reference_image` riêng (không dùng để so khớp).
+> Nếu muốn lưu thêm ảnh gốc làm bằng chứng/audit (không dùng để so khớp), thêm cột `reference_image` riêng trong cùng migration `V4`.
 
 ### `staff_attendances`
 | Cột | Kiểu | Ghi chú |

@@ -16,8 +16,8 @@ import java.io.IOException;
 
 /**
  * Agent 1 - SHARED FILE.
- * Đọc Bearer token từ header Authorization, validate, set SecurityContext.
- * TODO(Agent 1): tích hợp kiểm tra Redis blacklist ở đây khi TokenBlacklistService sẵn sàng.
+ * Đọc Bearer token từ header Authorization, validate, kiểm tra Redis blacklist
+ * (token đã logout thì bị từ chối dù JWT chưa hết hạn tự nhiên), set SecurityContext.
  */
 @Component
 @RequiredArgsConstructor
@@ -26,6 +26,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService userDetailsService;
     private final UserRepository userRepository;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -35,7 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
-            if (jwtTokenProvider.validateToken(token)) {
+            if (jwtTokenProvider.validateToken(token) && !tokenBlacklistService.isBlacklisted(token)) {
                 String email = jwtTokenProvider.getEmailFromToken(token);
                 var userDetails = userDetailsService.loadUserByUsername(email);
                 var authentication = new UsernamePasswordAuthenticationToken(

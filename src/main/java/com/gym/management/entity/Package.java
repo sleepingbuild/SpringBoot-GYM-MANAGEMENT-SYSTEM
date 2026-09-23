@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 
 /**
  * Agent 2 - Membership & Package Module.
- * Lưu ý: đây là bản TỐI THIỂU để CheckInService (Agent 3) hoạt động được.
+ * Lưu ý: đây là bản TỐI THIỂU để BookingService (Agent 3) hoạt động được.
  * Agent 2 khi làm đầy đủ nghiệp vụ (freeze, upgrade...) mở rộng thêm ở đây,
  * không tạo entity trùng lặp mới.
  */
@@ -42,6 +42,9 @@ public class Package extends BaseEntity {
 
     @Column(name = "peak_type", nullable = false, length = 20)
     private String peakType = "FULL_TIME"; // OFF_PEAK, FULL_TIME
+
+    @Column(name = "max_sessions_per_week")
+    private Integer maxSessionsPerWeek; // NULL = không giới hạn, 0 = không cho đặt PT, N = tối đa N buổi/tuần
 
     @Column(name = "is_active", nullable = false)
     private boolean active = true;

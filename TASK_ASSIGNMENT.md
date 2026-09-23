@@ -72,7 +72,7 @@
 
 **Vai trò:** Module có nhiều rule chồng chéo nhất — đọc kỹ `REQUIREMENTS.md` mục 3, đặc biệt phần "bug đã biết".
 
-**Khu vực sở hữu:** `entity/TrainerSchedule.java`, `entity/Booking.java`, `controller/ScheduleController.java`, `controller/BookingController.java`, `service/*Schedule*`, `service/*Booking*`, migration `V4__schedule_booking.sql`.
+**Khu vực sở hữu:** `entity/TrainerSchedule.java`, `entity/Booking.java`, `controller/ScheduleController.java`, `controller/BookingController.java`, `service/*Schedule*`, `service/*Booking*`, migration `V3__schedule_booking.sql`.
 
 **Nhiệm vụ cụ thể:**
 - [ ] `TrainerSchedule` theo **`work_date` (DATE cụ thể)**, KHÔNG theo `day_of_week` lặp lại (đã đổi 1 lần bên .NET vì lý do cụ thể — xem REQUIREMENTS mục 3).
@@ -93,7 +93,7 @@
 
 **Vai trò:** Điểm danh khuôn mặt CHO ĐÚNG (không mock) + chấm công PT/Lễ tân. Đọc kỹ `REQUIREMENTS.md` mục 4 và 5 — có kiến trúc cụ thể đã chứng minh hiệu quả, làm đúng theo, không tự sáng tạo lại.
 
-**Khu vực sở hữu:** `entity/FaceProfile.java`, `entity/CheckIn.java`, `entity/StaffAttendance.java`, `controller/FaceProfileController.java`, `controller/CheckInController.java`, `controller/AttendanceController.java`, `service/FaceMatchService.java`, migration `V3__checkin.sql` (đã có phần base, cần **sửa lại schema `face_profiles`** sang lưu `descriptor` thay vì `image_hash` — viết migration mới `V5__face_descriptor.sql`, không sửa V3 đã merge).
+**Khu vực sở hữu:** `entity/FaceProfile.java`, `entity/StaffAttendance.java`, `controller/FaceProfileController.java`, `controller/FaceAttendanceController.java`, `controller/StaffAttendanceController.java`, `service/FaceProfileService.java`, `service/FaceAttendanceService.java`, `integration/hardware/FaceMatchService.java`, migration `V4__face_attendance.sql`.
 
 **Nhiệm vụ cụ thể:**
 - [ ] **Đổi kiến trúc Face Matcher**: bỏ `MockFaceMatcher` (so hash byte-for-byte), thay bằng nhận **descriptor 128 chiều** (JSON array số thực) do client trích xuất (face-api.js hoặc tương đương) gửi lên → server tự tính **khoảng cách Euclidean** so với các descriptor đã đăng ký → tự quyết định khớp (ngưỡng mặc định **0.45**, đã kiểm chứng thực tế). KHÔNG BAO GIỜ tin client tự báo "đã khớp với user X".
@@ -113,7 +113,7 @@
 
 **Vai trò:** 2 tính năng hoàn toàn mới (không có tiền lệ), rủi ro đụng code thấp nhất.
 
-**Khu vực sở hữu:** `entity/Product.java`, `entity/PosOrder.java`, `entity/PosOrderItem.java`, `entity/Commission.java`, `controller/PosController.java`, `controller/CommissionController.java`, migration `V6__pos_commission.sql`.
+**Khu vực sở hữu:** `entity/Product.java`, `entity/PosOrder.java`, `entity/PosOrderItem.java`, `entity/Commission.java`, `controller/PosController.java`, `controller/CommissionController.java`, migration `V5__pos_commission.sql`.
 
 **Nhiệm vụ cụ thể:**
 - [ ] CRUD `products` (tên, danh mục, giá, `stock_quantity`).
@@ -133,7 +133,7 @@
 
 **Vai trò:** Lớp nghiệp vụ Sales + báo cáo tổng hợp + tài liệu API.
 
-**Khu vực sở hữu:** `entity/Lead.java`, `controller/ReportController.java`, `controller/LeadController.java`, `config/OpenApiConfig.java`, migration `V7__leads.sql`.
+**Khu vực sở hữu:** `entity/Lead.java`, `controller/ReportController.java`, `controller/LeadController.java`, `config/OpenApiConfig.java`, migration `V6__leads.sql`.
 
 **Nhiệm vụ cụ thể:**
 - [ ] Quản lý Leads: CRUD, gán Sales phụ trách, trạng thái `NEW`/`CONTACTED`/`CONVERTED`/`LOST`.

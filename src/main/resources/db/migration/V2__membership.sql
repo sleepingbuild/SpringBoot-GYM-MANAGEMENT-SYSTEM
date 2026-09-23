@@ -1,7 +1,8 @@
 -- V2__membership.sql
--- Agent 2 - Membership & Package Module
--- Ban toi thieu de Check-in Engine (V3) co the hoat dong duoc.
--- Cac truong/nghiep vu con lai (freeze_history, upgrade...) se bo sung sau boi Agent 2.
+-- Agent 2 - Membership, Package & Payment Module
+-- Ban toi thieu (packages, member_packages) de cac module phu thuoc (Booking, Commission)
+-- co the tham chieu duoc tu dau. Agent 2 mo rong CRUD/nghiep vu day du qua migration moi,
+-- KHONG sua lai file nay sau khi da merge.
 
 CREATE TABLE packages (
     id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
@@ -12,6 +13,7 @@ CREATE TABLE packages (
     session_count INT NULL,
     package_type VARCHAR(20) NOT NULL, -- TIME_BASED, SESSION_BASED, PT_1ON1
     peak_type VARCHAR(20) NOT NULL DEFAULT 'FULL_TIME', -- OFF_PEAK, FULL_TIME
+    max_sessions_per_week INT NULL, -- NULL = khong gioi han, 0 = khong cho dat PT, N = toi da N buoi/tuan
     is_active BIT NOT NULL DEFAULT 1,
     created_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     updated_at DATETIME2 NULL
@@ -22,11 +24,12 @@ CREATE TABLE member_packages (
     user_id UNIQUEIDENTIFIER NOT NULL,
     package_id UNIQUEIDENTIFIER NOT NULL,
     branch_id UNIQUEIDENTIFIER NULL,
+    -- PENDING (cho thanh toan) -> ACTIVE (start_date = luc thanh toan xong) -> EXPIRED (lazy-check)
+    -- SCHEDULED danh cho ha cap (gio cu chay het han) -> tu chuyen ACTIVE dung ngay
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING', -- PENDING, ACTIVE, EXPIRED, SCHEDULED, CANCELLED
     start_date DATE NOT NULL,
     end_date DATE NULL,
     remaining_sessions INT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE', -- ACTIVE, EXPIRED, FROZEN, PENDING
-    total_frozen_days INT NOT NULL DEFAULT 0,
     created_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     updated_at DATETIME2 NULL,
     CONSTRAINT fk_member_packages_user FOREIGN KEY (user_id) REFERENCES users(id),

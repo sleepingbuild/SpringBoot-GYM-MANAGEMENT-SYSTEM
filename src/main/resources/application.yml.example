@@ -48,10 +48,16 @@ gms:
     access-token-expiration-ms: 900000        # 15 phút
     refresh-token-expiration-ms: 604800000    # 7 ngày
 
-  checkin:
-    anti-passback-window-seconds: 300         # 5 phút
-    off-peak-start-hour: 8                    # gói Off-peak chỉ được tập trong khung 8h-15h
-    off-peak-end-hour: 15
+  upload:
+    dir: uploads                              # thư mục lưu file upload (avatar, ảnh sản phẩm...), phục vụ qua /uploads/**
+
+  booking:
+    min-lead-time-minutes: 30                 # không cho đặt lịch cách hiện tại dưới 30 phút
+    pending-timeout-minutes: 60                # PENDING quá 60 phút chưa xác nhận -> tự CANCELLED
+    pt-no-show-grace-minutes: 30               # CONFIRMED quá 30 phút giờ hẹn chưa hoàn thành -> PT_NO_SHOW
+
+  face-attendance:
+    match-threshold: 0.45                     # ngưỡng khoảng cách Euclidean tối đa để coi là khớp (đã kiểm chứng thực tế)
 
   vietqr:
     client-id: "CHANGE_ME"

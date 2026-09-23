@@ -43,7 +43,7 @@ Mỗi PR cần:
 ## 5. Migration (Flyway)
 
 - Đặt tên: `V{n}__{mo_ta_snake_case}.sql`, số thứ tự tăng dần, **không** sửa lại migration đã merge vào `main`.
-- Mỗi agent quản lý dải số migration riêng theo bảng trong `DATABASE_SCHEMA.md` (`V1`/`V2b` Agent 1, `V2` Agent 2, `V4` Agent 3, `V3`/`V5`/`V5b` Agent 4, `V6` Agent 5, `V7` Agent 6) để tránh đụng số thứ tự khi merge song song. Hậu tố chữ (`V2b`, `V5b`) dùng khi cần chèn thêm 1 migration nhỏ liên quan mà không muốn đẩy số các agent khác.
+- Mỗi agent quản lý dải số migration riêng theo bảng trong `DATABASE_SCHEMA.md` (`V1`/`V2b` Agent 1, `V2` Agent 2, `V3` Agent 3, `V4` Agent 4, `V5` Agent 5, `V6` Agent 6) để tránh đụng số thứ tự khi merge song song. Hậu tố chữ (vd `V2b`) dùng khi cần chèn thêm 1 migration nhỏ liên quan mà không muốn đẩy số các agent khác.
 
 ## 6. Test
 

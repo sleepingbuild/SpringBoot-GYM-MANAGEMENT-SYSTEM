@@ -61,6 +61,16 @@ public class JwtTokenProvider {
         return claims.getSubject();
     }
 
+    /** Trả về Instant hết hạn của token — dùng để tính TTL khi đưa vào Redis blacklist lúc logout. */
+    public java.time.Instant getExpirationFromToken(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(key())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        return claims.getExpiration().toInstant();
+    }
+
     public boolean validateToken(String token) {
         try {
             Jwts.parser().verifyWith(key()).build().parseSignedClaims(token);

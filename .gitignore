@@ -34,3 +34,4 @@ application-prod.yml
 *.jar
 !.mvn/wrapper/maven-wrapper.jar
 *.war
+uploads/

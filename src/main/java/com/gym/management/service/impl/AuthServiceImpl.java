@@ -32,6 +32,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
+    private final com.gym.management.security.TokenBlacklistService tokenBlacklistService;
 
     @Override
     @Transactional
@@ -83,8 +84,10 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void logout(String accessToken) {
-        // TODO(Agent 1): đưa accessToken vào Redis blacklist với TTL = thời gian còn lại của token,
-        // để JwtAuthenticationFilter từ chối token này dù chưa hết hạn tự nhiên.
+        if (jwtTokenProvider.validateToken(accessToken)) {
+            var expiresAt = jwtTokenProvider.getExpirationFromToken(accessToken);
+            tokenBlacklistService.blacklist(accessToken, expiresAt);
+        }
     }
 
     private AuthResponse buildAuthResponse(User user, Authentication authentication) {
