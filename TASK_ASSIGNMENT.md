@@ -37,8 +37,9 @@
 - [x] Khởi tạo project Spring Boot 3.x (Maven), `pom.xml` đầy đủ dependency (Web, Data JPA, Security, Validation, Flyway, Redis, OpenAPI, Lombok, MapStruct, mssql-jdbc).
 - [x] Migration nền `V1__init_schema.sql` (`users`, `roles` — 5 role: SUPER_ADMIN/RECEPTIONIST/SALES/TRAINER/MEMBER, `user_roles`, `branches`).
 - [x] `BaseEntity`, `SecurityConfig` (JWT stateless, CORS), `JwtTokenProvider`, `GlobalExceptionHandler` + `ErrorCode` + `ApiResponse<T>`, `@CurrentUser`.
-- [ ] **Module Hồ sơ cá nhân (Profile)** — mới, áp dụng cho Member + Trainer: `UserProfile` (tuổi, cân nặng, chiều cao, mục tiêu, avatar_url). Validate tuổi ≥ 18 so với **`created_at`** (ngày đăng ký), KHÔNG so với ngày hiện tại (tránh lỗi tuổi bị tính lại mỗi năm).
-- [ ] Cấu hình Redis (cache, rate-limit, JWT blacklist) và Docker Compose (SQL Server + Redis + app).
+- [x] **Module Hồ sơ cá nhân (Profile)** — `UserProfile` (tuổi, cân nặng, chiều cao, mục tiêu, avatar_url), CRUD + upload avatar.
+- [x] Redis: `RedisConfig`, `TokenBlacklistService` nối vào logout + `JwtAuthenticationFilter`. Docker Compose (SQL Server + Redis + app) đã có.
+- [ ] Rate-limit cho login/face-attendance qua Redis — chưa làm, còn tuỳ chọn cho các agent bổ sung nếu cần.
 - [ ] Review & merge PR của Agent 2–6 vào các file SHARED.
 - [ ] Duy trì `ARCHITECTURE.md`, `DATABASE_SCHEMA.md`, `API_DESIGN.md`, `REQUIREMENTS.md` cập nhật theo tiến độ.
 

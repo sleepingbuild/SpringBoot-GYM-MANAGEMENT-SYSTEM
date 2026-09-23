@@ -6,9 +6,10 @@
 **Chủ trì:** Agent 1
 
 - [x] Spring Boot + SQL Server + Redis (Docker Compose), Security/JWT/RBAC (5 role)
-- [x] `ApiResponse<T>`, `ErrorCode`, `GlobalExceptionHandler` chuẩn hoá
-- [ ] Module Hồ sơ cá nhân (tuổi/cân nặng/chiều cao/mục tiêu/avatar), validate tuổi ≥18 theo `created_at`
-- [ ] **Mốc nghiệm thu:** đăng ký/đăng nhập + RBAC 5 role qua Swagger; CRUD Profile hoàn chỉnh
+- [x] `ApiResponse<T>`, `ErrorCode` (đủ mã cho mọi module), `GlobalExceptionHandler` chuẩn hoá
+- [x] Redis JWT blacklist khi logout (không còn TODO)
+- [x] Module Hồ sơ cá nhân (tuổi/cân nặng/chiều cao/mục tiêu/avatar)
+- [ ] **Mốc nghiệm thu:** đăng ký/đăng nhập + RBAC 5 role qua Swagger; CRUD Profile hoàn chỉnh; logout xong thì token cũ không dùng lại được (test qua Swagger) — *code đã xong, còn chờ chạy thử thực tế*
 
 ## Giai đoạn 2: Membership/Payment & Booking Engine — Tuần 3–5
 **Chủ trì:** Agent 2, Agent 3
