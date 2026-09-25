@@ -14,7 +14,7 @@
 |---|---|---|
 | `V1__init_schema.sql` | 1 | `roles`, `users`, `user_roles`, `branches` (đã có) |
 | `V2__membership.sql` | 2 | `packages`, `member_packages` (đã có bản base, Agent 2 mở rộng CRUD/nghiệp vụ qua service, không cần sửa lại file) |
-| `V2b__user_profiles.sql` | 1 | `user_profiles` (đã có) |
+| `V2_1__user_profiles.sql` | 1 | `user_profiles` (đã có) |
 | `V3__schedule_booking.sql` | 3 | `trainer_schedules`, `bookings` |
 | `V4__face_attendance.sql` | 4 | `face_profiles` (descriptor), `staff_attendances` |
 | `V5__pos_commission.sql` | 5 | `products`, `pos_orders`, `pos_order_items`, `commissions` |
@@ -52,7 +52,7 @@
 ### `roles`, `users`, `user_roles`, `branches`
 *(Không đổi so với bản trước — xem migration `V1__init_schema.sql` đã có. 5 role: `SUPER_ADMIN`, `RECEPTIONIST`, `SALES`, `TRAINER`, `MEMBER`.)*
 
-### `user_profiles` (mới — `V2b`)
+### `user_profiles` (mới — `V2_1`)
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
 | id | UUID | |

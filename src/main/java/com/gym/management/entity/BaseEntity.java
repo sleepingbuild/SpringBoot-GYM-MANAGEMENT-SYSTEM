@@ -12,7 +12,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -32,11 +32,16 @@ public abstract class BaseEntity {
     @Column(updatable = false, nullable = false)
     private UUID id;
 
+    /**
+     * Dùng LocalDateTime (không có Instant) — khớp trực tiếp với kiểu DATETIME2 (không
+     * timezone) trong migration T-SQL. Instant khiến Hibernate 6 mặc định đòi hỏi cột kiểu
+     * datetimeoffset, gây lỗi Schema-validation ngay lúc khởi động (đã gặp thực tế).
+     */
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    private LocalDateTime createdAt;
 
     @LastModifiedDate
     @Column(name = "updated_at")
-    private Instant updatedAt;
+    private LocalDateTime updatedAt;
 }

@@ -39,7 +39,7 @@
 | 1.3 | Chuẩn hoá `ApiResponse<T>` + `ErrorCode` (đủ mã cho mọi module) + `GlobalExceptionHandler` | agent-1 | ✅ Done |
 | 1.4 | Redis JWT blacklist khi logout | agent-1 | ✅ Done |
 | 1.5 | Module Hồ sơ cá nhân — `UserProfile` CRUD + upload avatar | agent-1 | ✅ Done |
-| 1.6 | Migration `V1__init_schema.sql` + `V2b__user_profiles.sql` | agent-1 | ✅ Done |
+| 1.6 | Migration `V1__init_schema.sql` + `V2_1__user_profiles.sql` | agent-1 | ✅ Done |
 
 ---
 
