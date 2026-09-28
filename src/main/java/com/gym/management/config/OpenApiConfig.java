@@ -1,10 +1,12 @@
 package com.gym.management.config;
 
+import com.gym.management.security.CurrentUser;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springdoc.core.utils.SpringDocUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -14,6 +16,14 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class OpenApiConfig {
+
+    static {
+        // Ẩn khỏi Swagger UI mọi tham số đánh dấu @CurrentUser (ở BẤT KỲ controller
+        // nào, kể cả của Agent 2-6 sau này) — vì giá trị này luôn tự lấy từ JWT,
+        // không phải input người dùng nhập tay. Thiếu dòng này Swagger sẽ hiện nhầm
+        // thành 1 field bắt buộc, gây hiểu lầm là phải tự điền UUID.
+        SpringDocUtils.getConfig().addAnnotationsToIgnore(CurrentUser.class);
+    }
 
     @Bean
     public OpenAPI gmsOpenAPI() {
