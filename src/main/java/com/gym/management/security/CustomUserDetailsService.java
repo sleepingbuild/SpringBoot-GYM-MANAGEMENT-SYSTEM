@@ -12,11 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * Agent 1 - SHARED FILE.
- * Cầu nối giữa entity User và Spring Security. Authority được build từ
- * roles gắn với user, tiền tố "ROLE_" theo chuẩn Spring Security.
- */
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
@@ -29,15 +24,10 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy user: " + email));
 
         List<GrantedAuthority> authorities = user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
-                .map(GrantedAuthority.class::cast)
+                .map(role -> (GrantedAuthority) new SimpleGrantedAuthority("ROLE_" + role.getName()))
                 .toList();
 
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getEmail())
-                .password(user.getPasswordHash())
-                .authorities(authorities)
-                .disabled(!"ACTIVE".equals(user.getStatus()))
-                .build();
+        return new GymUserDetails(user.getId(), user.getEmail(), user.getPasswordHash(),
+                "ACTIVE".equals(user.getStatus()), authorities);
     }
 }
