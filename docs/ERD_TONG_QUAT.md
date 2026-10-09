@@ -1,5 +1,7 @@
 # ERD Tổng quát — Gym Management System (GMS)
 
+![ERD](ERD_TONG_QUAT.png)
+
 > Dựng lại từ **migration Flyway thật** (nguồn đáng tin cậy nhất, trực tiếp tạo bảng trong DB),
 > không phải chỉ dựa theo `DATABASE_SCHEMA.md` thiết kế ban đầu. Tính đến thời điểm viết file này:
 > **Agent 1, 2, 3, 4 đã có migration thật** (`V1`, `V2`/`V2_1`/`V2_2`, `V3`, `V4` — V3/V4 hiện nằm
