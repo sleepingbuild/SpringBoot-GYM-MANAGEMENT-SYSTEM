@@ -36,6 +36,7 @@
 |---|---|---|
 | `AUTH_INVALID_CREDENTIALS` | Sai email/mật khẩu | 401 |
 | `AUTH_TOKEN_EXPIRED` | Token hết hạn | 401 |
+| `AUTH_TOKEN_INVALID` | Chưa đăng nhập hoặc token không hợp lệ | 401 |
 | `AUTH_FORBIDDEN_ROLE` | Không đủ quyền | 403 |
 | `AUTH_EMAIL_ALREADY_EXISTS` | Email đã dùng | 409 |
 | `PROFILE_INVALID_AGE` | Tuổi < 18 (so với ngày đăng ký) | 400 |
@@ -51,7 +52,9 @@
 | `BOOKING_DOUBLE_BOOKED` | Member đã có lịch trùng giờ với PT khác | 409 |
 | `BOOKING_WEEKLY_LIMIT_EXCEEDED` | Vượt giới hạn buổi/tuần theo gói | 400 |
 | `BOOKING_PAST_CANNOT_CANCEL` | Không thể hủy buổi đã diễn ra | 400 |
-| `BOOKING_NOT_CHECKED_IN` | Chưa điểm danh khuôn mặt, PT không thể xác nhận | 400 |
+| `BOOKING_NOT_CHECKED_IN` | Học viên chưa điểm danh khuôn mặt, PT không thể hoàn thành buổi | 400 |
+| `BOOKING_PT_NOT_CHECKED_IN` | PT chưa quét mặt vào/ra, không thể hoàn thành buổi | 400 |
+| `BOOKING_EARLY_LEAVE_REASON_NOT_ALLOWED` | Không thể nộp lý do (PT chưa ra sớm, hoặc buổi đã chốt) | 400 |
 | `FACE_NOT_RECOGNIZED` | Không nhận diện được khuôn mặt (khoảng cách > ngưỡng) | 401 |
 | `FACE_PROFILE_NOT_FOUND` | Chưa đăng ký hồ sơ khuôn mặt | 404 |
 | `FACE_DESCRIPTOR_INVALID` | Descriptor gửi lên sai định dạng/độ dài | 400 |
@@ -82,14 +85,15 @@
 ### Membership, Package & Payment (Agent 2)
 | Method | Endpoint | Role |
 |---|---|---|
-| GET/POST/PUT/DELETE | `/api/v1/packages` | Super Admin |
+| GET | `/api/v1/packages` | Mọi user đã đăng nhập (xem gói đang mở bán) |
+| POST/PUT/DELETE | `/api/v1/packages` | Super Admin |
 | POST | `/api/v1/member-packages` | Receptionist (bán gói) hoặc Member (tự mua) |
 | GET | `/api/v1/member-packages/me` | Member — dùng `getCurrentMembership` |
 | POST | `/api/v1/member-packages/{id}/upgrade` | Receptionist/Member |
 | POST | `/api/v1/member-packages/{id}/downgrade` | Receptionist/Member |
 | POST | `/api/v1/payments/{transactionId}/confirm` | Receptionist — xác nhận thanh toán tại chỗ |
 | GET | `/api/v1/payments/me` | Member — lịch sử thanh toán |
-| GET | `/api/v1/payments?branchId=...` | Receptionist/Admin |
+| GET | `/api/v1/payments?from=...&to=...` | Receptionist/Admin |
 
 ### Lịch làm việc PT & Booking (Agent 3)
 | Method | Endpoint | Role |
@@ -99,8 +103,9 @@
 | POST | `/api/v1/bookings` | Member (tự đặt) / Receptionist (đặt hộ) |
 | PUT | `/api/v1/bookings/{id}` | Member/Receptionist (sửa lịch, áp lại đủ rule) |
 | POST | `/api/v1/bookings/{id}/confirm` | Trainer |
-| POST | `/api/v1/bookings/{id}/cancel` | Member/Trainer |
-| POST | `/api/v1/bookings/{id}/complete` | Trainer — chặn nếu `check_in_time` null |
+| POST | `/api/v1/bookings/{id}/cancel` | Member/Trainer/Receptionist — huỷ muộn (dưới 2 giờ, booking `CONFIRMED`) → `LATE_CANCELLED`, mất 1 buổi, PT vẫn có lương |
+| POST | `/api/v1/bookings/{id}/complete` | Trainer — chỉ khi `CONFIRMED`, học viên đã check-in, PT đã quét vào và ra |
+| PUT | `/api/v1/bookings/{id}/early-leave-reason` | Trainer — nộp lý do ra sớm (`{ "reason": "..." }`), trước khi hoàn thành |
 | GET | `/api/v1/bookings/me` | Member/Trainer |
 | GET | `/api/v1/bookings?branchId=...&date=...` | Receptionist/Admin |
 
@@ -111,8 +116,8 @@
 | POST | `/api/v1/face-profiles/me` (descriptor JSON, client tự trích) | Member/Trainer — tự đăng ký |
 | GET/DELETE | `/api/v1/face-profiles/{userId}` | Receptionist/Admin |
 | POST | `/api/v1/face-attendance/kiosk` (descriptor JSON) | Receptionist/Admin — 1:N |
-| POST | `/api/v1/face-attendance/self` (descriptor JSON) | Member/Trainer đã đăng nhập — 1:1 |
-| GET | `/api/v1/staff-attendance/me` | Trainer/Receptionist |
+| POST | `/api/v1/face-attendance/self` (descriptor JSON) | Member/Trainer đã đăng nhập — 1:1. Trainer: lượt quét gắn vào booking đang diễn ra; response có `earlyLeave`, `reasonRequired` |
+| GET | `/api/v1/staff-attendance/me` | Receptionist/Sales |
 | GET | `/api/v1/staff-attendance?date=...` | Admin — báo cáo chấm công |
 
 ### POS & Commission (Agent 5)
@@ -121,8 +126,9 @@
 | GET/POST/PUT | `/api/v1/products` | Receptionist/Admin |
 | POST | `/api/v1/pos/orders` | Receptionist |
 | GET | `/api/v1/pos/orders?branchId=...` | Receptionist/Admin |
-| GET | `/api/v1/commissions/me` | Trainer/Sales |
+| GET | `/api/v1/commissions/me` | Trainer — lương theo buổi của chính mình |
 | GET | `/api/v1/commissions?staffId=...&month=...` | Admin |
+| GET/PUT | `/api/v1/trainer-pay-rates/{trainerId}` | Super Admin — xem/đặt lương mỗi buổi của PT |
 
 ### Leads/CRM (Agent 6)
 | Method | Endpoint | Role |
@@ -134,6 +140,6 @@
 | GET | `/api/v1/reports/renewal-rate` | Super Admin |
 | GET | `/api/v1/reports/checkin-traffic` | Super Admin |
 | GET | `/api/v1/reports/top-packages` | Super Admin |
-| GET | `/api/v1/reports/commissions-summary` | Super Admin |
+| GET | `/api/v1/reports/commissions-summary` | Super Admin — tổng lương theo buổi của PT |
 
 > Danh sách sẽ được cập nhật liên tục — mỗi PR mới endpoint phải cập nhật bảng tương ứng trong file này (quy tắc trong `CONTRIBUTING.md`).
