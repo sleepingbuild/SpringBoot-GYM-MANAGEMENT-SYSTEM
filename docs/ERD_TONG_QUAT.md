@@ -10,7 +10,7 @@
 
 ---
 
-## 1. Sơ đồ ERD (Mermaid — GitHub tự render khi xem file này trên web)
+## 1. Sơ đồ ERD 
 
 > **Cách đọc:**
 > - Đường liền = FK thật trong DB. Đường đứt (`..`) = quan hệ logic, **không** có FK cứng.
@@ -251,7 +251,7 @@ sau này cũng dễ dính — nên cân nhắc thêm 1 dòng kiểm tra riêng v
 
 ---
 
-## 4. Quy ước chung xuyên suốt DB (không đổi so với thiết kế gốc)
+## 4. Quy ước chung xuyên suốt DB 
 
 - **Engine:** SQL Server 2022, cú pháp T-SQL thuần (không dùng cú pháp PostgreSQL).
 - **Khoá chính:** `UNIQUEIDENTIFIER` (`NEWID()`) cho mọi bảng.
