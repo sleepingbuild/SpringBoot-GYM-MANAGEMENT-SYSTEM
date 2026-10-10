@@ -1,6 +1,8 @@
 # DATABASE_SCHEMA.md — Thiết kế Cơ sở Dữ liệu (bản đầy đủ, khớp `REQUIREMENTS.md`)
 
 > Mỗi bảng dưới đây tương ứng đúng 1 migration trong `src/main/resources/db/migration/`, đặt tên theo agent sở hữu (xem `TASK_ASSIGNMENT.md`). Không sửa lại migration đã merge — mọi thay đổi schema sau này là migration **mới**.
+>
+> **Cập nhật 2026-10-09:** `bookings` thêm cột điểm danh PT và trạng thái `LATE_CANCELLED`; `commissions` chỉ còn lương PT (`booking_id` FK); thêm bảng `trainer_pay_rates`. Sơ đồ chi tiết: `docs/ERD_TONG_QUAT.md`. Ngoại lệ "không sửa migration đã merge": `V3`/`V4` chưa merge `master` thì được sửa thẳng.
 
 ## Quy ước chung
 
@@ -17,7 +19,7 @@
 | `V2_1__user_profiles.sql` | 1 | `user_profiles` (đã có) |
 | `V3__schedule_booking.sql` | 3 | `trainer_schedules`, `bookings` |
 | `V4__face_attendance.sql` | 4 | `face_profiles` (descriptor), `staff_attendances` |
-| `V5__pos_commission.sql` | 5 | `products`, `pos_orders`, `pos_order_items`, `commissions` |
+| `V5__pos_commission.sql` | 5 | `products`, `pos_orders`, `pos_order_items`, `commissions`, `trainer_pay_rates` |
 | `V6__leads.sql` | 6 | `leads` |
 
 > Điểm danh buổi tập dùng trực tiếp `bookings.check_in_time/check_out_time` (không có bảng `check_ins` riêng) — vì mỗi lượt điểm danh luôn gắn với đúng 1 buổi đã đặt lịch cụ thể (đúng theo cách .NET đã làm, xem `REQUIREMENTS.md` mục 4).
@@ -41,7 +43,8 @@
 [staff_attendances] ──(staff)── [users]
 
 [products] ──< [pos_order_items] >──[pos_orders] ──(member?, staff)── [users]
-[commissions] ──(staff)── [users], nguồn từ [bookings] hoặc [leads]
+[commissions] ──(staff PT)── [users], ──(booking_id)── [bookings]
+[trainer_pay_rates] ──(trainer)── [users]
 [leads] ──(assigned_sales, converted_user)── [users]
 ```
 
@@ -92,7 +95,7 @@ Validate tuổi ≥18 so với `users.created_at` (ngày đăng ký), không so 
 | package_id | UUID FK → packages | |
 | branch_id | UUID FK → branches | nullable |
 | status | VARCHAR(20) | `PENDING` / `ACTIVE` / `EXPIRED` / `SCHEDULED` / `CANCELLED` |
-| start_date | DATE | với `PENDING`: dự kiến; với `ACTIVE`: ngày thanh toán thành công thật; với `SCHEDULED`: ngày gói hiện tại hết hạn |
+| start_date | DATE | với `PENDING`: dự kiến; với `ACTIVE`: ngày thanh toán thành công thật; với `SCHEDULED`: ngày ngay sau khi gói hiện tại hết hạn |
 | end_date | DATE | nullable |
 | remaining_sessions | INT | nullable |
 | created_at / updated_at | DATETIME2 | |
@@ -139,11 +142,16 @@ Unique gợi ý: không bắt buộc unique cứng ở DB (trùng giờ trong c�
 | booking_date | DATE | |
 | start_time | TIME | |
 | end_time | TIME | |
-| status | VARCHAR(20) | `PENDING` / `CONFIRMED` / `COMPLETED` / `CANCELLED` / `NO_SHOW` / `PT_NO_SHOW` |
+| status | VARCHAR(20) | `PENDING` / `CONFIRMED` / `COMPLETED` / `CANCELLED` / `NO_SHOW` / `PT_NO_SHOW` / `LATE_CANCELLED` |
 | check_in_time | DATETIME2 | nullable — set khi member face check-in |
 | check_in_method | VARCHAR(20) | `FACE` (mở rộng sau nếu cần) |
 | check_out_time | DATETIME2 | nullable |
 | check_out_method | VARCHAR(20) | nullable |
+| pt_check_in_time | DATETIME2 | nullable — PT quét mặt vào buổi dạy |
+| pt_check_in_method | VARCHAR(20) | nullable — `FACE` |
+| pt_check_out_time | DATETIME2 | nullable — PT quét mặt ra |
+| pt_check_out_method | VARCHAR(20) | nullable — `FACE` |
+| pt_early_leave_reason | NVARCHAR(255) | nullable — lý do PT ra sớm hơn giờ kết thúc; trống = coi là không dạy đủ giờ |
 | notes | NVARCHAR(500) | nullable |
 | created_at / updated_at | DATETIME2 | |
 
@@ -168,13 +176,13 @@ Index gợi ý: `(trainer_id, booking_date)`, `(member_id, booking_date)` — ph
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
 | id | UUID | |
-| staff_id | UUID FK → users | PT hoặc Lễ tân |
+| staff_id | UUID FK → users | Lễ tân hoặc Sales (PT tính lương theo buổi, không chấm công ca) |
 | date | DATE | |
 | check_in_time | DATETIME2 | nullable |
 | check_out_time | DATETIME2 | nullable |
 | method | VARCHAR(20) | `MANUAL` / `FACE` |
 | notes | NVARCHAR(255) | nullable |
-| created_at | DATETIME2 | |
+| created_at / updated_at | DATETIME2 | `updated_at` nullable (entity `extends BaseEntity` cần đủ 2 cột) |
 
 Unique: `(staff_id, date)`. Trạng thái (Đúng giờ/Đi muộn/Về sớm/Vắng mặt) **tính động lúc đọc**, không lưu cột riêng — so với `shift_start_time`/`shift_end_time` (đề xuất: thêm 2 cột nullable này vào `users` hoặc 1 bảng cấu hình riêng `staff_shifts`, mặc định 07:00–21:00 nếu trống — Agent 4 quyết định cụ thể, ghi migration tương ứng).
 
@@ -199,18 +207,25 @@ Unique: `(staff_id, date)`. Trạng thái (Đúng giờ/Đi muộn/Về sớm/V�
 | `pos_orders` | id, member_id (UUID FK → users, nullable — khách vãng lai), staff_id (UUID FK → users), branch_id, total_amount, payment_method, status, created_at |
 | `pos_order_items` | id, order_id FK, product_id FK, quantity, unit_price, subtotal |
 
-### `commissions`
+### `trainer_pay_rates`
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
 | id | UUID | |
-| staff_id | UUID FK → users | PT hoặc Sales |
-| type | VARCHAR(20) | `PT` / `SALES` |
-| source_type | VARCHAR(20) | `BOOKING` / `LEAD_CONVERSION` |
-| source_id | UUID | id của `bookings` hoặc `leads` |
-| amount | DECIMAL(12,2) | |
+| trainer_id | UUID FK → users | UNIQUE — 1 PT 1 mức lương |
+| amount_per_session | DECIMAL(12,2) | lương mỗi buổi dạy |
+| created_at / updated_at | DATETIME2 | |
+
+### `commissions` (chỉ còn lương PT theo buổi — hoa hồng Sales đã bỏ)
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| id | UUID | |
+| staff_id | UUID FK → users | PT |
+| booking_id | UUID FK → bookings | UNIQUE — mỗi buổi tối đa 1 bản ghi (chống tính hai lần) |
+| outcome | VARCHAR(20) | `COMPLETED` / `MEMBER_NO_SHOW` / `LATE_CANCEL` |
+| amount | DECIMAL(12,2) | lấy từ `trainer_pay_rates` tại thời điểm chốt buổi |
 | status | VARCHAR(20) | `PENDING` / `PAID` |
 | paid_at | DATETIME2 | nullable |
-| created_at | DATETIME2 | |
+| created_at / updated_at | DATETIME2 | |
 
 ---
 
