@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -36,6 +37,10 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class TrainerScheduleServiceImpl implements TrainerScheduleService {
+
+    /** Status không còn chiếm slot — phải khớp điều kiện của BookingRepository.findActiveByTrainerSlot. */
+    private static final Set<BookingStatus> SLOT_RELEASED_STATUSES =
+            Set.of(BookingStatus.CANCELLED, BookingStatus.PT_NO_SHOW, BookingStatus.LATE_CANCELLED);
 
     private final TrainerScheduleRepository scheduleRepository;
     private final BookingRepository bookingRepository;
@@ -113,7 +118,7 @@ public class TrainerScheduleServiceImpl implements TrainerScheduleService {
         // findActiveByTrainerSlot trong BookingRepository chỉ check 1 slot cụ thể nên không dùng ở đây.
         List<Booking> allTrainerBookings = bookingRepository
                 .findByTrainerIdOrderByBookingDateDescStartTimeDesc(trainerId).stream()
-                .filter(b -> b.getBookingDate().equals(date) && b.getStatus() != BookingStatus.CANCELLED)
+                .filter(b -> b.getBookingDate().equals(date) && !SLOT_RELEASED_STATUSES.contains(b.getStatus()))
                 .toList();
 
         boolean isToday = date.equals(LocalDate.now(clock));
@@ -127,7 +132,7 @@ public class TrainerScheduleServiceImpl implements TrainerScheduleService {
                 final LocalTime slotStart = cursor;
 
                 boolean taken = allTrainerBookings.stream()
-                        .anyMatch(b -> b.getStartTime().equals(slotStart));
+                        .anyMatch(b -> b.getStartTime().isBefore(slotEnd) && b.getEndTime().isAfter(slotStart));
                 boolean tooSoon = isToday && !slotStart.isAfter(now.plusMinutes(30));
 
                 if (!taken && !tooSoon) {

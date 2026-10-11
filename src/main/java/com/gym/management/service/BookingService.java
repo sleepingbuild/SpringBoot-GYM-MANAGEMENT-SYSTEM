@@ -3,6 +3,7 @@ package com.gym.management.service;
 import com.gym.management.dto.request.BookingRequest;
 import com.gym.management.dto.request.BookingUpdateRequest;
 import com.gym.management.dto.response.BookingResponse;
+import com.gym.management.dto.response.TrainerScanResult;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -45,4 +46,17 @@ public interface BookingService {
      *         phù hợp để điểm danh (không phải lỗi — Agent 4 tự quyết định thông báo gì cho FE).
      */
     Optional<BookingResponse> recordFaceScan(UUID memberId, LocalDateTime scanTime);
+
+    /**
+     * Ghi nhận 1 lượt quét mặt hợp lệ của PT (Agent 4 đã tự xác định {@code trainerId} qua so khớp;
+     * Booking không verify lại danh tính). PT quét theo TỪNG BUỔI, không ghi staff_attendances.
+     *
+     * Chọn booking CONFIRMED của PT trong ngày, sau khi áp lazy-status:
+     * 1) có buổi PT đã quét vào mà chưa quét ra thì CHECK_OUT (ghi ngay, lý do nộp sau);
+     * 2) nếu không, buổi chưa quét vào mà giờ quét nằm trong [S-30 phút, S+ân hạn] thì CHECK_IN.
+     *
+     * @return empty nếu PT không có buổi nào cần điểm danh lúc này (không phải lỗi).
+     *         {@code earlyLeave} = true khi CHECK_OUT mà giờ quét trước giờ kết thúc buổi.
+     */
+    Optional<TrainerScanResult> recordTrainerFaceScan(UUID trainerId, LocalDateTime scanTime);
 }
