@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
+// G3 (CHANGE_PT_ATTENDANCE_AND_PAY.md): staff_attendances nay chỉ dành cho Lễ tân (PT điểm danh theo buổi ở Booking).
 @ExtendWith(MockitoExtension.class)
 class StaffAttendanceServiceImplTest {
 
@@ -46,7 +47,7 @@ class StaffAttendanceServiceImplTest {
 
         staffUser = new User();
         staffUser.setId(staffId);
-        staffUser.setFullName("PT Test");
+        staffUser.setFullName("Receptionist Test");
         lenient().when(userRepository.getReferenceById(staffId)).thenReturn(staffUser);
         lenient().when(staffAttendanceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }

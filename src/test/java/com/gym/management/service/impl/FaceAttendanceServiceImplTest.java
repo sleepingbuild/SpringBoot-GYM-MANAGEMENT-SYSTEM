@@ -11,6 +11,7 @@ import com.gym.management.exception.ErrorCode;
 import com.gym.management.integration.hardware.FaceMatchService;
 import com.gym.management.repository.UserRepository;
 import com.gym.management.service.BookingService;
+import com.gym.management.dto.response.TrainerScanResult;
 import com.gym.management.service.StaffAttendanceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -67,6 +69,7 @@ class FaceAttendanceServiceImplTest {
                 faceMatchService, userRepository, bookingService, staffAttendanceService,
                 redisTemplate, new PassThroughTransactionTemplate());
         ReflectionTestUtils.setField(service, "minScanIntervalSeconds", 120L);
+        ReflectionTestUtils.setField(service, "trainerMinScanIntervalSeconds", 15L);
         lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     }
 
@@ -93,6 +96,15 @@ class FaceAttendanceServiceImplTest {
         user.setRoles(roles);
         return user;
     }
+
+    /** Dựng sẵn mock cho luồng quét qua kiosk của 1 user đã nhận diện được, Redis cho phép đi tiếp. */
+    private void givenKioskMatchedAndNotDuplicate(User user) {
+        when(faceMatchService.matchAgainstAll(DESCRIPTOR)).thenReturn(Optional.of(user.getId()));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(valueOperations.setIfAbsent(anyString(), eq("1"), any())).thenReturn(true);
+    }
+
+    // ------------------------------------------------------------------ chung
 
     @Test
     void kioskScan_notRecognized_throwsFaceNotRecognized() {
@@ -132,14 +144,24 @@ class FaceAttendanceServiceImplTest {
     }
 
     @Test
+    void unsupportedRole_throwsFaceNotRecognized() {
+        User salesUser = buildUser("SALES"); // role không hỗ trợ điểm danh khuôn mặt
+        givenKioskMatchedAndNotDuplicate(salesUser);
+
+        assertThatThrownBy(() -> service.kioskScan(buildRequest()))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FACE_NOT_RECOGNIZED);
+    }
+
+    // ----------------------------------------------------------------- MEMBER
+
+    @Test
     void memberScan_firstScan_recordsCheckInViaBookingService() {
         User member = buildUser("MEMBER");
         BookingResponse bookingResponse = mock(BookingResponse.class);
         when(bookingResponse.getCheckOutTime()).thenReturn(null); // vừa CHECK_IN
 
-        when(faceMatchService.matchAgainstAll(DESCRIPTOR)).thenReturn(Optional.of(member.getId()));
-        when(userRepository.findById(member.getId())).thenReturn(Optional.of(member));
-        when(valueOperations.setIfAbsent(anyString(), eq("1"), any())).thenReturn(true);
+        givenKioskMatchedAndNotDuplicate(member);
         when(bookingService.recordFaceScan(eq(member.getId()), any(LocalDateTime.class)))
                 .thenReturn(Optional.of(bookingResponse));
 
@@ -158,9 +180,7 @@ class FaceAttendanceServiceImplTest {
         BookingResponse bookingResponse = mock(BookingResponse.class);
         when(bookingResponse.getCheckOutTime()).thenReturn(LocalDateTime.now()); // vừa CHECK_OUT
 
-        when(faceMatchService.matchAgainstAll(DESCRIPTOR)).thenReturn(Optional.of(member.getId()));
-        when(userRepository.findById(member.getId())).thenReturn(Optional.of(member));
-        when(valueOperations.setIfAbsent(anyString(), eq("1"), any())).thenReturn(true);
+        givenKioskMatchedAndNotDuplicate(member);
         when(bookingService.recordFaceScan(eq(member.getId()), any(LocalDateTime.class)))
                 .thenReturn(Optional.of(bookingResponse));
 
@@ -173,9 +193,7 @@ class FaceAttendanceServiceImplTest {
     void memberScan_noMatchingBookingToday_returnsBookingLinkedFalse() {
         User member = buildUser("MEMBER");
 
-        when(faceMatchService.matchAgainstAll(DESCRIPTOR)).thenReturn(Optional.of(member.getId()));
-        when(userRepository.findById(member.getId())).thenReturn(Optional.of(member));
-        when(valueOperations.setIfAbsent(anyString(), eq("1"), any())).thenReturn(true);
+        givenKioskMatchedAndNotDuplicate(member);
         when(bookingService.recordFaceScan(eq(member.getId()), any(LocalDateTime.class)))
                 .thenReturn(Optional.empty()); // không có booking hôm nay -> KHÔNG phải lỗi
 
@@ -185,15 +203,151 @@ class FaceAttendanceServiceImplTest {
     }
 
     @Test
-    void staffScan_trainer_recordsViaStaffAttendanceService() {
+    void memberScan_usesDefaultDedupWindow() {
+        User member = buildUser("MEMBER");
+        givenKioskMatchedAndNotDuplicate(member);
+        when(bookingService.recordFaceScan(eq(member.getId()), any(LocalDateTime.class)))
+                .thenReturn(Optional.empty());
+
+        service.kioskScan(buildRequest());
+
+        verify(valueOperations).setIfAbsent(
+                eq("face-scan:" + member.getId()), eq("1"), eq(Duration.ofSeconds(120)));
+    }
+
+    // --------------------------------------------------------------- TRAINER
+
+    @Test
+    void trainerScan_checkIn_recordsViaBookingServiceNotStaffAttendance() {
         User trainer = buildUser("TRAINER");
-        StaffAttendanceResponse staffResponse = mock(StaffAttendanceResponse.class);
-        when(staffResponse.getCheckOutTime()).thenReturn(null);
+        UUID bookingId = UUID.randomUUID();
+        BookingResponse booking = mock(BookingResponse.class);
+        when(booking.getId()).thenReturn(bookingId);
+
+        givenKioskMatchedAndNotDuplicate(trainer);
+        when(bookingService.recordTrainerFaceScan(eq(trainer.getId()), any(LocalDateTime.class)))
+                .thenReturn(Optional.of(new TrainerScanResult(booking, "CHECK_IN", false)));
+
+        FaceAttendanceResponse response = service.kioskScan(buildRequest());
+
+        assertThat(response.getAction()).isEqualTo("CHECK_IN");
+        assertThat(response.getTargetType()).isEqualTo("BOOKING");
+        assertThat(response.getBookingId()).isEqualTo(bookingId);
+        assertThat(response.isBookingLinked()).isTrue();
+        assertThat(response.isEarlyLeave()).isFalse();
+        assertThat(response.isReasonRequired()).isFalse();
+        // G3: PT quét mặt KHÔNG còn ghi staff_attendances
+        verifyNoInteractions(staffAttendanceService);
+        verify(bookingService, never()).recordFaceScan(any(), any());
+    }
+
+    @Test
+    void trainerScan_earlyCheckOut_requiresReason() {
+        User trainer = buildUser("TRAINER");
+        BookingResponse booking = mock(BookingResponse.class);
+        when(booking.getId()).thenReturn(UUID.randomUUID());
+
+        givenKioskMatchedAndNotDuplicate(trainer);
+        when(bookingService.recordTrainerFaceScan(eq(trainer.getId()), any(LocalDateTime.class)))
+                .thenReturn(Optional.of(new TrainerScanResult(booking, "CHECK_OUT", true)));
+
+        FaceAttendanceResponse response = service.kioskScan(buildRequest());
+
+        assertThat(response.getAction()).isEqualTo("CHECK_OUT");
+        assertThat(response.isEarlyLeave()).isTrue();
+        assertThat(response.isReasonRequired()).isTrue();
+        verifyNoInteractions(staffAttendanceService);
+    }
+
+    @Test
+    void trainerScan_fullDurationCheckOut_noReasonRequired() {
+        User trainer = buildUser("TRAINER");
+        BookingResponse booking = mock(BookingResponse.class);
+        when(booking.getId()).thenReturn(UUID.randomUUID());
+
+        givenKioskMatchedAndNotDuplicate(trainer);
+        when(bookingService.recordTrainerFaceScan(eq(trainer.getId()), any(LocalDateTime.class)))
+                .thenReturn(Optional.of(new TrainerScanResult(booking, "CHECK_OUT", false)));
+
+        FaceAttendanceResponse response = service.kioskScan(buildRequest());
+
+        assertThat(response.getAction()).isEqualTo("CHECK_OUT");
+        assertThat(response.isEarlyLeave()).isFalse();
+        assertThat(response.isReasonRequired()).isFalse();
+    }
+
+    @Test
+    void trainerScan_earlyLeaveFlagIgnoredOnCheckIn() {
+        // Phòng thủ: dù Booking trả earlyLeave=true cho CHECK_IN (không hợp lệ), Agent 4 không hiện ô lý do
+        User trainer = buildUser("TRAINER");
+        BookingResponse booking = mock(BookingResponse.class);
+        when(booking.getId()).thenReturn(UUID.randomUUID());
+
+        givenKioskMatchedAndNotDuplicate(trainer);
+        when(bookingService.recordTrainerFaceScan(eq(trainer.getId()), any(LocalDateTime.class)))
+                .thenReturn(Optional.of(new TrainerScanResult(booking, "CHECK_IN", true)));
+
+        FaceAttendanceResponse response = service.kioskScan(buildRequest());
+
+        assertThat(response.isEarlyLeave()).isFalse();
+        assertThat(response.isReasonRequired()).isFalse();
+    }
+
+    @Test
+    void trainerScan_noSessionToday_returnsMessageNotError() {
+        User trainer = buildUser("TRAINER");
+
+        givenKioskMatchedAndNotDuplicate(trainer);
+        when(bookingService.recordTrainerFaceScan(eq(trainer.getId()), any(LocalDateTime.class)))
+                .thenReturn(Optional.empty());
+
+        FaceAttendanceResponse response = service.kioskScan(buildRequest()); // KHÔNG ném exception
+
+        assertThat(response.getAction()).isEqualTo("NONE");
+        assertThat(response.isBookingLinked()).isFalse();
+        assertThat(response.getBookingId()).isNull();
+        assertThat(response.getMessage()).isEqualTo("Không có buổi nào cần điểm danh");
+        verifyNoInteractions(staffAttendanceService);
+    }
+
+    @Test
+    void trainerScan_usesShorterDedupWindowSoBackToBackSessionsAreNotBlocked() {
+        User trainer = buildUser("TRAINER");
+        givenKioskMatchedAndNotDuplicate(trainer);
+        when(bookingService.recordTrainerFaceScan(eq(trainer.getId()), any(LocalDateTime.class)))
+                .thenReturn(Optional.empty());
+
+        service.kioskScan(buildRequest());
+
+        verify(valueOperations).setIfAbsent(
+                eq("face-scan:" + trainer.getId()), eq("1"), eq(Duration.ofSeconds(15)));
+    }
+
+    @Test
+    void trainerScan_duplicateWithinShortWindow_isStillBlocked() {
+        User trainer = buildUser("TRAINER");
 
         when(faceMatchService.matchAgainstAll(DESCRIPTOR)).thenReturn(Optional.of(trainer.getId()));
         when(userRepository.findById(trainer.getId())).thenReturn(Optional.of(trainer));
-        when(valueOperations.setIfAbsent(anyString(), eq("1"), any())).thenReturn(true);
-        when(staffAttendanceService.recordScan(eq(trainer.getId()), any(LocalDateTime.class), eq("FACE")))
+        when(valueOperations.setIfAbsent(eq("face-scan:" + trainer.getId()), eq("1"), any()))
+                .thenReturn(false);
+
+        FaceAttendanceResponse response = service.kioskScan(buildRequest());
+
+        assertThat(response.isDuplicateScan()).isTrue();
+        verifyNoInteractions(bookingService, staffAttendanceService);
+    }
+
+    // ----------------------------------------------------------- RECEPTIONIST
+
+    @Test
+    void receptionistScan_recordsViaStaffAttendanceService() {
+        User receptionist = buildUser("RECEPTIONIST");
+        StaffAttendanceResponse staffResponse = mock(StaffAttendanceResponse.class);
+        when(staffResponse.getCheckOutTime()).thenReturn(null);
+
+        givenKioskMatchedAndNotDuplicate(receptionist);
+        when(staffAttendanceService.recordScan(eq(receptionist.getId()), any(LocalDateTime.class), eq("FACE")))
                 .thenReturn(staffResponse);
 
         FaceAttendanceResponse response = service.kioskScan(buildRequest());
@@ -201,35 +355,5 @@ class FaceAttendanceServiceImplTest {
         assertThat(response.getAction()).isEqualTo("CHECK_IN");
         assertThat(response.getTargetType()).isEqualTo("STAFF_ATTENDANCE");
         verifyNoInteractions(bookingService);
-    }
-
-    @Test
-    void staffScan_receptionist_recordsViaStaffAttendanceService() {
-        User receptionist = buildUser("RECEPTIONIST");
-        StaffAttendanceResponse staffResponse = mock(StaffAttendanceResponse.class);
-        when(staffResponse.getCheckOutTime()).thenReturn(null);
-
-        when(faceMatchService.matchAgainstAll(DESCRIPTOR)).thenReturn(Optional.of(receptionist.getId()));
-        when(userRepository.findById(receptionist.getId())).thenReturn(Optional.of(receptionist));
-        when(valueOperations.setIfAbsent(anyString(), eq("1"), any())).thenReturn(true);
-        when(staffAttendanceService.recordScan(eq(receptionist.getId()), any(LocalDateTime.class), eq("FACE")))
-                .thenReturn(staffResponse);
-
-        FaceAttendanceResponse response = service.kioskScan(buildRequest());
-
-        assertThat(response.getTargetType()).isEqualTo("STAFF_ATTENDANCE");
-    }
-
-    @Test
-    void unsupportedRole_throwsFaceNotRecognized() {
-        User salesUser = buildUser("SALES"); // role không hỗ trợ điểm danh khuôn mặt
-
-        when(faceMatchService.matchAgainstAll(DESCRIPTOR)).thenReturn(Optional.of(salesUser.getId()));
-        when(userRepository.findById(salesUser.getId())).thenReturn(Optional.of(salesUser));
-        when(valueOperations.setIfAbsent(anyString(), eq("1"), any())).thenReturn(true);
-
-        assertThatThrownBy(() -> service.kioskScan(buildRequest()))
-                .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FACE_NOT_RECOGNIZED);
     }
 }

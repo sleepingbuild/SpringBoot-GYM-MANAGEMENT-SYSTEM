@@ -17,8 +17,10 @@ public class StaffAttendanceController {
 
     private final StaffAttendanceService staffAttendanceService;
 
+    // G3 (CHANGE_PT_ATTENDANCE_AND_PAY.md): PT không còn ghi staff_attendances (trả lương theo
+    // buổi, điểm danh nằm ở Booking) → chỉ Lễ tân còn dữ liệu chấm công ở đây.
     @GetMapping("/me")
-    @PreAuthorize("hasAnyRole('TRAINER', 'RECEPTIONIST')")
+    @PreAuthorize("hasRole('RECEPTIONIST')")
     public ApiResponse<?> myAttendance() {
         return ApiResponse.success(staffAttendanceService.findMyAttendance(CurrentUserId.get()));
     }
