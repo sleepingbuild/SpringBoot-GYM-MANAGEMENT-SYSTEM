@@ -20,6 +20,7 @@ CREATE TABLE staff_attendances (
     method         VARCHAR(20)      NOT NULL DEFAULT 'MANUAL',
     notes          NVARCHAR(255)    NULL,
     created_at     DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
+    updated_at     DATETIME2        NULL,
     CONSTRAINT uq_staff_attendances_staff_date UNIQUE (staff_id, date),
     CONSTRAINT fk_staff_attendances_staff FOREIGN KEY (staff_id) REFERENCES users(id)
 );
