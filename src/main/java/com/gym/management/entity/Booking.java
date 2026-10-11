@@ -76,6 +76,23 @@ public class Booking extends BaseEntity {
     @Column(name = "check_out_method", length = 20)
     private String checkOutMethod;
 
+    /** PT quét mặt vào buổi (khác check_in_time = học viên quét). */
+    @Column(name = "pt_check_in_time")
+    private LocalDateTime ptCheckInTime;
+
+    @Column(name = "pt_check_in_method", length = 20)
+    private String ptCheckInMethod;
+
+    @Column(name = "pt_check_out_time")
+    private LocalDateTime ptCheckOutTime;
+
+    @Column(name = "pt_check_out_method", length = 20)
+    private String ptCheckOutMethod;
+
+    /** Lý do PT rời buổi sớm; không có lý do = coi như không dạy đủ thời gian. */
+    @Column(name = "pt_early_leave_reason", length = 255)
+    private String ptEarlyLeaveReason;
+
     @Column(name = "notes", length = 500)
     private String notes;
 }

@@ -32,5 +32,15 @@ public class BookingResponse {
     private String checkInMethod;
     private LocalDateTime checkOutTime;
     private String checkOutMethod;
+    private LocalDateTime ptCheckInTime;
+    private String ptCheckInMethod;
+    private LocalDateTime ptCheckOutTime;
+    private String ptCheckOutMethod;
+    private String ptEarlyLeaveReason;
+    /**
+     * Tính động, không lưu DB. null = PT chưa quét ra nên chưa xác định được.
+     * true = PT ra từ giờ kết thúc trở đi, hoặc ra sớm nhưng có lý do. false = ra sớm không lý do.
+     */
+    private Boolean fullDuration;
     private String notes;
 }

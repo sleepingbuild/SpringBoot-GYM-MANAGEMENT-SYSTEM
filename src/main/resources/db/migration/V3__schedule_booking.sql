@@ -30,6 +30,13 @@ CREATE TABLE bookings (
     check_in_method     VARCHAR(20) NULL,
     check_out_time      DATETIME2 NULL,
     check_out_method    VARCHAR(20) NULL,
+    -- PT điểm danh theo từng buổi (CHANGE_PT_ATTENDANCE_AND_PAY.md): PT quét mặt vào/ra,
+    -- quét ra trước giờ kết thúc thì phải nộp lý do (không nộp = không dạy đủ thời gian).
+    pt_check_in_time        DATETIME2 NULL,
+    pt_check_in_method      VARCHAR(20) NULL,
+    pt_check_out_time       DATETIME2 NULL,
+    pt_check_out_method     VARCHAR(20) NULL,
+    pt_early_leave_reason   NVARCHAR(255) NULL,
     notes               NVARCHAR(500) NULL,
     created_at          DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     updated_at          DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
