@@ -73,10 +73,37 @@ public interface MembershipService {
      */
     MemberPackageResponse activateFromPendingPayment(UUID memberPackageId);
 
+    /** Kết quả của {@link #tryConsumeSession(UUID)}. */
+    enum ConsumeResult {
+        /** Đã trừ 1 buổi của gói ACTIVE hiện tại. */
+        CONSUMED,
+        /** Gói không giới hạn buổi (remaining_sessions = null) — không có gì để trừ, không phải lỗi. */
+        UNLIMITED,
+        /** Hội viên không có gói ACTIVE nào tại thời điểm trừ (hết hạn, đang chờ thanh toán nâng cấp...). */
+        NO_ACTIVE_MEMBERSHIP,
+        /** Gói ACTIVE đã hết buổi (remaining_sessions <= 0) — không trừ âm. */
+        NO_SESSION_LEFT
+    }
+
     /**
-     * Trừ 1 buổi tập của gói ACTIVE hiện tại — dùng bởi Agent 3/4 khi 1 booking chuyển COMPLETED
-     * hoặc member check-in hợp lệ. Bỏ qua (không trừ) nếu gói không giới hạn buổi (remaining_sessions
-     * = null, ví dụ TIME_BASED không kèm session_count). Ném MEMBERSHIP_NO_SESSION nếu đã hết buổi.
+     * Trừ 1 buổi tập của gói ACTIVE hiện tại, KHÔNG ném lỗi nghiệp vụ — trả về {@link ConsumeResult}.
+     *
+     * Đây là method duy nhất được dùng ở luồng chốt buổi (listener của {@code BookingSettledEvent},
+     * xem CHANGE_PT_ATTENDANCE_AND_PAY.md). Lý do không dùng {@link #consumeSession}: listener chạy
+     * ĐỒNG BỘ bên trong transaction của Agent 3 (completeBooking/cancelBooking/applyLazyStatus). Nếu
+     * method ném RuntimeException đi qua proxy @Transactional, transaction ngoài bị đánh dấu
+     * rollback-only dù listener có try/catch — kết quả là buổi tập không thể COMPLETED và PT mất công
+     * chỉ vì lỗi kế toán gói của hội viên (hết buổi, gói vừa hết hạn). Hội viên thiếu buổi là việc
+     * của lễ tân xử lý, không được chặn việc chốt buổi/trả công PT.
+     */
+    ConsumeResult tryConsumeSession(UUID userId);
+
+    /**
+     * Phiên bản "nghiêm ngặt" của {@link #tryConsumeSession}: ném MEMBERSHIP_NOT_FOUND nếu không có gói
+     * ACTIVE, MEMBERSHIP_NO_SESSION nếu hết buổi. Chỉ dùng khi người gọi MUỐN thao tác thất bại khi
+     * thiếu buổi (hiện chưa có nơi nào dùng). KHÔNG dùng trong listener chốt buổi (xem lý do ở trên)
+     * và KHÔNG gọi ở bước face check-in (Agent 4): check-in chỉ xác nhận có mặt, chưa chắc buổi tập
+     * diễn ra trọn vẹn.
      */
     void consumeSession(UUID userId);
 }
