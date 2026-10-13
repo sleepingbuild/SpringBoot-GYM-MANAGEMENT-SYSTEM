@@ -113,10 +113,10 @@
 | Method | Endpoint | Role |
 |---|---|---|
 | POST | `/api/v1/face-profiles/{userId}` (multipart ảnh tĩnh, backend tự trích descriptor) | Receptionist/Admin — đăng ký hộ |
-| POST | `/api/v1/face-profiles/me` (descriptor JSON, client tự trích) | Member/Trainer — tự đăng ký |
+| POST | `/api/v1/face-profiles/me` (descriptor JSON, client tự trích) | Member/Trainer/Receptionist/Sales — tự đăng ký |
 | GET/DELETE | `/api/v1/face-profiles/{userId}` | Receptionist/Admin |
-| POST | `/api/v1/face-attendance/kiosk` (descriptor JSON) | Receptionist/Admin — 1:N |
-| POST | `/api/v1/face-attendance/self` (descriptor JSON) | Member/Trainer đã đăng nhập — 1:1. Trainer: lượt quét gắn vào booking đang diễn ra; response có `earlyLeave`, `reasonRequired` |
+| POST | `/api/v1/face-attendance/kiosk` (descriptor JSON) | Receptionist/Admin — 1:N. Kết quả ghi theo role người được nhận diện (Member/Trainer → booking, Receptionist/Sales → `staff_attendances`) |
+| POST | `/api/v1/face-attendance/self` (descriptor JSON) | Member/Trainer/Receptionist/Sales đã đăng nhập — 1:1. Trainer: lượt quét gắn vào booking đang diễn ra; response có `earlyLeave`, `reasonRequired` |
 | GET | `/api/v1/staff-attendance/me` | Receptionist/Sales |
 | GET | `/api/v1/staff-attendance?date=...` | Admin — báo cáo chấm công |
 
