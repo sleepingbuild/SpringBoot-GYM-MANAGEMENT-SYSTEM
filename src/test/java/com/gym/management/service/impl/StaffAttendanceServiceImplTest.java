@@ -26,7 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
-// G3 (CHANGE_PT_ATTENDANCE_AND_PAY.md): staff_attendances nay chỉ dành cho Lễ tân (PT điểm danh theo buổi ở Booking).
+// G3 (CHANGE_PT_ATTENDANCE_AND_PAY.md): staff_attendances dành cho Lễ tân và Sales (PT điểm danh theo buổi ở Booking).
 @ExtendWith(MockitoExtension.class)
 class StaffAttendanceServiceImplTest {
 

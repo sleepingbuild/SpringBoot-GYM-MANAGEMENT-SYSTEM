@@ -145,8 +145,8 @@ class FaceAttendanceServiceImplTest {
 
     @Test
     void unsupportedRole_throwsFaceNotRecognized() {
-        User salesUser = buildUser("SALES"); // role không hỗ trợ điểm danh khuôn mặt
-        givenKioskMatchedAndNotDuplicate(salesUser);
+        User admin = buildUser("SUPER_ADMIN"); // role không điểm danh khuôn mặt (SALES nay đã được hỗ trợ)
+        givenKioskMatchedAndNotDuplicate(admin);
 
         assertThatThrownBy(() -> service.kioskScan(buildRequest()))
                 .isInstanceOf(BusinessException.class)
@@ -353,6 +353,79 @@ class FaceAttendanceServiceImplTest {
         FaceAttendanceResponse response = service.kioskScan(buildRequest());
 
         assertThat(response.getAction()).isEqualTo("CHECK_IN");
+        assertThat(response.getTargetType()).isEqualTo("STAFF_ATTENDANCE");
+        verifyNoInteractions(bookingService);
+    }
+
+    // ------------------------------------------------------------------ SALES
+    // Phi chốt (2026-10): Sales có chấm công khuôn mặt giống Lễ tân → ghi staff_attendances.
+
+    @Test
+    void salesScan_kiosk_recordsViaStaffAttendanceService() {
+        User sales = buildUser("SALES");
+        StaffAttendanceResponse staffResponse = mock(StaffAttendanceResponse.class);
+        when(staffResponse.getCheckOutTime()).thenReturn(null);
+
+        givenKioskMatchedAndNotDuplicate(sales);
+        when(staffAttendanceService.recordScan(eq(sales.getId()), any(LocalDateTime.class), eq("FACE")))
+                .thenReturn(staffResponse);
+
+        FaceAttendanceResponse response = service.kioskScan(buildRequest());
+
+        assertThat(response.getAction()).isEqualTo("CHECK_IN");
+        assertThat(response.getTargetType()).isEqualTo("STAFF_ATTENDANCE");
+        verifyNoInteractions(bookingService);
+    }
+
+    @Test
+    void salesScan_self_secondScanIsCheckOut() {
+        User sales = buildUser("SALES");
+        StaffAttendanceResponse staffResponse = mock(StaffAttendanceResponse.class);
+        when(staffResponse.getCheckOutTime()).thenReturn(LocalDateTime.now()); // vừa CHECK_OUT
+
+        when(faceMatchService.matchAgainstUser(DESCRIPTOR, sales.getId())).thenReturn(true);
+        when(userRepository.findById(sales.getId())).thenReturn(Optional.of(sales));
+        when(valueOperations.setIfAbsent(anyString(), eq("1"), any())).thenReturn(true);
+        when(staffAttendanceService.recordScan(eq(sales.getId()), any(LocalDateTime.class), eq("FACE")))
+                .thenReturn(staffResponse);
+
+        FaceAttendanceResponse response = service.selfScan(sales.getId(), buildRequest());
+
+        assertThat(response.getAction()).isEqualTo("CHECK_OUT");
+        assertThat(response.getTargetType()).isEqualTo("STAFF_ATTENDANCE");
+        verifyNoInteractions(bookingService);
+    }
+
+    @Test
+    void salesScan_usesDefaultDedupWindowNotTrainerWindow() {
+        User sales = buildUser("SALES");
+        StaffAttendanceResponse staffResponse = mock(StaffAttendanceResponse.class);
+        when(staffResponse.getCheckOutTime()).thenReturn(null);
+
+        givenKioskMatchedAndNotDuplicate(sales);
+        when(staffAttendanceService.recordScan(eq(sales.getId()), any(LocalDateTime.class), eq("FACE")))
+                .thenReturn(staffResponse);
+
+        service.kioskScan(buildRequest());
+
+        verify(valueOperations).setIfAbsent(
+                eq("face-scan:" + sales.getId()), eq("1"), eq(Duration.ofSeconds(120)));
+    }
+
+    @Test
+    void receptionistScan_self_recordsViaStaffAttendanceService() {
+        User receptionist = buildUser("RECEPTIONIST");
+        StaffAttendanceResponse staffResponse = mock(StaffAttendanceResponse.class);
+        when(staffResponse.getCheckOutTime()).thenReturn(null);
+
+        when(faceMatchService.matchAgainstUser(DESCRIPTOR, receptionist.getId())).thenReturn(true);
+        when(userRepository.findById(receptionist.getId())).thenReturn(Optional.of(receptionist));
+        when(valueOperations.setIfAbsent(anyString(), eq("1"), any())).thenReturn(true);
+        when(staffAttendanceService.recordScan(eq(receptionist.getId()), any(LocalDateTime.class), eq("FACE")))
+                .thenReturn(staffResponse);
+
+        FaceAttendanceResponse response = service.selfScan(receptionist.getId(), buildRequest());
+
         assertThat(response.getTargetType()).isEqualTo("STAFF_ATTENDANCE");
         verifyNoInteractions(bookingService);
     }

@@ -121,7 +121,8 @@ public class FaceAttendanceServiceImpl implements FaceAttendanceService {
             return processTrainerScan(user, now);
         }
 
-        if (roleNames.contains("RECEPTIONIST")) {
+        // Phi chốt (2026-10): Lễ tân và Sales đều chấm công khuôn mặt vào staff_attendances.
+        if (roleNames.contains("RECEPTIONIST") || roleNames.contains("SALES")) {
             var result = staffAttendanceService.recordScan(matchedUserId, now, "FACE");
             return FaceAttendanceResponse.builder()
                     .matchedUserId(matchedUserId)
