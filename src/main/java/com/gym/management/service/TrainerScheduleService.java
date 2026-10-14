@@ -21,8 +21,7 @@ public interface TrainerScheduleService {
     /**
      * Trả danh sách slot trống của 1 PT trong 1 ngày, dựa trên ca làm việc thật (TrainerSchedule)
      * trừ đi các booking đã có (không cấm trùng giờ giữa 2 PT khác nhau).
-     * Độ dài mỗi slot lấy theo `gms.booking.slot-duration-minutes` (mặc định 60) —
-     * xem AGENT3_README.md mục 4, REQUIREMENTS.md không quy định cụ thể giá trị này.
+     * Độ dài mỗi slot lấy theo `gms.booking.slot-duration-minutes` (mặc định 60 phút, Phi đã duyệt).
      */
     List<AvailableSlotResponse> findAvailableSlots(UUID trainerId, LocalDate date);
 

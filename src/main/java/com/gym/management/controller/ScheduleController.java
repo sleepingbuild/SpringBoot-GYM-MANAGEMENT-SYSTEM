@@ -4,6 +4,8 @@ import com.gym.management.dto.request.TrainerScheduleRequest;
 import com.gym.management.exception.ApiResponse;
 import com.gym.management.security.CurrentUserId;
 import com.gym.management.service.TrainerScheduleService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -14,11 +16,8 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.UUID;
 
-/**
- * ⚠️ @PreAuthorize giả định role authorities có prefix "ROLE_" theo chuẩn Spring Security
- * (khớp cách Agent 2 dùng — xem AGENT2_README.md). Nếu SecurityConfig của Agent 1 dùng cơ chế
- * khác, chỉ cần đổi annotation ở đây, không đổi logic service.
- */
+/** Ca làm việc của PT theo ngày cụ thể (work_date). Quyền theo role, không có tiền tố ROLE_ trong tên role. */
+@Tag(name = "Lịch làm việc PT")
 @RestController
 @RequestMapping("/api/v1/trainer-schedules")
 @RequiredArgsConstructor
@@ -28,6 +27,7 @@ public class ScheduleController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('TRAINER', 'SUPER_ADMIN')")
+    @Operation(summary = "Tạo ca làm việc của PT (theo ngày cụ thể)")
     public ApiResponse<?> create(@Valid @RequestBody TrainerScheduleRequest request) {
         UUID currentUserId = CurrentUserId.get();
         return ApiResponse.success("Tạo ca làm việc thành công", scheduleService.createSchedule(currentUserId, request));
@@ -35,6 +35,7 @@ public class ScheduleController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('TRAINER', 'SUPER_ADMIN')")
+    @Operation(summary = "Sửa ca làm việc của PT")
     public ApiResponse<?> update(@PathVariable UUID id, @Valid @RequestBody TrainerScheduleRequest request) {
         UUID currentUserId = CurrentUserId.get();
         return ApiResponse.success("Cập nhật ca làm việc thành công", scheduleService.updateSchedule(currentUserId, id, request));
@@ -43,12 +44,14 @@ public class ScheduleController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('TRAINER', 'SUPER_ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Xoá ca làm việc của PT")
     public void delete(@PathVariable UUID id) {
         scheduleService.deleteSchedule(CurrentUserId.get(), id);
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('TRAINER', 'SUPER_ADMIN')")
+    @Operation(summary = "Danh sách ca làm việc của PT")
     public ApiResponse<?> listByTrainer(
             @RequestParam(required = false) UUID trainerId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -58,6 +61,7 @@ public class ScheduleController {
     }
 
     @GetMapping("/available")
+    @Operation(summary = "Slot trống của PT trong 1 ngày")
     public ApiResponse<?> available(
             @RequestParam UUID trainerId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {

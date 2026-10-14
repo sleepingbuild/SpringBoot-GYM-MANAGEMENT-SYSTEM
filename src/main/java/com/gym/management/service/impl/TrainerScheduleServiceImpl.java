@@ -27,12 +27,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * GIẢ ĐỊNH cần xác nhận (xem AGENT3_README.md):
- * - UserRepository đã tồn tại sẵn (Agent 1 sở hữu, Agent 2 cũng dùng lại — xem AGENT2_README.md
- *   mục 1: "nhiều khả năng Agent 1 đã có sẵn"). Agent 3 KHÔNG tự tạo lại file này.
- * - Timezone hệ thống cố định Asia/Ho_Chi_Minh (REQUIREMENTS.md mục 7) — áp dụng qua bean
- *   `Clock` (xem BookingClockConfig) thay vì gọi trực tiếp `LocalDate.now()`, để test đơn vị
- *   giả lập được thời gian.
+ * Timezone cố định Asia/Ho_Chi_Minh qua bean Clock (xem BookingClockConfig), không gọi trực tiếp
+ * LocalDate.now() để test giả lập được thời gian.
  */
 @Service
 @RequiredArgsConstructor

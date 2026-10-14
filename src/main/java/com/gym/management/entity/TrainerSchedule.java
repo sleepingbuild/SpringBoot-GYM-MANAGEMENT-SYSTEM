@@ -11,13 +11,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 /**
- * Ca làm việc của PT theo NGÀY CỤ THỂ (work_date), KHÔNG theo DayOfWeek lặp lại.
- * Xem REQUIREMENTS.md mục 3 — lý do đổi model từ thực tế dự án .NET song song:
- * dùng DayOfWeek từng gây lỗi coi 2 tuần khác nhau cùng Thứ 2 là trùng lịch.
- *
- * GIẢ ĐỊNH (cần Agent 1 xác nhận — xem AGENT3_README.md mục 1):
- * - BaseEntity cung cấp sẵn: id (UUID, PK), createdAt, updatedAt (auditing), version (optimistic lock).
- * - User (Agent 1) có khoá chính UUID, dùng trực tiếp làm quan hệ ManyToOne.
+ * Ca làm việc của PT theo NGÀY CỤ THỂ (work_date), KHÔNG theo DayOfWeek lặp lại: dùng DayOfWeek từng
+ * gây lỗi coi 2 tuần khác nhau cùng Thứ 2 là trùng lịch (REQUIREMENTS.md mục 3).
  */
 @Entity
 @Table(
