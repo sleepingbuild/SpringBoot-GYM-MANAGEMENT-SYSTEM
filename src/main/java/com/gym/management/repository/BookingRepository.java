@@ -73,6 +73,19 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
                             @Param("excludeId") UUID excludeId);
 
     /**
+     * Booking "đang mở" của member: PENDING hoặc CONFIRMED, tức chưa chốt nên chưa trừ buổi của gói.
+     * Dùng để kiểm tra gói còn đủ buổi trước khi cho đặt thêm: số buổi còn lại trừ số booking đang mở.
+     * Trả về entity (không đếm trong SQL) để service áp lazy-status trước khi đếm, nếu không booking
+     * PENDING quá hạn chưa ai đọc sẽ bị tính là còn mở. Khi sửa lịch, truyền id booking đang sửa
+     * vào {@code excludeId}; khi tạo mới truyền {@link #NO_EXCLUDE}.
+     */
+    @Query("select b from Booking b where b.member.id = :memberId " +
+            "and b.status in (com.gym.management.entity.BookingStatus.PENDING, " +
+            "com.gym.management.entity.BookingStatus.CONFIRMED) " +
+            "and b.id <> :excludeId")
+    List<Booking> findOpenByMember(@Param("memberId") UUID memberId, @Param("excludeId") UUID excludeId);
+
+    /**
      * Booking hôm nay của member chờ điểm danh: học viên chưa check-in và booking đã CONFIRMED
      * (không check-in được vào PENDING). Sort theo giờ bắt đầu, service chọn cái đầu.
      */

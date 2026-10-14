@@ -1,6 +1,7 @@
 package com.gym.management.service.impl;
 
 import com.gym.management.dto.request.BookingRequest;
+import com.gym.management.dto.request.BookingUpdateRequest;
 import com.gym.management.dto.response.BookingResponse;
 import com.gym.management.dto.response.TrainerScanResult;
 import com.gym.management.entity.Booking;
@@ -11,6 +12,7 @@ import com.gym.management.exception.ErrorCode;
 import com.gym.management.repository.BookingRepository;
 import com.gym.management.repository.UserRepository;
 import com.gym.management.service.MembershipLookupPort;
+import com.gym.management.service.MembershipLookupPort.ActiveMembership;
 import com.gym.management.service.TrainerScheduleService;
 import com.gym.management.service.event.BookingSettledEvent;
 import com.gym.management.service.event.BookingSettledEvent.Outcome;
@@ -87,7 +89,8 @@ class BookingServiceImplTest {
         lenient().when(trainerScheduleService.isWithinWorkingHours(any(), any(), any(), any())).thenReturn(true);
         lenient().when(bookingRepository.findActiveByTrainerSlot(any(), any(), any(), any(), any())).thenReturn(List.of());
         lenient().when(bookingRepository.findActiveByMemberSlot(any(), any(), any(), any(), any())).thenReturn(List.of());
-        lenient().when(membershipLookupPort.resolveMaxSessionsPerWeek(any())).thenReturn(null); // unlimited mặc định
+        lenient().when(membershipLookupPort.resolveActiveMembership(any())).thenReturn(membership(null, null, null)); // không giới hạn gì
+        lenient().when(bookingRepository.findOpenByMember(any(), any())).thenReturn(List.of());
         lenient().when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service = new BookingServiceImpl(
@@ -97,6 +100,10 @@ class BookingServiceImplTest {
         ReflectionTestUtils.setField(service, "pendingCancelThresholdMinutes", 60);
         ReflectionTestUtils.setField(service, "noShowGraceMinutes", 15);
         ReflectionTestUtils.setField(service, "lateCancelHours", 2);
+    }
+
+    private ActiveMembership membership(Integer maxPerWeek, Integer remaining, LocalDate endDate) {
+        return new ActiveMembership(maxPerWeek, remaining, endDate);
     }
 
     private BookingRequest requestAt(LocalTime start, LocalTime end) {
@@ -206,7 +213,7 @@ class BookingServiceImplTest {
 
         @Test
         void rejects_whenPackageForbidsPtBookingAtAll() {
-            when(membershipLookupPort.resolveMaxSessionsPerWeek(memberId)).thenReturn(0);
+            when(membershipLookupPort.resolveActiveMembership(memberId)).thenReturn(membership(0, null, null));
 
             assertThatThrownBy(() -> service.createBooking(memberId, "MEMBER", requestAt(LocalTime.of(9, 0), LocalTime.of(10, 0))))
                     .isInstanceOf(BusinessException.class)
@@ -215,7 +222,7 @@ class BookingServiceImplTest {
 
         @Test
         void rejects_whenAlreadyReachedWeeklyMax() {
-            when(membershipLookupPort.resolveMaxSessionsPerWeek(memberId)).thenReturn(2);
+            when(membershipLookupPort.resolveActiveMembership(memberId)).thenReturn(membership(2, null, null));
             when(bookingRepository.countActiveInWeek(eq(memberId),
                     eq(LocalDate.of(2026, 10, 5)), eq(LocalDate.of(2026, 10, 11)), any()))
                     .thenReturn(2L);
@@ -227,7 +234,7 @@ class BookingServiceImplTest {
 
         @Test
         void accepts_whenUnderWeeklyMax() {
-            when(membershipLookupPort.resolveMaxSessionsPerWeek(memberId)).thenReturn(3);
+            when(membershipLookupPort.resolveActiveMembership(memberId)).thenReturn(membership(3, null, null));
             when(bookingRepository.countActiveInWeek(eq(memberId), any(), any(), any())).thenReturn(1L);
 
             assertThat(service.createBooking(memberId, "MEMBER", requestAt(LocalTime.of(9, 0), LocalTime.of(10, 0)))).isNotNull();
@@ -235,10 +242,158 @@ class BookingServiceImplTest {
 
         @Test
         void accepts_whenPackageHasNoLimit() {
-            when(membershipLookupPort.resolveMaxSessionsPerWeek(memberId)).thenReturn(null);
+            when(membershipLookupPort.resolveActiveMembership(memberId)).thenReturn(membership(null, null, null));
 
             assertThat(service.createBooking(memberId, "MEMBER", requestAt(LocalTime.of(9, 0), LocalTime.of(10, 0)))).isNotNull();
             verify(bookingRepository, never()).countActiveInWeek(any(), any(), any(), any());
+        }
+    }
+
+    // ================================================================
+    // Rule 6: hạn gói (end_date là ngày cuối cùng còn hiệu lực, đã bao gồm) — MEMBERSHIP_EXPIRED
+    // ================================================================
+    @Nested
+    class MembershipExpiryRule {
+
+        @Test
+        void rejects_whenBookingDateIsAfterPackageEndDate() {
+            when(membershipLookupPort.resolveActiveMembership(memberId))
+                    .thenReturn(membership(null, null, today.minusDays(1)));
+
+            assertThatThrownBy(() -> service.createBooking(memberId, "MEMBER", requestAt(LocalTime.of(9, 0), LocalTime.of(10, 0))))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.MEMBERSHIP_EXPIRED);
+        }
+
+        @Test
+        void accepts_whenBookingDateIsExactlyPackageEndDate() {
+            when(membershipLookupPort.resolveActiveMembership(memberId))
+                    .thenReturn(membership(null, null, today));
+
+            assertThat(service.createBooking(memberId, "MEMBER", requestAt(LocalTime.of(9, 0), LocalTime.of(10, 0)))).isNotNull();
+        }
+
+        @Test
+        void accepts_whenPackageHasNoEndDate() {
+            when(membershipLookupPort.resolveActiveMembership(memberId))
+                    .thenReturn(membership(null, null, null));
+
+            assertThat(service.createBooking(memberId, "MEMBER", requestAt(LocalTime.of(9, 0), LocalTime.of(10, 0)))).isNotNull();
+        }
+
+        @Test
+        void update_alsoRejects_whenNewDateIsAfterPackageEndDate() {
+            when(membershipLookupPort.resolveActiveMembership(memberId))
+                    .thenReturn(membership(null, null, today));
+            Booking existing = bookingAt(BookingStatus.PENDING, LocalTime.of(10, 0), LocalTime.of(11, 0));
+            when(bookingRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+            BookingUpdateRequest request = BookingUpdateRequest.builder()
+                    .trainerId(trainerId).bookingDate(today.plusDays(1))
+                    .startTime(LocalTime.of(10, 0)).endTime(LocalTime.of(11, 0)).build();
+
+            assertThatThrownBy(() -> service.updateBooking(memberId, "MEMBER", existing.getId(), request))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.MEMBERSHIP_EXPIRED);
+        }
+    }
+
+    // ================================================================
+    // Rule 7 (G7): gói tính theo buổi — remaining - số booking đang mở phải còn > 0
+    // ================================================================
+    @Nested
+    class RemainingSessionsRule {
+
+        private void packageWithRemaining(Integer remaining) {
+            when(membershipLookupPort.resolveActiveMembership(memberId))
+                    .thenReturn(membership(null, remaining, null));
+        }
+
+        private BookingRequest request() {
+            return requestAt(LocalTime.of(9, 0), LocalTime.of(10, 0));
+        }
+
+        @Test
+        void accepts_andNeverQueriesOpenBookings_whenPackageIsNotSessionBased() {
+            packageWithRemaining(null);
+
+            assertThat(service.createBooking(memberId, "MEMBER", request())).isNotNull();
+            verify(bookingRepository, never()).findOpenByMember(any(), any());
+        }
+
+        @Test
+        void accepts_whenOneSessionLeftAndNoOpenBooking() {
+            packageWithRemaining(1);
+
+            assertThat(service.createBooking(memberId, "MEMBER", request())).isNotNull();
+            verify(bookingRepository).findOpenByMember(eq(memberId), eq(BookingRepository.NO_EXCLUDE));
+        }
+
+        @Test
+        void rejects_whenOneSessionLeftButAlreadyHasOneOpenBooking() {
+            packageWithRemaining(1);
+            when(bookingRepository.findOpenByMember(eq(memberId), any()))
+                    .thenReturn(List.of(bookingAt(BookingStatus.CONFIRMED, LocalTime.of(12, 0), LocalTime.of(13, 0))));
+
+            assertThatThrownBy(() -> service.createBooking(memberId, "MEMBER", request()))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.MEMBERSHIP_NO_SESSION);
+        }
+
+        @Test
+        void rejects_whenNoSessionLeftEvenWithoutOpenBooking() {
+            packageWithRemaining(0);
+
+            assertThatThrownBy(() -> service.createBooking(memberId, "MEMBER", request()))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.MEMBERSHIP_NO_SESSION);
+        }
+
+        @Test
+        void accepts_whenThreeSessionsLeftAndTwoOpen() {
+            packageWithRemaining(3);
+            when(bookingRepository.findOpenByMember(eq(memberId), any())).thenReturn(List.of(
+                    bookingAt(BookingStatus.PENDING, LocalTime.of(10, 0), LocalTime.of(11, 0)),
+                    bookingAt(BookingStatus.CONFIRMED, LocalTime.of(12, 0), LocalTime.of(13, 0))));
+
+            assertThat(service.createBooking(memberId, "MEMBER", request())).isNotNull();
+        }
+
+        @Test
+        void rejects_whenTwoSessionsLeftAndTwoOpen() {
+            packageWithRemaining(2);
+            when(bookingRepository.findOpenByMember(eq(memberId), any())).thenReturn(List.of(
+                    bookingAt(BookingStatus.PENDING, LocalTime.of(10, 0), LocalTime.of(11, 0)),
+                    bookingAt(BookingStatus.CONFIRMED, LocalTime.of(12, 0), LocalTime.of(13, 0))));
+
+            assertThatThrownBy(() -> service.createBooking(memberId, "MEMBER", request()))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.MEMBERSHIP_NO_SESSION);
+        }
+
+        @Test
+        void doesNotCount_pendingBookingThatLazyStatusJustCancelled() {
+            // PENDING 08:30 với now = 08:00: còn dưới 60 phút nên lazy tự huỷ, buổi được trả lại
+            packageWithRemaining(1);
+            Booking stale = bookingAt(BookingStatus.PENDING, LocalTime.of(8, 30), LocalTime.of(9, 30));
+            when(bookingRepository.findOpenByMember(eq(memberId), any())).thenReturn(List.of(stale));
+
+            assertThat(service.createBooking(memberId, "MEMBER", request())).isNotNull();
+            assertThat(stale.getStatus()).isEqualTo(BookingStatus.CANCELLED);
+        }
+
+        @Test
+        void update_excludesTheBookingBeingEdited() {
+            packageWithRemaining(1);
+            Booking existing = bookingAt(BookingStatus.PENDING, LocalTime.of(10, 0), LocalTime.of(11, 0));
+            when(bookingRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+            // chính booking đang sửa là booking mở duy nhất; repository đã loại nó nên trả list rỗng
+            when(bookingRepository.findOpenByMember(eq(memberId), eq(existing.getId()))).thenReturn(List.of());
+            BookingUpdateRequest request = BookingUpdateRequest.builder()
+                    .trainerId(trainerId).bookingDate(today)
+                    .startTime(LocalTime.of(11, 0)).endTime(LocalTime.of(12, 0)).build();
+
+            assertThat(service.updateBooking(memberId, "MEMBER", existing.getId(), request)).isNotNull();
+            verify(bookingRepository).findOpenByMember(eq(memberId), eq(existing.getId()));
         }
     }
 

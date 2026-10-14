@@ -33,10 +33,10 @@ import java.util.UUID;
 
 /**
  * Luật điểm danh PT / no-show / huỷ muộn: xem CHANGE_PT_ATTENDANCE_AND_PAY.md (Agent 1, theo
- * quyết định của Phi). Các quyết định riêng của Agent 3 nằm ở AGENT3_README.md.
+ * quyết định của Phi).
  *
  * Vai trò "RECEPTIONIST"/"SUPER_ADMIN"/"TRAINER" là tên role KHÔNG có tiền tố ROLE_
- * (CurrentUserRole.get() trả về dạng đó — Agent 1 đã xác nhận).
+ * (CurrentUserRole.get() trả về dạng đó).
  */
 @Service
 @RequiredArgsConstructor
@@ -386,8 +386,18 @@ public class BookingServiceImpl implements BookingService {
                     "Hội viên đã có lịch khác trùng giờ này với 1 PT khác");
         }
 
-        // 5. Giới hạn buổi/tuần theo gói (Thứ 2 -> Chủ nhật)
-        Integer maxPerWeek = membershipLookupPort.resolveMaxSessionsPerWeek(booking.getMember().getId());
+        // 5. Gói tập ACTIVE của hội viên: lấy một lần, dùng cho 3 kiểm tra bên dưới
+        MembershipLookupPort.ActiveMembership membership =
+                membershipLookupPort.resolveActiveMembership(booking.getMember().getId());
+
+        // 5a. Không đặt vào ngày sau ngày cuối còn hiệu lực của gói (end_date là ngày cuối đã bao gồm)
+        if (membership.endDate() != null && booking.getBookingDate().isAfter(membership.endDate())) {
+            throw new BusinessException(ErrorCode.MEMBERSHIP_EXPIRED,
+                    "Ngày đặt lịch vượt quá hạn gói tập (hạn đến hết " + membership.endDate() + ")");
+        }
+
+        // 5b. Giới hạn buổi/tuần theo gói (Thứ 2 -> Chủ nhật)
+        Integer maxPerWeek = membership.maxSessionsPerWeek();
         if (maxPerWeek != null) {
             if (maxPerWeek == 0) {
                 throw new BusinessException(ErrorCode.BOOKING_WEEKLY_LIMIT_EXCEEDED,
@@ -403,7 +413,31 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
-        // TODO(G7, chờ xác nhận): chặn đặt khi gói hết buổi (remaining_sessions) — xem AGENT3_README.md.
+        // 5c. Gói tính theo buổi: số buổi còn lại trừ số booking đang mở (PENDING/CONFIRMED) phải còn > 0.
+        // remaining_sessions chỉ giảm lúc chốt buổi nên nếu chỉ so với remaining thì hội viên còn 1 buổi
+        // vẫn đặt được nhiều booking cùng lúc. Gói không tính theo buổi (remaining = null) thì bỏ qua.
+        Integer remaining = membership.remainingSessions();
+        if (remaining != null) {
+            long openBookings = countOpenBookings(booking.getMember().getId(), exclude);
+            if (remaining - openBookings <= 0) {
+                throw new BusinessException(ErrorCode.MEMBERSHIP_NO_SESSION,
+                        "Gói tập còn " + remaining + " buổi và đang có " + openBookings
+                                + " buổi chờ thực hiện, không thể đặt thêm");
+            }
+        }
+    }
+
+    /**
+     * Đếm booking đang mở của hội viên sau khi áp lazy-status: booking PENDING quá hạn tự huỷ hoặc
+     * CONFIRMED vừa bị lật sang NO_SHOW/PT_NO_SHOW thì không còn tính là mở (CANCELLED/PT_NO_SHOW được trả
+     * buổi; NO_SHOW đã trừ buổi lúc chốt nên cũng không đếm lần nữa).
+     */
+    private long countOpenBookings(UUID memberId, UUID exclude) {
+        List<Booking> open = bookingRepository.findOpenByMember(memberId, exclude);
+        open.forEach(this::applyLazyStatus);
+        return open.stream()
+                .filter(b -> b.getStatus() == BookingStatus.PENDING || b.getStatus() == BookingStatus.CONFIRMED)
+                .count();
     }
 
     private UUID resolveMemberId(UUID currentUserId, String currentUserRole, UUID requestedMemberId) {

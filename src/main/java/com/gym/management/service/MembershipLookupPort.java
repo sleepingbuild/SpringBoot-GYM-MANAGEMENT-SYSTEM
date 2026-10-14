@@ -1,29 +1,27 @@
 package com.gym.management.service;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * Cổng gọi sang module Membership (Agent 2) để lấy giới hạn buổi/tuần của gói ĐANG ACTIVE.
- *
- * Lý do tách interface riêng thay vì gọi thẳng `MembershipService.getCurrentMembership(...)`
- * trong BookingServiceImpl: tại thời điểm viết code này, DTO trả về thật của Agent 2
- * (`getCurrentMembership`, xem AGENT2_README.md mục 4 — Issue 2.5 đã ✅) chưa được cung cấp
- * cho Agent 3. Toàn bộ logic nghiệp vụ của Booking chỉ phụ thuộc vào 1 method duy nhất ở đây
- * (MembershipLookupPortImpl) — nếu chữ ký thật của Agent 2 khác, CHỈ cần sửa
- * MembershipLookupPortImpl, không phải sửa BookingServiceImpl.
- *
- * ⚠️ CẦN AGENT 2 XÁC NHẬN: tên method thật + tên field `maxSessionsPerWeek` trên response.
- * Xem AGENT3_README.md mục 1.
+ * Cổng gọi sang module Membership (Agent 2) để lấy thông tin gói ĐANG ACTIVE của hội viên.
+ * Booking chỉ phụ thuộc interface này, không gọi thẳng MembershipService.
  */
 public interface MembershipLookupPort {
 
     /**
-     * @return null nếu package hiện tại KHÔNG giới hạn buổi/tuần (max_sessions_per_week = NULL
-     *         trong DB); 0 nếu gói không cho đặt PT; N nếu giới hạn N buổi/tuần.
-     * @throws com.gym.management.exception.BusinessException(ErrorCode.MEMBERSHIP_NOT_FOUND)
-     *         nếu member không có gói nào đang ACTIVE — xác nhận: MembershipService.getCurrentMembership()
-     *         trả Optional.empty() trong trường hợp này (Agent 2 xác nhận 2026-09-30), KHÔNG trả
-     *         null. Impl (`MembershipLookupPortImpl`) đã unwrap bằng `.orElseThrow(...)`.
+     * Thông tin gói ACTIVE cần cho việc đặt lịch, lấy trong một lần gọi.
+     *
+     * @param maxSessionsPerWeek null = không giới hạn buổi/tuần; 0 = gói không cho đặt PT; N = tối đa N buổi/tuần
+     * @param remainingSessions  null = gói không tính theo buổi (không giới hạn); N = số buổi còn lại
+     * @param endDate            ngày CUỐI CÙNG còn hiệu lực của gói (đã bao gồm); null = không có hạn
      */
-    Integer resolveMaxSessionsPerWeek(UUID memberId);
+    record ActiveMembership(Integer maxSessionsPerWeek, Integer remainingSessions, LocalDate endDate) {
+    }
+
+    /**
+     * @throws com.gym.management.exception.BusinessException (MEMBERSHIP_NOT_FOUND) nếu hội viên
+     *         không có gói nào đang ACTIVE: phải có gói ACTIVE mới đặt được lịch PT.
+     */
+    ActiveMembership resolveActiveMembership(UUID memberId);
 }
