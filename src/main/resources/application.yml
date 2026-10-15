@@ -29,6 +29,9 @@ spring:
     enabled: true
     baseline-on-migrate: true
     locations: classpath:db/migration
+    # Dev: cho phép áp migration có số thấp hơn version đã áp trên DB local (V3-V5 merge sau V6).
+    # Migration có khoá ngoại (V5 -> bookings) vẫn cần V3 đã có trước.
+    out-of-order: true
 
   data:
     redis:
