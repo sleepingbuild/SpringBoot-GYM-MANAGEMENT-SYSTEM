@@ -15,8 +15,8 @@
 > **Cách đọc:**
 > - Đường liền = FK thật trong DB. Đường đứt (`..`) = quan hệ logic, **không** có FK cứng.
 > - Phía bên trái ghi `|o` nghĩa là FK **nullable** (con có thể không có cha). `||` nghĩa là bắt buộc.
-> - Chú thích `NEW` = cột/bảng **chưa có trong migration thật**, đến từ `CHANGE_PT_ATTENDANCE_AND_PAY.md`.
->   Khi migration tương ứng merge thì bỏ chữ `NEW`.
+> - Các cột/bảng thuộc `CHANGE_PT_ATTENDANCE_AND_PAY.md` (5 cột `pt_*` của `bookings`, `trainer_pay_rates`, `commissions.booking_id`/`outcome`) được liệt kê ở mục 8; trong ảnh PNG chúng được tô vàng.
+> - Kiểu dữ liệu, độ dài, nullable từng cột: xem từ điển cột trong `DATABASE_SCHEMA.md`.
 > - Sơ đồ lược bỏ `created_at`/`updated_at` ở mọi bảng (chủ ý, xem mục 3 để biết bảng nào có thật).
 
 ```mermaid
@@ -41,7 +41,7 @@ erDiagram
 
     BRANCHES |o--o{ MEMBER_PACKAGES : at
     BRANCHES |o--o{ BOOKINGS : at
-    BRANCHES ||--o{ POS_ORDERS : at
+    BRANCHES |o--o{ POS_ORDERS : at
 
     PACKAGES ||--o{ MEMBER_PACKAGES : "subscribed via"
     MEMBER_PACKAGES |o..o{ PAYMENT_TRANSACTIONS : "related_id MEMBERSHIP"
@@ -210,6 +210,7 @@ erDiagram
         VARCHAR status
         UUID assigned_sales_id FK
         UUID converted_user_id FK
+        NVARCHAR notes
     }
 ```
 
@@ -258,7 +259,7 @@ sau này cũng dễ dính — nên cân nhắc thêm 1 dòng kiểm tra riêng v
 - **Timestamp:** `DATETIME2` (`SYSUTCDATETIME()`), xử lý timezone `Asia/Ho_Chi_Minh` ở tầng ứng dụng (BaseEntity dùng `LocalDateTime`, không dùng `Instant`, tránh lỗi `datetimeoffset`).
 - **Text:** `NVARCHAR` cho nội dung có dấu tiếng Việt; `VARCHAR` cho mã/email/enum trạng thái (ASCII).
 - **Enum trạng thái:** luôn lưu dạng `VARCHAR`, **không** dùng `CHECK` constraint cứng — dễ mở rộng giá trị về sau mà không cần đổi kiểu cột.
-- **Quan hệ "polymorphic thủ công"** (không FK cứng, chỉ có cặp `*_type` + `*_id`): `payment_transactions.related_id` (trỏ `member_packages` hoặc `pos_orders`), (`commissions` không còn polymorphic: hoa hồng Sales đã bỏ, chỉ còn PT nên dùng `booking_id` FK thật).
+- **Quan hệ "polymorphic thủ công"** (không FK cứng, chỉ có cặp `*_type` + `*_id`): `payment_transactions.related_id` (trỏ `member_packages` hoặc `pos_orders`). `commissions` không còn polymorphic: hoa hồng Sales đã bỏ, chỉ còn PT nên dùng `booking_id` FK thật.
 
 ---
 
@@ -306,18 +307,19 @@ sau này cũng dễ dính — nên cân nhắc thêm 1 dòng kiểm tra riêng v
 
 | # | Bảng | Thay đổi | Agent |
 |---|---|---|---|
-| 1 | `bookings` | Thêm `pt_check_in_time`, `pt_check_in_method`, `pt_check_out_time`, `pt_check_out_method`, `pt_early_leave_reason` (sửa thẳng `V3` vì chưa merge) | 3 |
+| 1 | `bookings` | Thêm `pt_check_in_time`, `pt_check_in_method`, `pt_check_out_time`, `pt_check_out_method`, `pt_early_leave_reason` — ✅ đã có trong `V3` trên nhánh của Agent 3 (chưa merge `master`) | 3 |
 | 2 | `bookings.status` | Thêm giá trị `LATE_CANCELLED` (cột `VARCHAR`, không cần migration) | 3 |
 | 3 | `trainer_pay_rates` | Bảng mới, `trainer_id` UNIQUE, `amount_per_session` — lương PT mỗi buổi | 5 |
 | 4 | `commissions` | Chỉ còn PT: bỏ `type`, `source_type`, `source_id`; thêm `booking_id` FK **UNIQUE** (mỗi buổi chỉ trả công một lần) và `outcome` | 5 |
 | 5 | `leads` | Không đổi cấu trúc; chuyển đổi lead không còn sinh hoa hồng | 6 |
 
-## 9. Điểm cần kiểm tra trước khi vẽ bản cuối
+## 9. Điểm đã đối chiếu với DB thật (2026-10-12)
 
-1. **`UNIQUE` trên cột nullable (SQL Server chỉ cho đúng một `NULL`).** `users.phone` và `payment_transactions.transaction_code` đang đánh dấu UK. Nếu hai cột này nullable thì bản ghi thứ hai có `NULL` sẽ vi phạm unique. Cần mở `V1` và `V2_2` kiểm tra; nếu đúng thì đổi sang filtered index, ví dụ `CREATE UNIQUE INDEX uq_users_phone ON users(phone) WHERE phone IS NOT NULL;`.
-2. **`avatar_url` có ở cả `users` và `user_profiles`.** Vi phạm nguyên tắc một nguồn chân lý. Chọn một nơi (mình nghiêng về `user_profiles`, vì API avatar nằm dưới `/profile/me/avatar`) rồi bỏ cột còn lại.
-3. **`updated_at` không đồng nhất:** `trainer_schedules`, `bookings` là `NOT NULL DEFAULT`, còn `payment_transactions`, `staff_attendances` là `NULL`. Không gây lỗi nhưng nên thống nhất một kiểu.
-4. **Chưa thấy `ON DELETE` ở bất kỳ FK nào** (mặc định `NO ACTION`). Chấp nhận được nếu hệ thống xoá mềm qua `users.status`; ghi rõ điều đó vào mục 4.
-5. **Chỉ mục nên có:** `member_packages (user_id, status)` (mọi lần gọi `getCurrentMembership`), `payment_transactions (related_type, related_id)`, `commissions (staff_id, status)`.
-6. **Tuỳ chọn:** thêm `bookings.member_package_id` (FK nullable) để biết buổi nào trừ vào gói nào, hữu ích khi tra soát "mất 1 buổi" sau nâng/hạ cấp.
-7. **Lỗi thiếu `updated_at` không bị `mvn verify` bắt** vì test dùng Mockito thuần. Nên thêm một smoke test khởi động `ApplicationContext` với SQL Server container và `ddl-auto=validate`, đồng thời dùng làm bước CI.
+Chi tiết và đề xuất xử lý nằm ở `DATABASE_SCHEMA.md`, mục 4. Tóm tắt:
+
+1. **`users.phone` UNIQUE nhưng nullable — đã xác nhận lỗi tiềm ẩn** (chỉ một user được để trống SĐT). `payment_transactions.transaction_code` là `NOT NULL UNIQUE` nên không dính.
+2. **`avatar_url` trùng ở `users` và `user_profiles`** — chốt giữ ở `user_profiles`, `users.avatar_url` đánh dấu DEPRECATED.
+3. **`updated_at` không đồng nhất** (`trainer_schedules`, `bookings` là `NOT NULL DEFAULT`, các bảng còn lại `NULL`) — không gây lỗi.
+4. **`ON DELETE`:** mặc định `NO ACTION`, chỉ `user_roles`, `user_profiles`, `pos_order_items` dùng `CASCADE` — user có lịch sử không xoá cứng được, dùng xoá mềm qua `users.status`.
+5. **Chỉ mục:** `payment_transactions (related_type, related_id)` đã có; nên bổ sung `member_packages (user_id, status)`.
+6. **Smoke test `ApplicationContext`** với SQL Server container và `ddl-auto=validate` vẫn nên thêm vào CI để bắt lỗi thiếu cột mà `mvn verify` hiện không phát hiện được.
