@@ -47,6 +47,7 @@ public class BookingServiceImpl implements BookingService {
     private static final String METHOD_FACE = "FACE";
     /** PT được check-in sớm tối đa bao nhiêu phút trước giờ bắt đầu (G6: [S-30, S+ân hạn]). */
     private static final int TRAINER_CHECKIN_EARLY_MINUTES = 30;
+    private static final int MIN_EARLY_LEAVE_REASON_LENGTH = 5;
 
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
@@ -158,10 +159,8 @@ public class BookingServiceImpl implements BookingService {
     }
 
     /**
-     * ⚠️ BẢN TẠM — còn thiếu chốt chặn "PT phải quét mặt vào VÀ ra" (G4), vì cần mã lỗi
-     * BOOKING_PT_NOT_CHECKED_IN, hiện nằm ở nhánh shared/error-code-booking-pt chưa merge master.
-     * Khi mã lỗi có trên master sẽ thêm đúng chỗ đánh dấu TODO bên dưới. KHÔNG merge PR khi
-     * TODO này còn đó.
+     * Điều kiện hoàn thành (G4): booking đang CONFIRMED, học viên đã quét vào, PT đã quét vào VÀ ra.
+     * PT ra sớm không có lý do vẫn hoàn thành được nhưng {@code fullDuration = false} nên không được tính lương.
      */
     @Override
     @Transactional
@@ -180,8 +179,10 @@ public class BookingServiceImpl implements BookingService {
             throw new BusinessException(ErrorCode.BOOKING_NOT_CHECKED_IN,
                     "Hội viên chưa điểm danh khuôn mặt, không thể đánh dấu hoàn thành");
         }
-        // TODO(BOOKING_PT_NOT_CHECKED_IN): nếu ptCheckInTime == null || ptCheckOutTime == null
-        //   -> throw BusinessException(ErrorCode.BOOKING_PT_NOT_CHECKED_IN, "PT phải quét mặt vào và ra trước khi hoàn thành")
+        if (booking.getPtCheckInTime() == null || booking.getPtCheckOutTime() == null) {
+            throw new BusinessException(ErrorCode.BOOKING_PT_NOT_CHECKED_IN,
+                    "PT phải quét mặt vào và ra trước khi hoàn thành");
+        }
 
         boolean fullDuration = isFullDuration(booking);
         booking.setStatus(BookingStatus.COMPLETED);
@@ -189,6 +190,36 @@ public class BookingServiceImpl implements BookingService {
 
         publishSettled(saved, Outcome.COMPLETED, fullDuration);
         return toResponse(saved);
+    }
+
+    /**
+     * PT nộp lý do rời buổi sớm. Chỉ nộp được khi booking còn CONFIRMED (trước khi bấm hoàn thành) và PT đã
+     * quét ra TRƯỚC giờ kết thúc; nộp lại thì ghi đè lý do cũ. Lý do được cắt khoảng trắng đầu/cuối và phải
+     * có ít nhất {@value #MIN_EARLY_LEAVE_REASON_LENGTH} ký tự sau khi cắt.
+     */
+    @Override
+    @Transactional
+    public BookingResponse submitEarlyLeaveReason(UUID trainerId, UUID bookingId, String reason) {
+        Booking booking = bookingRepository.findByIdAndTrainerId(bookingId, trainerId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy booking"));
+        applyLazyStatus(booking);
+
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new BusinessException(ErrorCode.BOOKING_EARLY_LEAVE_REASON_NOT_ALLOWED,
+                    "Chỉ nộp được lý do khi booking còn CONFIRMED (hiện tại: " + booking.getStatus() + ")");
+        }
+        LocalDateTime end = LocalDateTime.of(booking.getBookingDate(), booking.getEndTime());
+        if (booking.getPtCheckOutTime() == null || !booking.getPtCheckOutTime().isBefore(end)) {
+            throw new BusinessException(ErrorCode.BOOKING_EARLY_LEAVE_REASON_NOT_ALLOWED,
+                    "Chỉ nộp lý do khi PT đã quét mặt ra trước giờ kết thúc buổi");
+        }
+        String trimmed = reason == null ? "" : reason.trim();
+        if (trimmed.length() < MIN_EARLY_LEAVE_REASON_LENGTH) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "Lý do phải có ít nhất " + MIN_EARLY_LEAVE_REASON_LENGTH + " ký tự");
+        }
+        booking.setPtEarlyLeaveReason(trimmed);
+        return toResponse(bookingRepository.save(booking));
     }
 
     @Override

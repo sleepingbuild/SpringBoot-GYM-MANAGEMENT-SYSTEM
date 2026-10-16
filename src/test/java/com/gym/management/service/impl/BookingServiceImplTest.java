@@ -722,6 +722,41 @@ class BookingServiceImplTest {
         }
 
         @Test
+        void throwsPtNotCheckedIn_whenPtNeverScanned() {
+            // start 07:50 -> S+15 = 08:05 > now 08:00: còn trong ân hạn nên lazy chưa lật sang PT_NO_SHOW
+            Booking b = bookingAt(BookingStatus.CONFIRMED, LocalTime.of(7, 50), LocalTime.of(8, 50));
+            b.setCheckInTime(today.atTime(7, 51)); // học viên đã quét, PT chưa quét gì
+            willFind(b);
+
+            assertThatThrownBy(() -> service.completeBooking(trainerId, b.getId()))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.BOOKING_PT_NOT_CHECKED_IN);
+            assertThat(b.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
+            verifyNoSettledEvent();
+        }
+
+        @Test
+        void throwsPtNotCheckedIn_whenPtCheckedInButNotOut() {
+            Booking b = readyToComplete(); // PT đã quét vào, chưa quét ra
+            willFind(b);
+
+            assertThatThrownBy(() -> service.completeBooking(trainerId, b.getId()))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.BOOKING_PT_NOT_CHECKED_IN);
+            verifyNoSettledEvent();
+        }
+
+        @Test
+        void memberNotCheckedInIsReportedBeforePtNotCheckedIn() {
+            Booking b = bookingAt(BookingStatus.CONFIRMED, LocalTime.of(9, 0), LocalTime.of(10, 0)); // cả hai chưa quét
+            willFind(b);
+
+            assertThatThrownBy(() -> service.completeBooking(trainerId, b.getId()))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.BOOKING_NOT_CHECKED_IN);
+        }
+
+        @Test
         void publishesCompleted_fullDurationTrue_whenPtLeftAtEnd() {
             Booking b = readyToComplete();
             b.setPtCheckOutTime(today.atTime(8, 0));
@@ -755,6 +790,115 @@ class BookingServiceImplTest {
             service.completeBooking(trainerId, b.getId());
 
             assertThat(captureSettledEvent().fullDuration()).isTrue();
+        }
+    }
+
+    // ================================================================
+    // PT nộp lý do rời buổi sớm — now = 08:00
+    // ================================================================
+    @Nested
+    class EarlyLeaveReason {
+
+        private void willFind(Booking booking) {
+            when(bookingRepository.findByIdAndTrainerId(booking.getId(), trainerId)).thenReturn(Optional.of(booking));
+        }
+
+        /** Buổi 07:30-08:30, cả hai đã quét vào nên không bị lazy lật; PT quét ra lúc 08:00 = sớm 30 phút. */
+        private Booking leftEarly() {
+            Booking b = bookingAt(BookingStatus.CONFIRMED, LocalTime.of(7, 30), LocalTime.of(8, 30));
+            b.setPtCheckInTime(today.atTime(7, 28));
+            b.setCheckInTime(today.atTime(7, 31));
+            b.setPtCheckOutTime(today.atTime(8, 0));
+            return b;
+        }
+
+        @Test
+        void savesTrimmedReason_andMakesSessionFullDuration() {
+            Booking b = leftEarly();
+            willFind(b);
+
+            BookingResponse response = service.submitEarlyLeaveReason(trainerId, b.getId(), "  Học viên xin về sớm  ");
+
+            assertThat(b.getPtEarlyLeaveReason()).isEqualTo("Học viên xin về sớm");
+            assertThat(response.getPtEarlyLeaveReason()).isEqualTo("Học viên xin về sớm");
+            assertThat(response.getFullDuration()).isTrue();
+            verify(bookingRepository).save(b);
+        }
+
+        @Test
+        void overwritesPreviousReason() {
+            Booking b = leftEarly();
+            b.setPtEarlyLeaveReason("Lý do cũ nhập sai");
+            willFind(b);
+
+            service.submitEarlyLeaveReason(trainerId, b.getId(), "Lý do mới đúng hơn");
+
+            assertThat(b.getPtEarlyLeaveReason()).isEqualTo("Lý do mới đúng hơn");
+        }
+
+        @Test
+        void rejects_whenPtHasNotCheckedOut() {
+            Booking b = leftEarly();
+            b.setPtCheckOutTime(null);
+            willFind(b);
+
+            assertThatThrownBy(() -> service.submitEarlyLeaveReason(trainerId, b.getId(), "Có việc đột xuất"))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.BOOKING_EARLY_LEAVE_REASON_NOT_ALLOWED);
+            assertThat(b.getPtEarlyLeaveReason()).isNull();
+        }
+
+        @Test
+        void rejects_whenPtLeftExactlyAtEndTime() {
+            Booking b = leftEarly();
+            b.setPtCheckOutTime(today.atTime(8, 30));
+            willFind(b);
+
+            assertThatThrownBy(() -> service.submitEarlyLeaveReason(trainerId, b.getId(), "Có việc đột xuất"))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.BOOKING_EARLY_LEAVE_REASON_NOT_ALLOWED);
+        }
+
+        @Test
+        void rejects_whenBookingAlreadyCompleted() {
+            Booking b = leftEarly();
+            b.setStatus(BookingStatus.COMPLETED);
+            willFind(b);
+
+            assertThatThrownBy(() -> service.submitEarlyLeaveReason(trainerId, b.getId(), "Có việc đột xuất"))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.BOOKING_EARLY_LEAVE_REASON_NOT_ALLOWED);
+        }
+
+        @Test
+        void rejects_whenBookingBelongsToAnotherTrainer() {
+            UUID bookingId = UUID.randomUUID();
+            when(bookingRepository.findByIdAndTrainerId(bookingId, trainerId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.submitEarlyLeaveReason(trainerId, bookingId, "Có việc đột xuất"))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.RESOURCE_NOT_FOUND);
+        }
+
+        @Test
+        void rejects_reasonThatIsTooShortAfterTrim() {
+            Booking b = leftEarly();
+            willFind(b);
+
+            assertThatThrownBy(() -> service.submitEarlyLeaveReason(trainerId, b.getId(), "  ab   "))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.VALIDATION_ERROR);
+            assertThat(b.getPtEarlyLeaveReason()).isNull();
+        }
+
+        @Test
+        void rejects_nullReason() {
+            Booking b = leftEarly();
+            willFind(b);
+
+            assertThatThrownBy(() -> service.submitEarlyLeaveReason(trainerId, b.getId(), null))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.VALIDATION_ERROR);
         }
     }
 

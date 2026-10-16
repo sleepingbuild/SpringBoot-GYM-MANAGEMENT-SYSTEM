@@ -26,6 +26,12 @@ public interface BookingService {
 
     BookingResponse completeBooking(UUID trainerId, UUID bookingId);
 
+    /**
+     * PT nộp lý do rời buổi sớm (chỉ booking của chính PT, còn CONFIRMED, PT đã quét ra trước giờ kết thúc).
+     * Có lý do thì buổi tính là dạy đủ thời gian ({@code fullDuration = true}).
+     */
+    BookingResponse submitEarlyLeaveReason(UUID trainerId, UUID bookingId, String reason);
+
     BookingResponse cancelBooking(UUID currentUserId, String currentUserRole, UUID bookingId);
 
     BookingResponse getById(UUID bookingId);
