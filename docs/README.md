@@ -22,7 +22,6 @@ Hệ thống quản lý phòng gym (Spring Boot, SQL Server 2022, Redis), đồ 
 
 ## 2. Sơ đồ ERD
 
-![ERD](ERD_TONG_QUAT.png)
 
 ### Sơ đồ vẽ trên dbdiagram.io (thiết kế v2, 19 bảng)
 
