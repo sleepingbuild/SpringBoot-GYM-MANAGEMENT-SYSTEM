@@ -1,0 +1,113 @@
+// GMS v2 - 3. THANH TOAN & BAN LE (8 bang day du cot) | use case: M4, M7-M9, R5-R6, R17-R21, A5, A14, A17
+// Thiet ke muc tieu v2 (xem ghi chu thay doi trong gms_v2_schema.dbml). Mau header khong hien tren goi mien phi.
+
+Table users [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  full_name nvarchar(150) [not null]
+  email varchar(150) [not null, unique]
+  phone varchar(20) [null, unique, note: 'UNIQUE tren cot nullable: SQL Server chi cho 1 dong NULL (van de da biet, DATABASE_SCHEMA.md muc 4 #1)']
+  password_hash varchar(255) [not null]
+  status varchar(20) [not null, default: 'ACTIVE', note: 'ACTIVE / INACTIVE / BANNED']
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+Table branches [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  name nvarchar(150) [not null]
+  address nvarchar(255) [null]
+  phone varchar(20) [null]
+  status varchar(20) [not null, default: 'ACTIVE', note: 'ACTIVE / CLOSED']
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+Table packages [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  name nvarchar(150) [not null]
+  description nvarchar(500) [null]
+  price decimal(12,2) [not null]
+  duration_days int [null]
+  session_count int [null]
+  package_type varchar(20) [not null, note: 'TIME_BASED / SESSION_BASED / PT_1ON1']
+  peak_type varchar(20) [not null, default: 'FULL_TIME', note: 'OFF_PEAK / FULL_TIME']
+  max_sessions_per_week int [null, note: 'NULL = khong gioi han; 0 = khong cho dat PT; N = toi da N buoi/tuan']
+  is_active bit [not null, default: 1]
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+Table member_packages [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  user_id uniqueidentifier [not null]
+  package_id uniqueidentifier [not null]
+  branch_id uniqueidentifier [null]
+  status varchar(20) [not null, default: 'PENDING', note: 'PENDING / ACTIVE / EXPIRED / SCHEDULED / CANCELLED. Goi hien tai = ban ghi ACTIVE duy nhat']
+  start_date date [not null]
+  end_date date [null]
+  remaining_sessions int [null, note: 'Tru 1 khi booking chot COMPLETED / MEMBER_NO_SHOW / LATE_CANCEL']
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+Table payment_transactions [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  user_id uniqueidentifier [null, note: 'Nguoi tra tien. NULL = khach vang lai mua le tai quay']
+  member_package_id uniqueidentifier [null, note: 'Thanh toan goi tap (FK member_packages)']
+  pos_order_id uniqueidentifier [null, note: 'Thanh toan don ban le (FK pos_orders)']
+  amount decimal(12,2) [not null]
+  payment_method varchar(20) [not null, note: 'CASH / LOCAL_CONFIRM']
+  status varchar(20) [not null, default: 'PENDING', note: 'PENDING / SUCCESS / FAILED']
+  transaction_code varchar(100) [not null, unique, note: 'Dung cho idempotency']
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+
+  Note: 'CHECK: dung 1 trong 2 cot member_package_id / pos_order_id co gia tri (thay cho cap related_type + related_id khong co khoa ngoai)'
+}
+
+Table pos_orders [headercolor: #7B5EA7] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  member_id uniqueidentifier [null, note: 'NULL = khach vang lai']
+  staff_id uniqueidentifier [not null]
+  branch_id uniqueidentifier [null]
+  payment_method varchar(20) [not null]
+  status varchar(20) [not null, default: 'PENDING', note: 'De xuat: PENDING / COMPLETED / CANCELLED (Agent 5 xac nhan)']
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+Table pos_order_items [headercolor: #7B5EA7] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  order_id uniqueidentifier [not null]
+  product_id uniqueidentifier [not null]
+  quantity int [not null, note: '> 0']
+  unit_price decimal(12,2) [not null, note: 'Gia tai thoi diem ban']
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+Table products [headercolor: #7B5EA7] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  name nvarchar(150) [not null]
+  category varchar(50) [not null, note: 'DRINK / SUPPLEMENT / ACCESSORY']
+  price decimal(12,2) [not null]
+  stock_quantity int [not null, default: 0]
+  unit nvarchar(20) [null]
+  is_active bit [not null, default: 1]
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+// ---------------- QUAN HE ----------------
+
+Ref: member_packages.user_id > users.id
+Ref: member_packages.package_id > packages.id
+Ref: member_packages.branch_id > branches.id
+Ref: payment_transactions.user_id > users.id
+Ref: pos_orders.member_id > users.id
+Ref: pos_orders.staff_id > users.id
+Ref: pos_orders.branch_id > branches.id
+Ref: pos_order_items.order_id > pos_orders.id [delete: cascade]
+Ref: pos_order_items.product_id > products.id
+Ref: payment_transactions.member_package_id > member_packages.id
+Ref: payment_transactions.pos_order_id > pos_orders.id

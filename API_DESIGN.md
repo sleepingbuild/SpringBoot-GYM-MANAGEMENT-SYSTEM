@@ -39,6 +39,7 @@
 | `AUTH_TOKEN_INVALID` | Chưa đăng nhập hoặc token không hợp lệ | 401 |
 | `AUTH_FORBIDDEN_ROLE` | Không đủ quyền | 403 |
 | `AUTH_EMAIL_ALREADY_EXISTS` | Email đã dùng | 409 |
+| `AUTH_PHONE_ALREADY_EXISTS` | Số điện thoại đã dùng | 409 |
 | `PROFILE_INVALID_AGE` | Tuổi < 18 (so với ngày đăng ký) | 400 |
 | `PACKAGE_NOT_FOUND` | Không tìm thấy gói tập | 404 |
 | `MEMBERSHIP_NOT_FOUND` | Không tìm thấy đăng ký gói | 404 |
@@ -61,6 +62,7 @@
 | `PRODUCT_OUT_OF_STOCK` | Sản phẩm hết hàng | 400 |
 | `LEAD_NOT_FOUND` | Không tìm thấy lead | 404 |
 | `LEAD_ALREADY_CONVERTED` | Lead đã chuyển đổi trước đó | 409 |
+| `LEAD_INVALID_STATUS_TRANSITION` | Chuyển trạng thái lead không hợp lệ (ví dụ từ `CONVERTED` về lại, hoặc `LOST` sang `CONTACTED`) | 400 |
 | `VALIDATION_ERROR` | Lỗi validate chung | 400 |
 | `RESOURCE_NOT_FOUND` | Không tìm thấy tài nguyên | 404 |
 | `INTERNAL_SERVER_ERROR` | Lỗi hệ thống | 500 |
@@ -113,10 +115,10 @@
 | Method | Endpoint | Role |
 |---|---|---|
 | POST | `/api/v1/face-profiles/{userId}` (multipart ảnh tĩnh, backend tự trích descriptor) | Receptionist/Admin — đăng ký hộ |
-| POST | `/api/v1/face-profiles/me` (descriptor JSON, client tự trích) | Member/Trainer — tự đăng ký |
+| POST | `/api/v1/face-profiles/me` (descriptor JSON, client tự trích) | Member/Trainer/Receptionist/Sales — tự đăng ký |
 | GET/DELETE | `/api/v1/face-profiles/{userId}` | Receptionist/Admin |
-| POST | `/api/v1/face-attendance/kiosk` (descriptor JSON) | Receptionist/Admin — 1:N |
-| POST | `/api/v1/face-attendance/self` (descriptor JSON) | Member/Trainer đã đăng nhập — 1:1. Trainer: lượt quét gắn vào booking đang diễn ra; response có `earlyLeave`, `reasonRequired` |
+| POST | `/api/v1/face-attendance/kiosk` (descriptor JSON) | Receptionist/Admin — 1:N. Kết quả ghi theo role người được nhận diện (Member/Trainer → booking, Receptionist/Sales → `staff_attendances`) |
+| POST | `/api/v1/face-attendance/self` (descriptor JSON) | Member/Trainer/Receptionist/Sales đã đăng nhập — 1:1. Trainer: lượt quét gắn vào booking đang diễn ra; response có `bookingId`, `earlyLeave`, `reasonRequired`, `message` |
 | GET | `/api/v1/staff-attendance/me` | Receptionist/Sales |
 | GET | `/api/v1/staff-attendance?date=...` | Admin — báo cáo chấm công |
 
@@ -133,9 +135,13 @@
 ### Leads/CRM (Agent 6)
 | Method | Endpoint | Role |
 |---|---|---|
-| GET/POST/PUT | `/api/v1/leads` | Sales |
-| POST | `/api/v1/leads/{id}/convert` | Sales |
-| GET | `/api/v1/leads/expiring-soon` | Sales — hội viên sắp hết hạn (dựa `getCurrentMembership`) |
+| GET | `/api/v1/leads?status=&keyword=&page=&size=&sort=` | Sales, Super Admin |
+| POST | `/api/v1/leads` | Sales, Super Admin |
+| GET | `/api/v1/leads/{id}` | Sales, Super Admin |
+| PUT | `/api/v1/leads/{id}` | Sales, Super Admin |
+| PATCH | `/api/v1/leads/{id}/status` | Sales, Super Admin |
+| POST | `/api/v1/leads/{id}/convert` (body: `email`, `password`) | Sales, Super Admin — tạo user `MEMBER`, không sinh hoa hồng |
+| GET | `/api/v1/leads/expiring-soon?days=N` | Sales, Super Admin — hội viên có gói `ACTIVE` sắp hết hạn (dựa `getCurrentMembership`) |
 | GET | `/api/v1/reports/revenue` | Super Admin |
 | GET | `/api/v1/reports/renewal-rate` | Super Admin |
 | GET | `/api/v1/reports/checkin-traffic` | Super Admin |

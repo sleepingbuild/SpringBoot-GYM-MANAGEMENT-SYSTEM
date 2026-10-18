@@ -1,0 +1,132 @@
+// GMS v2 - 2. LICH TAP, DIEM DANH & LUONG PT (9 bang day du cot) | use case: M10-M17, T3-T14, R7-R16, A7, A9-A13, A15-A16
+// Thiet ke muc tieu v2 (xem ghi chu thay doi trong gms_v2_schema.dbml). Mau header khong hien tren goi mien phi.
+// trainer_schedules <-> bookings: lien ket logic, KHONG co FK cung
+
+Table users [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  full_name nvarchar(150) [not null]
+  email varchar(150) [not null, unique]
+  phone varchar(20) [null, unique, note: 'UNIQUE tren cot nullable: SQL Server chi cho 1 dong NULL (van de da biet, DATABASE_SCHEMA.md muc 4 #1)']
+  password_hash varchar(255) [not null]
+  status varchar(20) [not null, default: 'ACTIVE', note: 'ACTIVE / INACTIVE / BANNED']
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+Table branches [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  name nvarchar(150) [not null]
+  address nvarchar(255) [null]
+  phone varchar(20) [null]
+  status varchar(20) [not null, default: 'ACTIVE', note: 'ACTIVE / CLOSED']
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+Table trainer_schedules [headercolor: #B7791F] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  trainer_id uniqueidentifier [not null]
+  work_date date [not null, note: 'Ngay cu the, khong phai thu lap lai hang tuan']
+  start_time time [not null]
+  end_time time [not null]
+  is_active bit [not null, default: 1, note: '0 = ca tam nghi']
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+}
+
+Table bookings [headercolor: #B7791F] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  member_id uniqueidentifier [not null]
+  trainer_id uniqueidentifier [not null]
+  branch_id uniqueidentifier [null]
+  booking_date date [not null]
+  start_time time [not null]
+  end_time time [not null]
+  status varchar(20) [not null, default: 'PENDING', note: 'PENDING / CONFIRMED / COMPLETED / CANCELLED / NO_SHOW / PT_NO_SHOW / LATE_CANCELLED']
+  check_in_time datetime2 [null, note: 'Hoc vien quet mat vao']
+  check_in_method varchar(20) [null, note: 'FACE']
+  check_out_time datetime2 [null, note: 'Hoc vien quet mat ra']
+  check_out_method varchar(20) [null, note: 'FACE']
+  pt_check_in_time datetime2 [null, note: 'PT quet mat vao']
+  pt_check_in_method varchar(20) [null, note: 'FACE']
+  pt_check_out_time datetime2 [null, note: 'PT quet mat ra']
+  pt_check_out_method varchar(20) [null, note: 'FACE']
+  pt_early_leave_reason nvarchar(255) [null, note: 'Ly do PT ra som; trong = khong day du gio -> khong tinh luong']
+  notes nvarchar(500) [null]
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+}
+
+Table face_profiles [headercolor: #B7791F] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  user_id uniqueidentifier [not null, unique]
+  descriptor nvarchar(max) [not null, note: 'JSON array 128 so thuc (vector dac trung khuon mat)']
+  reference_image varchar(255) [null, note: 'Anh goc lam bang chung, khong dung de so khop']
+  registered_by uniqueidentifier [null]
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+Table staff_attendances [headercolor: #B7791F] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  staff_id uniqueidentifier [not null]
+  "date" date [not null]
+  check_in_time datetime2 [null]
+  check_out_time datetime2 [null]
+  method varchar(20) [not null, default: 'MANUAL', note: 'MANUAL / FACE']
+  notes nvarchar(255) [null]
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+
+  indexes {
+    (staff_id, "date") [unique]
+  }
+}
+
+Table gym_check_ins [headercolor: #C0392B] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  member_id uniqueidentifier [not null]
+  branch_id uniqueidentifier [null]
+  check_in_time datetime2 [not null]
+  check_out_time datetime2 [null, note: 'Lan quet thu 2 trong ngay = check-out']
+  method varchar(20) [not null, default: 'FACE', note: 'FACE / MANUAL']
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+
+  Note: 'MOI: luot vao phong tap, khong gan voi buoi PT. Dung cho lich su check-in cua hoi vien va bao cao luu luong'
+}
+
+Table trainer_pay_rates [headercolor: #7B5EA7] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  trainer_id uniqueidentifier [not null, unique, note: '1 PT 1 muc luong']
+  amount_per_session decimal(12,2) [not null]
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+Table commissions [headercolor: #7B5EA7] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  staff_id uniqueidentifier [not null, note: 'Chi con PT (hoa hong Sales da bo)']
+  booking_id uniqueidentifier [not null, unique, note: 'Moi buoi toi da 1 ban ghi (chong tinh hai lan)']
+  outcome varchar(20) [not null, note: 'COMPLETED / MEMBER_NO_SHOW / LATE_CANCEL']
+  amount decimal(12,2) [not null, note: 'Lay tu trainer_pay_rates tai thoi diem chot buoi']
+  status varchar(20) [not null, default: 'PENDING', note: 'PENDING / PAID']
+  paid_at datetime2 [null]
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+// ---------------- QUAN HE ----------------
+
+Ref: trainer_schedules.trainer_id > users.id
+Ref: bookings.member_id > users.id
+Ref: bookings.trainer_id > users.id
+Ref: bookings.branch_id > branches.id
+Ref: face_profiles.user_id - users.id
+Ref: face_profiles.registered_by > users.id
+Ref: staff_attendances.staff_id > users.id
+Ref: trainer_pay_rates.trainer_id - users.id
+Ref: commissions.staff_id > users.id
+Ref: commissions.booking_id - bookings.id
+Ref: gym_check_ins.member_id > users.id
+Ref: gym_check_ins.branch_id > branches.id

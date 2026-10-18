@@ -12,8 +12,8 @@
 | Role | Phạm vi |
 |---|---|
 | **SUPER_ADMIN** | Cấu hình hệ thống, quản lý nhân sự (mọi role khác), báo cáo tài chính toàn hệ thống |
-| **RECEPTIONIST** (Lễ tân/Thu ngân) | Chấm công FaceID (của chính mình), bán gói tập, check-in hội viên, bán lẻ (POS), chốt ca; **lương cứng** |
-| **SALES** (Sales/CSKH) | Quản lý lead, chăm sóc hội viên sắp hết hạn; **lương cứng** (không có hoa hồng) |
+| **RECEPTIONIST** (Lễ tân/Thu ngân) | Chấm công FaceID (của chính mình), bán gói tập, check-in hội viên, bán lẻ (POS); **lương cứng** |
+| **SALES** (Sales/CSKH) | Chấm công FaceID (của chính mình), quản lý lead, chăm sóc hội viên sắp hết hạn; **lương cứng** (không có hoa hồng) |
 | **TRAINER** (Huấn luyện viên) | Lịch dạy, **quét mặt vào/ra từng buổi dạy**, xác nhận hoàn thành buổi tập (khi member đã check-in), chỉ số hội viên đang huấn luyện; **tính lương theo buổi** |
 | **MEMBER** (Hội viên) | Mua gói online, đặt lịch tập, xem lịch sử check-in |
 
@@ -109,8 +109,10 @@ Chạy kiểm tra mỗi khi có người đọc danh sách/chi tiết booking ho
 | Luồng | Ai dùng | Kiểu so khớp | Ghi chú |
 |---|---|---|---|
 | Kiosk | Lễ tân/Admin | 1:N (so với toàn bộ hồ sơ) | Camera cố định tại quầy/cửa |
-| Tự điểm danh | Member + Trainer | 1:1 (chỉ so với chính tài khoản đang đăng nhập) | Trên máy cá nhân/điện thoại |
+| Tự điểm danh | Member + Trainer + Lễ tân + Sales | 1:1 (chỉ so với chính tài khoản đang đăng nhập) | Trên máy cá nhân/điện thoại |
 | Đăng ký hộ | Lễ tân/Admin | — | Upload ảnh tĩnh, không cần webcam lúc đăng ký |
+
+**Lượt quét ghi vào đâu theo role của người được nhận diện:** `MEMBER` → `bookings` (`check_in_time`/`check_out_time`); `TRAINER` → `bookings` (`pt_check_in_time`/`pt_check_out_time`); `RECEPTIONIST` và `SALES` → `staff_attendances` (chấm công ca, lương cứng). Quy tắc này áp dụng cho cả luồng kiosk lẫn tự điểm danh.
 
 ### Check-in/Check-out thông minh
 - **Không cần chọn trước** là check-in hay check-out — hệ thống tự xác định theo lượt quét trong ngày: **lần đầu = check-in, lần tiếp theo = check-out**. Áp dụng cho học viên (`Booking`) và chấm công nhân sự lương cứng (Lễ tân/Sales). **Riêng PT:** lượt quét được gắn vào từng buổi (`Booking`) theo khung giờ (xem mục 3), không dùng quy tắc "lần đầu trong ngày" vì một PT có thể dạy nhiều buổi liền nhau.

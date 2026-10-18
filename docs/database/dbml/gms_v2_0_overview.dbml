@@ -1,0 +1,164 @@
+// GMS v2 - 0. TONG QUAN (19 bang, chi giu cot khoa va cot quan he)
+// Thiet ke muc tieu v2 (xem ghi chu thay doi trong gms_v2_schema.dbml). Mau header khong hien tren goi mien phi.
+
+Table roles [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  name varchar(50) [not null, unique]
+}
+
+Table users [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  full_name nvarchar(150) [not null]
+  email varchar(150) [not null, unique]
+  status varchar(20) [not null, default: 'ACTIVE']
+}
+
+Table user_roles [headercolor: #4A6B94] {
+  user_id uniqueidentifier [not null]
+  role_id uniqueidentifier [not null]
+
+  indexes {
+    (user_id, role_id) [pk]
+  }
+}
+
+Table branches [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  name nvarchar(150) [not null]
+}
+
+Table user_profiles [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  user_id uniqueidentifier [not null, unique]
+}
+
+Table packages [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  name nvarchar(150) [not null]
+  price decimal(12,2) [not null]
+  package_type varchar(20) [not null]
+}
+
+Table member_packages [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  user_id uniqueidentifier [not null]
+  package_id uniqueidentifier [not null]
+  branch_id uniqueidentifier [null]
+  status varchar(20) [not null, default: 'PENDING']
+}
+
+Table payment_transactions [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  user_id uniqueidentifier [null]
+  member_package_id uniqueidentifier [null]
+  pos_order_id uniqueidentifier [null]
+  status varchar(20) [not null, default: 'PENDING']
+}
+
+Table trainer_schedules [headercolor: #B7791F] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  trainer_id uniqueidentifier [not null]
+  work_date date [not null]
+}
+
+Table bookings [headercolor: #B7791F] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  member_id uniqueidentifier [not null]
+  trainer_id uniqueidentifier [not null]
+  branch_id uniqueidentifier [null]
+  status varchar(20) [not null, default: 'PENDING']
+}
+
+Table face_profiles [headercolor: #B7791F] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  user_id uniqueidentifier [not null, unique]
+  registered_by uniqueidentifier [null]
+}
+
+Table staff_attendances [headercolor: #B7791F] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  staff_id uniqueidentifier [not null]
+  "date" date [not null]
+
+  indexes {
+    (staff_id, "date") [unique]
+  }
+}
+
+Table gym_check_ins [headercolor: #C0392B] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  member_id uniqueidentifier [not null]
+  branch_id uniqueidentifier [null]
+  check_in_time datetime2 [not null]
+}
+
+Table products [headercolor: #7B5EA7] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  name nvarchar(150) [not null]
+}
+
+Table pos_orders [headercolor: #7B5EA7] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  member_id uniqueidentifier [null]
+  staff_id uniqueidentifier [not null]
+  branch_id uniqueidentifier [null]
+  status varchar(20) [not null, default: 'PENDING']
+}
+
+Table pos_order_items [headercolor: #7B5EA7] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  order_id uniqueidentifier [not null]
+  product_id uniqueidentifier [not null]
+}
+
+Table trainer_pay_rates [headercolor: #7B5EA7] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  trainer_id uniqueidentifier [not null, unique]
+  amount_per_session decimal(12,2) [not null]
+}
+
+Table commissions [headercolor: #7B5EA7] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  staff_id uniqueidentifier [not null]
+  booking_id uniqueidentifier [not null, unique]
+  outcome varchar(20) [not null]
+  status varchar(20) [not null, default: 'PENDING']
+}
+
+Table leads [headercolor: #7B5EA7] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  status varchar(20) [not null, default: 'NEW']
+  assigned_sales_id uniqueidentifier [null]
+  converted_user_id uniqueidentifier [null]
+}
+
+// ---------------- QUAN HE ----------------
+
+Ref: user_roles.user_id > users.id [delete: cascade]
+Ref: user_roles.role_id > roles.id [delete: cascade]
+Ref: user_profiles.user_id - users.id [delete: cascade]
+Ref: member_packages.user_id > users.id
+Ref: member_packages.package_id > packages.id
+Ref: member_packages.branch_id > branches.id
+Ref: payment_transactions.user_id > users.id
+Ref: trainer_schedules.trainer_id > users.id
+Ref: bookings.member_id > users.id
+Ref: bookings.trainer_id > users.id
+Ref: bookings.branch_id > branches.id
+Ref: face_profiles.user_id - users.id
+Ref: face_profiles.registered_by > users.id
+Ref: staff_attendances.staff_id > users.id
+Ref: pos_orders.member_id > users.id
+Ref: pos_orders.staff_id > users.id
+Ref: pos_orders.branch_id > branches.id
+Ref: pos_order_items.order_id > pos_orders.id [delete: cascade]
+Ref: pos_order_items.product_id > products.id
+Ref: trainer_pay_rates.trainer_id - users.id
+Ref: commissions.staff_id > users.id
+Ref: commissions.booking_id - bookings.id
+Ref: leads.assigned_sales_id > users.id
+Ref: leads.converted_user_id > users.id
+Ref: gym_check_ins.member_id > users.id
+Ref: gym_check_ins.branch_id > branches.id
+Ref: payment_transactions.member_package_id > member_packages.id
+Ref: payment_transactions.pos_order_id > pos_orders.id

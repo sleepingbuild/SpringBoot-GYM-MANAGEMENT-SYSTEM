@@ -1,0 +1,104 @@
+// GMS v2 - 1. NGUOI DUNG & GOI TAP (8 bang day du cot) | use case: G, M1-M9, T1-T2, R1-R4, R22, S, A1-A4, A18-A21
+// Thiet ke muc tieu v2 (xem ghi chu thay doi trong gms_v2_schema.dbml). Mau header khong hien tren goi mien phi.
+
+Table users [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  full_name nvarchar(150) [not null]
+  email varchar(150) [not null, unique]
+  phone varchar(20) [null, unique, note: 'UNIQUE tren cot nullable: SQL Server chi cho 1 dong NULL (van de da biet, DATABASE_SCHEMA.md muc 4 #1)']
+  password_hash varchar(255) [not null]
+  status varchar(20) [not null, default: 'ACTIVE', note: 'ACTIVE / INACTIVE / BANNED']
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+Table roles [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  name varchar(50) [not null, unique, note: '5 gia tri: SUPER_ADMIN, RECEPTIONIST, TRAINER, SALES, MEMBER']
+  description nvarchar(255) [null]
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+Table user_roles [headercolor: #4A6B94] {
+  user_id uniqueidentifier [not null]
+  role_id uniqueidentifier [not null]
+
+  indexes {
+    (user_id, role_id) [pk]
+  }
+}
+
+Table user_profiles [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  user_id uniqueidentifier [not null, unique]
+  date_of_birth date [null, note: 'Tuoi tinh tu ngay sinh, khong luu tuoi. Validate >= 18 so voi users.created_at']
+  weight_kg decimal(5,2) [null]
+  height_cm decimal(5,2) [null]
+  goal nvarchar(255) [null]
+  avatar_url varchar(255) [null]
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+Table branches [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  name nvarchar(150) [not null]
+  address nvarchar(255) [null]
+  phone varchar(20) [null]
+  status varchar(20) [not null, default: 'ACTIVE', note: 'ACTIVE / CLOSED']
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+Table packages [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  name nvarchar(150) [not null]
+  description nvarchar(500) [null]
+  price decimal(12,2) [not null]
+  duration_days int [null]
+  session_count int [null]
+  package_type varchar(20) [not null, note: 'TIME_BASED / SESSION_BASED / PT_1ON1']
+  peak_type varchar(20) [not null, default: 'FULL_TIME', note: 'OFF_PEAK / FULL_TIME']
+  max_sessions_per_week int [null, note: 'NULL = khong gioi han; 0 = khong cho dat PT; N = toi da N buoi/tuan']
+  is_active bit [not null, default: 1]
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+Table member_packages [headercolor: #4A6B94] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  user_id uniqueidentifier [not null]
+  package_id uniqueidentifier [not null]
+  branch_id uniqueidentifier [null]
+  status varchar(20) [not null, default: 'PENDING', note: 'PENDING / ACTIVE / EXPIRED / SCHEDULED / CANCELLED. Goi hien tai = ban ghi ACTIVE duy nhat']
+  start_date date [not null]
+  end_date date [null]
+  remaining_sessions int [null, note: 'Tru 1 khi booking chot COMPLETED / MEMBER_NO_SHOW / LATE_CANCEL']
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+Table leads [headercolor: #7B5EA7] {
+  id uniqueidentifier [pk, default: `NEWID()`]
+  full_name nvarchar(150) [not null]
+  phone varchar(20) [not null]
+  source nvarchar(50) [null]
+  status varchar(20) [not null, default: 'NEW', note: 'NEW / CONTACTED / CONVERTED / LOST']
+  assigned_sales_id uniqueidentifier [null]
+  converted_user_id uniqueidentifier [null, note: 'Set khi CONVERTED']
+  notes nvarchar(500) [null]
+  created_at datetime2 [not null, default: `SYSUTCDATETIME()`]
+  updated_at datetime2 [null]
+}
+
+// ---------------- QUAN HE ----------------
+
+Ref: user_roles.user_id > users.id [delete: cascade]
+Ref: user_roles.role_id > roles.id [delete: cascade]
+Ref: user_profiles.user_id - users.id [delete: cascade]
+Ref: member_packages.user_id > users.id
+Ref: member_packages.package_id > packages.id
+Ref: member_packages.branch_id > branches.id
+Ref: leads.assigned_sales_id > users.id
+Ref: leads.converted_user_id > users.id
