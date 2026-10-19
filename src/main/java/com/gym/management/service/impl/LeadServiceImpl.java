@@ -144,7 +144,7 @@ public class LeadServiceImpl implements LeadService {
         if (!lead.getStatus().canTransitionTo(LeadStatus.CONVERTED)) {
             // TODO: đổi sang ErrorCode.LEAD_INVALID_STATUS_TRANSITION khi Agent 1 thêm mã này
             throw new BusinessException(ErrorCode.VALIDATION_ERROR,
-                    "Lead đang ở trạng thái " + lead.getStatus() + ", hãy mở lại (CONTACTED) trước khi chuyển đổi");
+                    "Lead đang ở trạng thái " + lead.getStatus() + ", không thể chuyển đổi thành hội viên");
         }
 
         // Tạo tài khoản qua service của Agent 1 (kiểm tra email/số điện thoại trùng nằm ở đó).

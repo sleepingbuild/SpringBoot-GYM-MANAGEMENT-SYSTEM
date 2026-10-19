@@ -16,7 +16,6 @@ class LeadStatusTest {
         assertTrue(NEW.canTransitionTo(CONVERTED));
         assertTrue(CONTACTED.canTransitionTo(LOST));
         assertTrue(CONTACTED.canTransitionTo(CONVERTED));
-        assertTrue(LOST.canTransitionTo(CONTACTED));
     }
 
     @Test
@@ -24,6 +23,7 @@ class LeadStatusTest {
         assertFalse(CONTACTED.canTransitionTo(NEW));
         assertFalse(NEW.canTransitionTo(NEW));
         assertFalse(LOST.canTransitionTo(CONVERTED));
+        assertFalse(LOST.canTransitionTo(CONTACTED), "LOST là trạng thái cuối");
         for (LeadStatus target : LeadStatus.values()) {
             assertFalse(CONVERTED.canTransitionTo(target), "CONVERTED không được chuyển ngược sang " + target);
         }

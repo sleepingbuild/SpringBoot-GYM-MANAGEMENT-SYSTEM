@@ -268,7 +268,7 @@ class LeadServiceImplTest {
     }
 
     @Test
-    void convert_lostLeadMustBeReopenedFirst() {
+    void convert_lostLeadCannotBeConverted() {
         loginAs(salesA, false);
         lead(LeadStatus.LOST, salesA);
         assertThrows(BusinessException.class, () -> service.convert(leadId, convertRequest()));

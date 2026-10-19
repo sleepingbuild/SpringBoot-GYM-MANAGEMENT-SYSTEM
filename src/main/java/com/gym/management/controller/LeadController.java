@@ -85,8 +85,8 @@ public class LeadController {
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('SALES','SUPER_ADMIN')")
     @Operation(summary = "Đổi trạng thái lead",
-            description = "Chuyển hợp lệ: NEW → CONTACTED | LOST, CONTACTED → LOST, LOST → CONTACTED. "
-                    + "Không đặt CONVERTED ở đây (dùng /convert) và không chuyển ngược từ CONVERTED.")
+            description = "Chuyển hợp lệ: NEW → CONTACTED | LOST, CONTACTED → LOST. "
+                    + "LOST và CONVERTED là trạng thái cuối. Không đặt CONVERTED ở đây (dùng /convert).")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Đã đổi trạng thái")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Chuyển trạng thái không hợp lệ")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "LEAD_ALREADY_CONVERTED")

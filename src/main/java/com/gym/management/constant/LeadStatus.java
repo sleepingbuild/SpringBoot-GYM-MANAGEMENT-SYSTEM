@@ -11,6 +11,7 @@ import java.util.Set;
 /**
  * Agent 6 - Trạng thái của lead và bảng chuyển trạng thái hợp lệ (một nguồn duy nhất).
  * CONVERTED chỉ được đặt qua POST /leads/{id}/convert, không qua API đổi trạng thái thường.
+ * CONVERTED và LOST là trạng thái cuối, khớp LEAD_INVALID_STATUS_TRANSITION trong API_DESIGN.md.
  */
 public enum LeadStatus {
     NEW,
@@ -23,7 +24,7 @@ public enum LeadStatus {
     static {
         ALLOWED.put(NEW, EnumSet.of(CONTACTED, LOST, CONVERTED));
         ALLOWED.put(CONTACTED, EnumSet.of(LOST, CONVERTED));
-        ALLOWED.put(LOST, EnumSet.of(CONTACTED));   // mở lại lead đã mất
+        ALLOWED.put(LOST, EnumSet.noneOf(LeadStatus.class)); // LOST là trạng thái cuối (API_DESIGN.md)
         ALLOWED.put(CONVERTED, EnumSet.noneOf(LeadStatus.class)); // không chuyển ngược
     }
 
