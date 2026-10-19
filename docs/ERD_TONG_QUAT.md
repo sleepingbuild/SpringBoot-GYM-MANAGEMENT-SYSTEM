@@ -12,11 +12,13 @@
 
 ## 1. Sơ đồ ERD 
 
+> **Cập nhật 2026-10-16:** sơ đồ dưới đây là **thiết kế mục tiêu v2** (19 bảng, 28 khoá ngoại, Phi đã duyệt). DB đang chạy vẫn là v1; phần khác biệt nằm ở mục 8.
+>
 > **Cách đọc:**
 > - Đường liền = FK thật trong DB. Đường đứt (`..`) = quan hệ logic, **không** có FK cứng.
 > - Phía bên trái ghi `|o` nghĩa là FK **nullable** (con có thể không có cha). `||` nghĩa là bắt buộc.
-> - Chú thích `NEW` = cột/bảng **chưa có trong migration thật**, đến từ `CHANGE_PT_ATTENDANCE_AND_PAY.md`.
->   Khi migration tương ứng merge thì bỏ chữ `NEW`.
+> - Các cột/bảng **chưa có trong DB đang chạy** (thuộc `CHANGE_PT_ATTENDANCE_AND_PAY.md` hoặc thiết kế v2) được liệt kê ở mục 8; trong ảnh PNG chúng được tô vàng.
+> - Kiểu dữ liệu, độ dài, nullable từng cột: xem từ điển cột trong `DATABASE_SCHEMA.md`.
 > - Sơ đồ lược bỏ `created_at`/`updated_at` ở mọi bảng (chủ ý, xem mục 3 để biết bảng nào có thật).
 
 ```mermaid
@@ -25,7 +27,8 @@ erDiagram
     USERS ||--o{ USER_ROLES : has
     USERS ||--o| USER_PROFILES : has
     USERS ||--o{ MEMBER_PACKAGES : owns
-    USERS ||--o{ PAYMENT_TRANSACTIONS : makes
+    USERS |o--o{ PAYMENT_TRANSACTIONS : makes
+    USERS ||--o{ GYM_CHECK_INS : "enters gym"
     USERS ||--o{ TRAINER_SCHEDULES : "works as trainer"
     USERS ||--o{ BOOKINGS : "books as member"
     USERS ||--o{ BOOKINGS : "teaches as trainer"
@@ -41,11 +44,12 @@ erDiagram
 
     BRANCHES |o--o{ MEMBER_PACKAGES : at
     BRANCHES |o--o{ BOOKINGS : at
-    BRANCHES ||--o{ POS_ORDERS : at
+    BRANCHES |o--o{ POS_ORDERS : at
+    BRANCHES |o--o{ GYM_CHECK_INS : at
 
     PACKAGES ||--o{ MEMBER_PACKAGES : "subscribed via"
-    MEMBER_PACKAGES |o..o{ PAYMENT_TRANSACTIONS : "related_id MEMBERSHIP"
-    POS_ORDERS |o..o{ PAYMENT_TRANSACTIONS : "related_id POS"
+    MEMBER_PACKAGES |o--o{ PAYMENT_TRANSACTIONS : "paid by"
+    POS_ORDERS |o--o{ PAYMENT_TRANSACTIONS : "paid by"
     TRAINER_SCHEDULES ||..o{ BOOKINGS : "logical slot no FK"
 
     PRODUCTS ||--o{ POS_ORDER_ITEMS : "sold as"
@@ -64,7 +68,6 @@ erDiagram
         VARCHAR phone UK
         VARCHAR password_hash
         VARCHAR status
-        VARCHAR avatar_url
     }
     USER_ROLES {
         UUID user_id PK, FK
@@ -80,7 +83,7 @@ erDiagram
     USER_PROFILES {
         UUID id PK
         UUID user_id FK, UK
-        INT age
+        DATE date_of_birth
         DECIMAL weight_kg
         DECIMAL height_cm
         NVARCHAR goal
@@ -111,12 +114,20 @@ erDiagram
     PAYMENT_TRANSACTIONS {
         UUID id PK
         UUID user_id FK
-        VARCHAR related_type
-        UUID related_id "no hard FK - MEMBERSHIP or POS"
+        UUID member_package_id FK
+        UUID pos_order_id FK
         DECIMAL amount
         VARCHAR payment_method
         VARCHAR status
         VARCHAR transaction_code UK
+    }
+    GYM_CHECK_INS {
+        UUID id PK
+        UUID member_id FK
+        UUID branch_id FK
+        DATETIME2 check_in_time
+        DATETIME2 check_out_time
+        VARCHAR method
     }
     TRAINER_SCHEDULES {
         UUID id PK
@@ -176,7 +187,6 @@ erDiagram
         UUID member_id FK "nullable - walk-in"
         UUID staff_id FK
         UUID branch_id FK
-        DECIMAL total_amount
         VARCHAR payment_method
         VARCHAR status
     }
@@ -186,7 +196,6 @@ erDiagram
         UUID product_id FK
         INT quantity
         DECIMAL unit_price
-        DECIMAL subtotal
     }
     TRAINER_PAY_RATES {
         UUID id PK "NEW table"
@@ -210,6 +219,7 @@ erDiagram
         VARCHAR status
         UUID assigned_sales_id FK
         UUID converted_user_id FK
+        NVARCHAR notes
     }
 ```
 
@@ -227,6 +237,9 @@ erDiagram
 | `face_profiles`, `staff_attendances` | 4 | `V4__face_attendance.sql` | ⚠️ **Có migration thật, nằm trên nhánh riêng `feature/agent4-face-attendance`, chưa merge `main`** |
 | `products`, `pos_orders`, `pos_order_items`, `commissions`, `trainer_pay_rates` 🆕 | 5 | `V5__pos_commission.sql` | ❌ **Chưa triển khai — theo thiết kế gốc `DATABASE_SCHEMA.md`, chưa code, chưa migration thật** |
 | `leads` | 6 | `V6__leads.sql` | ❌ **Chưa triển khai — theo thiết kế gốc `DATABASE_SCHEMA.md`, chưa code, chưa migration thật** |
+| `payment_transactions` (tách khoá ngoại, CH1) | 2 | `V7` (sau V5) | 📐 Thiết kế v2 đã duyệt, chưa triển khai |
+| `gym_check_ins` 🆕 (CH2) | 4 | `V8` (sau PR #43) | 📐 Thiết kế v2 đã duyệt, chưa triển khai |
+| `users`, `user_profiles` (CH3, CH4) | 1 | `V9` | 📐 Thiết kế v2 đã duyệt, chưa triển khai |
 
 ---
 
@@ -258,7 +271,7 @@ sau này cũng dễ dính — nên cân nhắc thêm 1 dòng kiểm tra riêng v
 - **Timestamp:** `DATETIME2` (`SYSUTCDATETIME()`), xử lý timezone `Asia/Ho_Chi_Minh` ở tầng ứng dụng (BaseEntity dùng `LocalDateTime`, không dùng `Instant`, tránh lỗi `datetimeoffset`).
 - **Text:** `NVARCHAR` cho nội dung có dấu tiếng Việt; `VARCHAR` cho mã/email/enum trạng thái (ASCII).
 - **Enum trạng thái:** luôn lưu dạng `VARCHAR`, **không** dùng `CHECK` constraint cứng — dễ mở rộng giá trị về sau mà không cần đổi kiểu cột.
-- **Quan hệ "polymorphic thủ công"** (không FK cứng, chỉ có cặp `*_type` + `*_id`): `payment_transactions.related_id` (trỏ `member_packages` hoặc `pos_orders`), (`commissions` không còn polymorphic: hoa hồng Sales đã bỏ, chỉ còn PT nên dùng `booking_id` FK thật).
+- **Không còn quan hệ polymorphic ở v2:** `payment_transactions` dùng hai FK thật (`member_package_id`, `pos_order_id`; đúng một cột có giá trị, ràng buộc `CHECK`). Quan hệ logic duy nhất không có FK cứng: `trainer_schedules` ↔ `bookings`. (DB đang chạy v1 còn cặp `related_type`/`related_id`, bỏ ở V7.)
 
 ---
 
@@ -271,7 +284,8 @@ sau này cũng dễ dính — nên cân nhắc thêm 1 dòng kiểm tra riêng v
 | `packages.package_type` | `TIME_BASED`, `SESSION_BASED`, `PT_1ON1` |
 | `packages.peak_type` | `OFF_PEAK`, `FULL_TIME` |
 | `member_packages.status` | `PENDING`, `ACTIVE`, `EXPIRED`, `SCHEDULED`, `CANCELLED` |
-| `payment_transactions.related_type` | `MEMBERSHIP`, `POS` |
+| `payment_transactions.related_type` (chỉ v1, bỏ ở V7) | `MEMBERSHIP`, `POS` |
+| `gym_check_ins.method` 🆕 | `FACE`, `MANUAL` |
 | `payment_transactions.payment_method` | `CASH`, `LOCAL_CONFIRM` |
 | `payment_transactions.status` | `PENDING`, `SUCCESS`, `FAILED` |
 | `bookings.status` | `PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED`, `NO_SHOW`, `PT_NO_SHOW`, `LATE_CANCELLED` 🆕 |
@@ -306,18 +320,24 @@ sau này cũng dễ dính — nên cân nhắc thêm 1 dòng kiểm tra riêng v
 
 | # | Bảng | Thay đổi | Agent |
 |---|---|---|---|
-| 1 | `bookings` | Thêm `pt_check_in_time`, `pt_check_in_method`, `pt_check_out_time`, `pt_check_out_method`, `pt_early_leave_reason` (sửa thẳng `V3` vì chưa merge) | 3 |
+| 1 | `bookings` | Thêm `pt_check_in_time`, `pt_check_in_method`, `pt_check_out_time`, `pt_check_out_method`, `pt_early_leave_reason` — ✅ đã có trong `V3` trên nhánh của Agent 3 (chưa merge `master`) | 3 |
 | 2 | `bookings.status` | Thêm giá trị `LATE_CANCELLED` (cột `VARCHAR`, không cần migration) | 3 |
 | 3 | `trainer_pay_rates` | Bảng mới, `trainer_id` UNIQUE, `amount_per_session` — lương PT mỗi buổi | 5 |
 | 4 | `commissions` | Chỉ còn PT: bỏ `type`, `source_type`, `source_id`; thêm `booking_id` FK **UNIQUE** (mỗi buổi chỉ trả công một lần) và `outcome` | 5 |
 | 5 | `leads` | Không đổi cấu trúc; chuyển đổi lead không còn sinh hoa hồng | 6 |
+| 6 | `payment_transactions` | **CH1:** bỏ `related_type`, `related_id`; thêm `member_package_id`, `pos_order_id` (FK, `CHECK` đúng một cột); `user_id` nullable | 2 (V7, sau V5) |
+| 7 | `gym_check_ins` | **CH2:** bảng mới, lượt vào phòng không gắn buổi PT | 4 (V8) |
+| 8 | `user_profiles` | **CH3:** `age` thành `date_of_birth` | 1 (V9) |
+| 9 | `users` | **CH4:** bỏ `avatar_url` | 1 (V9) |
+| 10 | `pos_orders`, `pos_order_items` | **CH5:** bỏ `total_amount`, `subtotal` | 5 (V5) |
 
-## 9. Điểm cần kiểm tra trước khi vẽ bản cuối
+## 9. Điểm đã đối chiếu với DB thật (2026-10-12)
 
-1. **`UNIQUE` trên cột nullable (SQL Server chỉ cho đúng một `NULL`).** `users.phone` và `payment_transactions.transaction_code` đang đánh dấu UK. Nếu hai cột này nullable thì bản ghi thứ hai có `NULL` sẽ vi phạm unique. Cần mở `V1` và `V2_2` kiểm tra; nếu đúng thì đổi sang filtered index, ví dụ `CREATE UNIQUE INDEX uq_users_phone ON users(phone) WHERE phone IS NOT NULL;`.
-2. **`avatar_url` có ở cả `users` và `user_profiles`.** Vi phạm nguyên tắc một nguồn chân lý. Chọn một nơi (mình nghiêng về `user_profiles`, vì API avatar nằm dưới `/profile/me/avatar`) rồi bỏ cột còn lại.
-3. **`updated_at` không đồng nhất:** `trainer_schedules`, `bookings` là `NOT NULL DEFAULT`, còn `payment_transactions`, `staff_attendances` là `NULL`. Không gây lỗi nhưng nên thống nhất một kiểu.
-4. **Chưa thấy `ON DELETE` ở bất kỳ FK nào** (mặc định `NO ACTION`). Chấp nhận được nếu hệ thống xoá mềm qua `users.status`; ghi rõ điều đó vào mục 4.
-5. **Chỉ mục nên có:** `member_packages (user_id, status)` (mọi lần gọi `getCurrentMembership`), `payment_transactions (related_type, related_id)`, `commissions (staff_id, status)`.
-6. **Tuỳ chọn:** thêm `bookings.member_package_id` (FK nullable) để biết buổi nào trừ vào gói nào, hữu ích khi tra soát "mất 1 buổi" sau nâng/hạ cấp.
-7. **Lỗi thiếu `updated_at` không bị `mvn verify` bắt** vì test dùng Mockito thuần. Nên thêm một smoke test khởi động `ApplicationContext` với SQL Server container và `ddl-auto=validate`, đồng thời dùng làm bước CI.
+Chi tiết và đề xuất xử lý nằm ở `DATABASE_SCHEMA.md`, mục 4. Tóm tắt:
+
+1. **`users.phone` UNIQUE nhưng nullable — đã xác nhận lỗi tiềm ẩn** (chỉ một user được để trống SĐT). `payment_transactions.transaction_code` là `NOT NULL UNIQUE` nên không dính.
+2. **`avatar_url` trùng ở `users` và `user_profiles`** — CH4 đã duyệt: bỏ `users.avatar_url` ở V9.
+3. **`updated_at` không đồng nhất** (`trainer_schedules`, `bookings` là `NOT NULL DEFAULT`, các bảng còn lại `NULL`) — không gây lỗi.
+4. **`ON DELETE`:** mặc định `NO ACTION`, chỉ `user_roles`, `user_profiles`, `pos_order_items` dùng `CASCADE` — user có lịch sử không xoá cứng được, dùng xoá mềm qua `users.status`.
+5. **Chỉ mục:** `payment_transactions (related_type, related_id)` đã có; nên bổ sung `member_packages (user_id, status)`.
+6. **Smoke test `ApplicationContext`** với SQL Server container và `ddl-auto=validate` vẫn nên thêm vào CI để bắt lỗi thiếu cột mà `mvn verify` hiện không phát hiện được.
