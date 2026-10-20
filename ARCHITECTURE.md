@@ -63,7 +63,7 @@ gym-management-system/
 │   │   │   │   └── zalo/             # Tuỳ chọn, sau v1.0 — nhắc gia hạn qua Zalo ZNS/SMS
 │   │   │   └── exception/            # GlobalExceptionHandler, ErrorCode, custom exceptions
 │   │   └── resources/
-│   │       ├── application.yml.example
+│   │       ├── application-local.example.yml
 │   │       ├── db/migration/         # Flyway: V1__..., V2__..., ...
 │   │       └── templates/            # Email / notification templates
 │   └── test/java/com/gym/management/

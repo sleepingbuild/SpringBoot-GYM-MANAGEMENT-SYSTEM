@@ -40,7 +40,7 @@ Quản lý vận hành toàn diện: hội viên, gói tập, kiểm soát ra/v�
 docker compose up -d
 
 # 2. Copy file cấu hình mẫu
-cp src/main/resources/application.yml.example src/main/resources/application-local.yml
+cp src/main/resources/application-local.example.yml src/main/resources/application-local.yml
 # → điền các biến môi trường thật (DB, Redis, JWT secret, VietQR key...)
 # → mật khẩu sa mặc định trong docker-compose.yml: GmsStrongP@ss123 (đổi lại nếu deploy thật)
 
