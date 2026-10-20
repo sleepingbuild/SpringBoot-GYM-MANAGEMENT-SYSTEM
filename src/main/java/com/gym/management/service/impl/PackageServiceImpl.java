@@ -56,6 +56,13 @@ public class PackageServiceImpl implements PackageService {
     }
 
     @Override
+    public PackageResponse getActiveById(UUID id) {
+        return toResponse(packageRepository.findById(id)
+                .filter(Package::isActive)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PACKAGE_NOT_FOUND)));
+    }
+
+    @Override
     public List<PackageResponse> listActive() {
         return packageRepository.findByActiveTrue().stream()
                 .map(this::toResponse)
