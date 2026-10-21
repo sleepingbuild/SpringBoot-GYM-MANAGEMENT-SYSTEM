@@ -28,7 +28,7 @@ pipeline {
         DEPLOY_DIR  = 'C:\\deploy\\gms'
         SERVICE     = 'GymManagementSystem'
         // Đổi cho đúng cổng/đường dẫn của ứng dụng (Swagger/springdoc hoặc actuator).
-        APP_URL     = 'http://localhost:8080/v3/api-docs'
+        APP_URL     = 'http://localhost:8081/v3/api-docs'
     }
 
     stages {
