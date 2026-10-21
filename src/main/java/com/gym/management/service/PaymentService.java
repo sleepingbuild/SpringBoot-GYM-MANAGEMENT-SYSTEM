@@ -27,9 +27,12 @@ public interface PaymentService {
 
     /**
      * Xác nhận 1 giao dịch đã tồn tại (PENDING → SUCCESS). Idempotent: gọi lại khi đã SUCCESS
-     * thì trả nguyên trạng, không lỗi. Nếu relatedType = MEMBERSHIP, tự động gọi
-     * {@link MembershipService#activateFromPendingPayment} để kích hoạt gói tương ứng —
-     * đây là điểm nối DUY NHẤT giữa Payment và Membership, không lặp lại logic activate ở nơi khác.
+     * thì trả nguyên trạng, không lỗi và KHÔNG phát lại sự kiện. Lần xác nhận đầu tiên phát
+     * {@link com.gym.management.service.event.PaymentConfirmedEvent} (đồng bộ, chung transaction): với
+     * relatedType = MEMBERSHIP, {@code MembershipPaymentListener} gọi
+     * {@link MembershipService#activateFromPendingPayment} để kích hoạt gói tương ứng — đây là điểm nối DUY NHẤT
+     * giữa Payment và Membership, không lặp lại logic activate ở nơi khác. Payment KHÔNG inject
+     * MembershipService (tránh vòng phụ thuộc bean làm ứng dụng không khởi động được).
      */
     PaymentTransactionResponse confirmPayment(UUID transactionId, String paymentMethod);
 

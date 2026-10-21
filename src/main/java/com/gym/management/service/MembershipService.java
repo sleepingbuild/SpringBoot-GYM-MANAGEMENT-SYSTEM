@@ -67,7 +67,10 @@ public interface MembershipService {
                                               UUID actingUserId, boolean staffOverride);
 
     /**
-     * Gọi bởi {@link PaymentService#confirmPayment} khi 1 giao dịch MEMBERSHIP chuyển SUCCESS —
+     * Kích hoạt gói khi giao dịch MEMBERSHIP chuyển SUCCESS. Được gọi bởi
+     * {@link com.gym.management.service.listener.MembershipPaymentListener} khi nhận
+     * {@link com.gym.management.service.event.PaymentConfirmedEvent} (do {@link PaymentService#confirmPayment}
+     * phát; Payment KHÔNG gọi thẳng vào đây để tránh vòng phụ thuộc bean) —
      * chuyển member_package từ PENDING → ACTIVE, start_date GHI ĐÈ = ngày xác nhận thật
      * (không giữ ngày dự kiến lúc đăng ký). Idempotent: gọi lại khi đã ACTIVE thì không làm gì thêm.
      */
