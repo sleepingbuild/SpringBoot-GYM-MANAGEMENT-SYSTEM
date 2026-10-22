@@ -27,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -1085,5 +1086,32 @@ class BookingServiceImplTest {
 
             assertThat(service.recordTrainerFaceScan(trainerId, today.atTime(8, 0))).isEmpty();
         }
+    }
+    @Test
+    void lateCancelDoesNotPublishEventWhenAnotherRequestSettledBookingFirst() {
+        Booking booking = bookingAt(BookingStatus.CONFIRMED, LocalTime.of(9, 0), LocalTime.of(10, 0));
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        doThrow(new ObjectOptimisticLockingFailureException(Booking.class, booking.getId()))
+                .when(bookingRepository).flush();
+
+        assertThatThrownBy(() -> service.cancelBooking(memberId, "MEMBER", booking.getId()))
+                .isInstanceOf(BusinessException.class);
+
+        verify(eventPublisher, never()).publishEvent(any(BookingSettledEvent.class));
+    }
+
+    @Test
+    void lazyNoShowDoesNotPublishEventWhenAnotherRequestSettledBookingFirst() {
+        // 07:00 đã quá S+15; PT đã quét vào, học viên chưa -> sẽ lật NO_SHOW
+        Booking booking = bookingAt(BookingStatus.CONFIRMED, LocalTime.of(7, 0), LocalTime.of(8, 0));
+        booking.setPtCheckInTime(today.atTime(6, 55));
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        doThrow(new ObjectOptimisticLockingFailureException(Booking.class, booking.getId()))
+                .when(bookingRepository).flush();
+
+        assertThatThrownBy(() -> service.getById(booking.getId()))
+                .isInstanceOf(BusinessException.class);
+
+        verify(eventPublisher, never()).publishEvent(any(BookingSettledEvent.class));
     }
 }
