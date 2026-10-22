@@ -78,3 +78,8 @@ Swagger UI sau khi chạy: `http://localhost:8080/swagger-ui.html`
 Nội bộ — Software Engineering Course Project.
 
 <!-- ci webhook check -->
+
+## CI/CD
+Pipeline Jenkins (`Jenkinsfile`): Checkout → Restore → Build → Test → Publish → Deploy → Verify.
+Push hoặc merge vào `master` kích hoạt qua GitHub webhook; nhánh khác dừng sau Publish.
+Ứng dụng triển khai chạy ở cổng 8081.
