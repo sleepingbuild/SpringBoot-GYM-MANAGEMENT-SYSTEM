@@ -1,9 +1,11 @@
-# DATABASE_SCHEMA.md — Thiết kế & Từ điển cơ sở dữ liệu (đầy đủ 18 bảng)
+# DATABASE_SCHEMA.md — Thiết kế & Từ điển cơ sở dữ liệu (đầy đủ 19 bảng, thiết kế mục tiêu v2)
 
 > **Vai trò file này:** nguồn thiết kế chính của database (kiểu dữ liệu, độ dài, nullable, khoá, chỉ mục, quy tắc nghiệp vụ). Sơ đồ trực quan và trạng thái triển khai nằm ở `docs/ERD_TONG_QUAT.md`.
 > Mỗi bảng thuộc đúng 1 migration trong `src/main/resources/db/migration/`. Không sửa migration đã merge `master` — mọi thay đổi sau này là migration **mới**. Ngoại lệ: `V3`/`V4` chưa merge `master` thì được sửa thẳng.
 >
-> **Nguồn đối chiếu (cập nhật 2026-10-12):** các bảng `V1`–`V2_2` lấy từ DB thật (xuất bằng `INFORMATION_SCHEMA`/`sys.indexes`/`sys.foreign_keys`) và khớp từng migration; `V3`, `V4` lấy từ file migration trên nhánh của Agent 3 và 4; `V5`, `V6` là thiết kế (chưa có migration).
+> **Thiết kế mục tiêu v2 (Phi duyệt 2026-10-16):** 19 bảng, 28 khoá ngoại, gồm 5 thay đổi CH1–CH5 so với DB đang chạy (mục 4). Cột đánh dấu 🆕 v2 chưa có trong DB đang chạy.
+>
+> **Nguồn đối chiếu (cập nhật 2026-10-16):** các bảng `V1`–`V2_2` lấy từ DB thật (v1, sau đó áp dụng CH1–CH5) (xuất bằng `INFORMATION_SCHEMA`/`sys.indexes`/`sys.foreign_keys`) và khớp từng migration; `V3`, `V4` lấy từ file migration trên nhánh của Agent 3 và 4; `V5`, `V6` là thiết kế (chưa có migration).
 >
 > **Ký hiệu:** ✅ đã merge · ⚠️ migration thật nằm trên nhánh riêng · 📐 chỉ là thiết kế.
 
@@ -16,20 +18,21 @@
 - **`created_at` + `updated_at`:** mọi bảng có đủ cả hai cột vì entity `extends BaseEntity`. Thiếu một cột là lỗi Hibernate `validate` lúc khởi động (đã xảy ra với `payment_transactions` và `staff_attendances`, `mvn verify` không bắt được).
 - **Timezone:** xử lý theo `Asia/Ho_Chi_Minh` ở tầng ứng dụng; `BaseEntity` dùng `LocalDateTime` (không dùng `Instant`).
 - **`ON DELETE`:** mặc định `NO ACTION`; chỉ `user_roles` và `user_profiles` (theo `users`) và `pos_order_items` (theo `pos_orders`) dùng `CASCADE`. Hệ quả: user đã có gói/thanh toán/booking thì **không xoá cứng được** — dùng xoá mềm qua `users.status`.
-- **Quan hệ không có FK cứng:** `payment_transactions.related_id` (trỏ `member_packages` hoặc `pos_orders`) và liên kết logic `trainer_schedules` ↔ `bookings`.
+- **Quan hệ không có FK cứng:** chỉ còn liên kết logic `trainer_schedules` ↔ `bookings`. Ở DB đang chạy (v1) còn `payment_transactions.related_id`, bỏ ở V7 (CH1).
 
 ## 2. Bảng migration
 
 | Migration | Agent | Bảng | Trạng thái |
 |---|---|---|---|
-| `V1__init_schema.sql` | 1 | `roles`, `users`, `user_roles`, `branches` | ✅ Đã merge `master`, đã chạy trên DB |
+| `V1__init_schema.sql` | 1 | `roles`, `users`, `user_roles`, `branches` | ✅ Đã merge `master`, đã chạy trên DB (v2, CH4: bỏ `users.avatar_url` ở V9) |
 | `V2__membership.sql` | 2 | `packages`, `member_packages` | ✅ Đã merge `master`, đã chạy trên DB |
-| `V2_1__user_profiles.sql` | 1 | `user_profiles` | ✅ Đã merge `master`, đã chạy trên DB |
-| `V2_2__payment_transactions.sql` | 2 | `payment_transactions` | ✅ Đã merge `master`, đã chạy trên DB |
+| `V2_1__user_profiles.sql` | 1 | `user_profiles` | ✅ Đã merge `master`, đã chạy trên DB (v2, CH3: `age` → `date_of_birth` ở V9) |
+| `V2_2__payment_transactions.sql` | 2 | `payment_transactions` | ✅ Đã merge `master`, đã chạy trên DB (v2, CH1: tách khoá ngoại ở V7, sau V5) |
 | `V3__schedule_booking.sql` | 3 | `trainer_schedules`, `bookings` | ⚠️ Có migration thật trên nhánh `feature/agent3-schedule-booking`, chưa merge `master` |
 | `V4__face_attendance.sql` | 4 | `face_profiles`, `staff_attendances` | ⚠️ Có migration thật trên nhánh `feature/agent4-face-attendance`, chưa merge `master` |
-| `V5__pos_commission.sql` | 5 | `products`, `pos_orders`, `pos_order_items`, `trainer_pay_rates`, `commissions` | 📐 Chưa có migration — thiết kế để Agent 5 bám theo |
+| `V5__pos_commission.sql` | 5 | `products`, `pos_orders`, `pos_order_items`, `trainer_pay_rates`, `commissions` | 📐 Chưa có migration — thiết kế để Agent 5 bám theo (đã bỏ `total_amount`, `subtotal` theo CH5) |
 | `V6__leads.sql` | 6 | `leads` | 📐 Chưa có migration — thiết kế để Agent 6 bám theo |
+| `V8__gym_check_ins.sql` | 4 | `gym_check_ins` | 📐 Thiết kế v2 (CH2), triển khai sau khi PR #43 của Agent 4 merge |
 
 ---
 
@@ -37,7 +40,7 @@
 
 ### `V1__init_schema.sql` — Agent 1
 
-✅ Đã merge `master`, đã chạy trên DB
+✅ Đã merge `master`, đã chạy trên DB (v2, CH4: bỏ `users.avatar_url` ở V9)
 
 #### `roles`
 
@@ -56,10 +59,9 @@
 | `id` | UNIQUEIDENTIFIER | NO | NEWID() | **PK** |
 | `full_name` | NVARCHAR(150) | NO |  |  |
 | `email` | VARCHAR(150) | NO |  | UNIQUE |
-| `phone` | VARCHAR(20) | YES |  | UNIQUE ⚠️ cột nullable nhưng UNIQUE kiểu constraint: chỉ cho **một** user có `NULL` (xem mục 4, vấn đề #1) |
+| `phone` | VARCHAR(20) | YES |  | UNIQUE ⚠️ cột nullable nhưng UNIQUE kiểu constraint: chỉ cho **một** user có `NULL` (xem mục 5, vấn đề #1) |
 | `password_hash` | VARCHAR(255) | NO |  | Mã băm mật khẩu, không bao giờ trả ra API |
 | `status` | VARCHAR(20) | NO | 'ACTIVE' | `ACTIVE` / `INACTIVE` / `BANNED` (theo ERD, chưa đối chiếu enum trong code) |
-| `avatar_url` | VARCHAR(255) | YES |  | ⚠️ DEPRECATED: trùng `user_profiles.avatar_url` (nguồn duy nhất là `user_profiles`, xem mục 4, vấn đề #2) |
 | `created_at` | DATETIME2 | NO | SYSUTCDATETIME() |  |
 | `updated_at` | DATETIME2 | YES |  |  |
 
@@ -79,7 +81,7 @@
 | `id` | UNIQUEIDENTIFIER | NO | NEWID() | **PK** |
 | `name` | NVARCHAR(150) | NO |  |  |
 | `address` | NVARCHAR(255) | YES |  |  |
-| `phone` | VARCHAR(20) | YES |  | ⚠️ dữ liệu seed là chữ giữ chỗ (xem mục 4, vấn đề #3) |
+| `phone` | VARCHAR(20) | YES |  | ⚠️ dữ liệu seed là chữ giữ chỗ (xem mục 5, vấn đề #3) |
 | `status` | VARCHAR(20) | NO | 'ACTIVE' | `ACTIVE` / `CLOSED` |
 | `created_at` | DATETIME2 | NO | SYSUTCDATETIME() |  |
 | `updated_at` | DATETIME2 | YES |  |  |
@@ -124,7 +126,7 @@
 
 ### `V2_1__user_profiles.sql` — Agent 1
 
-✅ Đã merge `master`, đã chạy trên DB
+✅ Đã merge `master`, đã chạy trên DB (v2, CH3: `age` → `date_of_birth` ở V9)
 
 #### `user_profiles`
 
@@ -132,7 +134,7 @@
 |---|---|---|---|---|
 | `id` | UNIQUEIDENTIFIER | NO | NEWID() | **PK** |
 | `user_id` | UNIQUEIDENTIFIER | NO |  | FK → `users(id)` ON DELETE CASCADE; UNIQUE |
-| `age` | INT | YES |  | Validate ≥ 18 so với `users.created_at` (ngày đăng ký), không so ngày hiện tại |
+| `date_of_birth` | DATE | YES |  | 🆕 v2 (CH3): thay cho `age`. Ngày sinh phải cách `users.created_at` ít nhất 18 năm |
 | `weight_kg` | DECIMAL(5,2) | YES |  |  |
 | `height_cm` | DECIMAL(5,2) | YES |  |  |
 | `goal` | NVARCHAR(255) | YES |  |  |
@@ -142,16 +144,16 @@
 
 ### `V2_2__payment_transactions.sql` — Agent 2
 
-✅ Đã merge `master`, đã chạy trên DB
+✅ Đã merge `master`, đã chạy trên DB (v2, CH1: tách khoá ngoại ở V7, sau V5)
 
 #### `payment_transactions`
 
 | Cột | Kiểu | Null | Mặc định | Khoá / Ghi chú |
 |---|---|---|---|---|
 | `id` | UNIQUEIDENTIFIER | NO | NEWID() | **PK** |
-| `user_id` | UNIQUEIDENTIFIER | NO |  | FK → `users(id)` |
-| `related_type` | VARCHAR(20) | NO |  | `MEMBERSHIP` / `POS` |
-| `related_id` | UNIQUEIDENTIFIER | NO |  | id của `member_packages` hoặc `pos_orders`. **Không có FK cứng** (quan hệ polymorphic thủ công) |
+| `user_id` | UNIQUEIDENTIFIER | YES |  | FK → `users(id)`; 🆕 v2: nullable, NULL = khách vãng lai mua lẻ tại quầy |
+| `member_package_id` | UNIQUEIDENTIFIER | YES |  | FK → `member_packages(id)`; 🆕 v2 (CH1): thanh toán gói tập. **Đúng một** trong hai cột `member_package_id`/`pos_order_id` có giá trị (CHECK) |
+| `pos_order_id` | UNIQUEIDENTIFIER | YES |  | FK → `pos_orders(id)`; 🆕 v2 (CH1): thanh toán đơn bán lẻ (FK thêm ở V7, sau khi V5 có `pos_orders`) |
 | `amount` | DECIMAL(12,2) | NO |  |  |
 | `payment_method` | VARCHAR(20) | NO |  | `CASH` / `LOCAL_CONFIRM` |
 | `status` | VARCHAR(20) | NO | 'PENDING' | `PENDING` / `SUCCESS` / `FAILED` |
@@ -159,7 +161,7 @@
 | `created_at` | DATETIME2 | NO | SYSUTCDATETIME() |  |
 | `updated_at` | DATETIME2 | YES |  |  |
 
-**Ràng buộc/chỉ mục thêm:** INDEX `idx_payment_transactions_related` trên `(related_type, related_id)`; INDEX `idx_payment_transactions_user` trên `(user_id)`.
+**Ràng buộc/chỉ mục thêm:** INDEX `idx_payment_transactions_user` trên `(user_id)`; INDEX `idx_payment_transactions_member_package` trên `(member_package_id)`; INDEX `idx_payment_transactions_pos_order` trên `(pos_order_id)`.
 
 ### `V3__schedule_booking.sql` — Agent 3
 
@@ -241,7 +243,7 @@
 
 ### `V5__pos_commission.sql` — Agent 5
 
-📐 Chưa có migration — thiết kế để Agent 5 bám theo
+📐 Chưa có migration — thiết kế để Agent 5 bám theo (đã bỏ `total_amount`, `subtotal` theo CH5)
 
 #### `products`
 
@@ -267,7 +269,6 @@
 | `member_id` | UNIQUEIDENTIFIER | YES |  | FK → `users(id)`; NULL = khách vãng lai |
 | `staff_id` | UNIQUEIDENTIFIER | NO |  | FK → `users(id)` |
 | `branch_id` | UNIQUEIDENTIFIER | YES |  | FK → `branches(id)` |
-| `total_amount` | DECIMAL(12,2) | NO |  |  |
 | `payment_method` | VARCHAR(20) | NO |  | Giống `payment_transactions.payment_method` |
 | `status` | VARCHAR(20) | NO | 'PENDING' | Đề xuất: `PENDING` (chờ thanh toán) → `COMPLETED` / `CANCELLED`. **Agent 5 xác nhận** |
 | `created_at` | DATETIME2 | NO | SYSUTCDATETIME() |  |
@@ -284,7 +285,6 @@
 | `product_id` | UNIQUEIDENTIFIER | NO |  | FK → `products(id)` |
 | `quantity` | INT | NO |  | > 0 |
 | `unit_price` | DECIMAL(12,2) | NO |  | Giá tại thời điểm bán (không đổi khi `products.price` đổi) |
-| `subtotal` | DECIMAL(12,2) | NO |  |  |
 | `created_at` | DATETIME2 | NO | SYSUTCDATETIME() |  |
 | `updated_at` | DATETIME2 | YES |  |  |
 
@@ -337,9 +337,40 @@
 
 **Ràng buộc/chỉ mục thêm:** INDEX `idx_leads_status` trên `(status)`; INDEX `idx_leads_phone` trên `(phone)`.
 
+### `V8__gym_check_ins.sql` — Agent 4
+
+📐 Thiết kế v2 (CH2), triển khai sau khi PR #43 của Agent 4 merge
+
+#### `gym_check_ins`
+
+| Cột | Kiểu | Null | Mặc định | Khoá / Ghi chú |
+|---|---|---|---|---|
+| `id` | UNIQUEIDENTIFIER | NO | NEWID() | **PK** |
+| `member_id` | UNIQUEIDENTIFIER | NO |  | FK → `users(id)`; Hội viên vào phòng tập |
+| `branch_id` | UNIQUEIDENTIFIER | YES |  | FK → `branches(id)`; Chi nhánh (nullable) |
+| `check_in_time` | DATETIME2 | NO |  | Lượt quét mặt vào |
+| `check_out_time` | DATETIME2 | YES |  | Lượt quét thứ 2 trong ngày = check-out |
+| `method` | VARCHAR(20) | NO | 'FACE' | `FACE` / `MANUAL` |
+| `created_at` | DATETIME2 | NO | SYSUTCDATETIME() |  |
+| `updated_at` | DATETIME2 | YES |  |  |
+
+**Ràng buộc/chỉ mục thêm:** INDEX `idx_gym_check_ins_member_time` trên `(member_id, check_in_time)`.
+
 ---
 
-## 4. Vấn đề đã phát hiện khi đối chiếu DB thật (đề xuất xử lý)
+## 4. Thay đổi từ DB đang chạy (v1) sang thiết kế mục tiêu (v2)
+
+Đã được Phi duyệt ngày 2026-10-16, **chưa triển khai**. Chi tiết quyết định: `DECISIONS_DB_V2.md`.
+
+| # | Thay đổi | Lý do | Migration | Agent |
+|---|---|---|---|---|
+| CH1 | `payment_transactions`: bỏ `related_type`, `related_id`; thêm `member_package_id`, `pos_order_id` (FK, đúng một cột có giá trị, `CHECK`); `user_id` nullable | `related_id` trỏ hai bảng nên không có FK; khách vãng lai mua lẻ không có `user_id` | V7 (sau V5) | 2 |
+| CH2 | Bảng mới `gym_check_ins` | Lượt vào phòng không có buổi PT chưa có chỗ lưu (lịch sử check-in, báo cáo lưu lượng) | V8 | 4 |
+| CH3 | `user_profiles.age` → `date_of_birth` | Tuổi là dữ liệu suy ra, lỗi thời theo thời gian | V9 | 1 |
+| CH4 | Bỏ `users.avatar_url` | Trùng `user_profiles.avatar_url` | V9 | 1 |
+| CH5 | Bỏ `pos_orders.total_amount`, `pos_order_items.subtotal` | Suy ra từ `quantity × unit_price` | V5 (viết đúng ngay từ đầu) | 5 |
+
+## 5. Vấn đề đã phát hiện khi đối chiếu DB thật (đề xuất xử lý)
 
 1. **`users.phone` — UNIQUE trên cột nullable (đã xác nhận).** `V1` khai báo `phone VARCHAR(20) NULL UNIQUE`; SQL Server chỉ cho phép **một** dòng `NULL` trong cột UNIQUE kiểu constraint. User thứ hai không nhập số điện thoại sẽ bị lỗi vi phạm unique. Hiện DB chỉ có 1 user nên chưa lộ. Cách sửa là migration mới thay constraint bằng filtered unique index. Tên constraint do SQL Server tự sinh và khác nhau giữa các máy nên phải tìm bằng SQL động (**bản nháp, chưa chạy thử**):
    ```sql
@@ -351,8 +382,8 @@
    IF @uq IS NOT NULL EXEC('ALTER TABLE users DROP CONSTRAINT [' + @uq + ']');
    CREATE UNIQUE INDEX uq_users_phone ON users(phone) WHERE phone IS NOT NULL;
    ```
-   Đặt tên số cho migration này sau khi các agent merge (hoặc bật `spring.flyway.out-of-order: true` ở môi trường dev) để không lệch thứ tự với `V3`–`V6` đang chờ. `payment_transactions.transaction_code` là `NOT NULL UNIQUE` nên **không** dính lỗi này.
-2. **`avatar_url` trùng ở `users` và `user_profiles`.** Chốt: nguồn duy nhất là `user_profiles.avatar_url`. Cột `users.avatar_url` giữ tạm (đánh dấu DEPRECATED), xoá bằng migration sau khi xác nhận không còn code đọc hoặc ghi cột này.
+   Migration này là **V9** (cùng CH3, CH4); `spring.flyway.out-of-order: true` đã bật ở môi trường dev nên không lệch thứ tự với `V3`–`V8` đang chờ. `payment_transactions.transaction_code` là `NOT NULL UNIQUE` nên **không** dính lỗi này.
+2. **`avatar_url` trùng ở `users` và `user_profiles`.** CH4 đã duyệt: bỏ `users.avatar_url` ở V9; nguồn duy nhất là `user_profiles.avatar_url`.
 3. **Dữ liệu seed `branches`:** `address` và `phone` của chi nhánh mặc định là chữ giữ chỗ "Đang cập nhật". Riêng `phone` là `VARCHAR` nên dấu tiếng Việt bị biến dạng. Nên đặt `phone = NULL` bằng cập nhật dữ liệu khi thiết lập chi nhánh thật.
 4. **Chỉ mục thừa:** `idx_users_email` trùng với chỉ mục mà constraint UNIQUE của `email` đã tạo, nên có thể bỏ ở migration dọn dẹp sau.
 5. **Chỉ mục nên bổ sung:** `member_packages (user_id, status)` (mỗi lần gọi `getCurrentMembership`, hiện chỉ có hai chỉ mục đơn lẻ); `user_roles (role_id)` (khoá kép chỉ dẫn đầu bằng `user_id`). `payment_transactions (related_type, related_id)` **đã có**.

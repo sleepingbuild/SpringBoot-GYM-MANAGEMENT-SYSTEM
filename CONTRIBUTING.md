@@ -58,3 +58,5 @@ Mỗi PR cần:
 - [ ] Response tuân thủ `ApiResponse<T>` chuẩn
 - [ ] Swagger annotation đầy đủ trên endpoint mới
 - [ ] Không sửa file/khu vực thuộc agent khác mà chưa xin phép
+
+- Sau khi merge vào `master`, kiểm tra Jenkins chạy xanh; nếu đỏ thì sửa ngay.
