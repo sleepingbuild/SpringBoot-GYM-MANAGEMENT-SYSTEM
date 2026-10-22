@@ -21,7 +21,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -536,6 +536,14 @@ public class BookingServiceImpl implements BookingService {
     // ------------------------------------------------------------------
 
     private void publishSettled(Booking booking, Outcome outcome, boolean fullDuration) {
+        try {
+            // Ép kiểm tra version ngay tại đây: nếu request khác đã chốt booking này trước,
+            // ngoại lệ bật ra TRƯỚC khi event được phát -> hội viên không bị trừ buổi 2 lần.
+            bookingRepository.flush();
+        } catch (ObjectOptimisticLockingFailureException e) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "Booking vừa được xử lý bởi yêu cầu khác, vui lòng tải lại");
+        }
         eventPublisher.publishEvent(new BookingSettledEvent(
                 booking.getId(), booking.getTrainer().getId(), booking.getMember().getId(),
                 outcome, fullDuration, LocalDateTime.now(clock)));
