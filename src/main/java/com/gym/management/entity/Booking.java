@@ -64,6 +64,10 @@ public class Booking extends BaseEntity {
     @Builder.Default
     private BookingStatus status = BookingStatus.PENDING;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "check_in_time")
     private LocalDateTime checkInTime;
 

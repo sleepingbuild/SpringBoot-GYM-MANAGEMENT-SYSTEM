@@ -38,6 +38,7 @@ CREATE TABLE bookings (
     pt_check_out_method     VARCHAR(20) NULL,
     pt_early_leave_reason   NVARCHAR(255) NULL,
     notes               NVARCHAR(500) NULL,
+    version             BIGINT NOT NULL DEFAULT 0,
     created_at          DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     updated_at          DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     CONSTRAINT fk_bookings_member FOREIGN KEY (member_id) REFERENCES users(id),
