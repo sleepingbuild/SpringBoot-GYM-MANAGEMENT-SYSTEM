@@ -1,0 +1,17 @@
+# application-local.example.yml — MẪU cho file cấu hình riêng của từng máy.
+# Cách dùng: sao chép thành  src/main/resources/application-local.yml  (file đó KHÔNG được commit),
+# rồi sửa các giá trị bên dưới. Chạy: mvn spring-boot:run "-Dspring-boot.run.profiles=local"
+#
+# Các cấu hình còn lại (database, Redis, booking, face-attendance...) đã có mặc định trong application.yml.
+# Chỉ ghi vào file này những gì cần ghi đè hoặc là bí mật.
+
+gms:
+  jwt:
+    # Tạo khoá ngẫu nhiên riêng (PowerShell):
+    #   $b = New-Object byte[] 48; [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b)
+    secret: "DAN_KHOA_NGAU_NHIEN_VAO_DAY"
+
+# Ví dụ ghi đè khi cần (bỏ comment để dùng):
+# spring:
+#   datasource:
+#     url: "jdbc:sqlserver://localhost:1434;databaseName=gms_db;encrypt=true;trustServerCertificate=true"   # nếu đổi cổng Docker

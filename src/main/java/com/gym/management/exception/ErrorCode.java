@@ -18,6 +18,7 @@ public enum ErrorCode {
     AUTH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED),
     AUTH_FORBIDDEN_ROLE(HttpStatus.FORBIDDEN),
     AUTH_EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT),
+    AUTH_PHONE_ALREADY_EXISTS(HttpStatus.CONFLICT),
 
     // ==== Profile (Agent 1) ====
     PROFILE_INVALID_AGE(HttpStatus.BAD_REQUEST),
@@ -43,6 +44,8 @@ public enum ErrorCode {
     BOOKING_WEEKLY_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST),
     BOOKING_PAST_CANNOT_CANCEL(HttpStatus.BAD_REQUEST),
     BOOKING_NOT_CHECKED_IN(HttpStatus.BAD_REQUEST),
+    BOOKING_PT_NOT_CHECKED_IN(HttpStatus.BAD_REQUEST),
+    BOOKING_EARLY_LEAVE_REASON_NOT_ALLOWED(HttpStatus.BAD_REQUEST),
 
     // ==== Face Attendance & Chấm công (Agent 4) ====
     FACE_NOT_RECOGNIZED(HttpStatus.UNAUTHORIZED),
@@ -59,6 +62,7 @@ public enum ErrorCode {
     // ==== Leads/CRM (Agent 6) ====
     LEAD_NOT_FOUND(HttpStatus.NOT_FOUND),
     LEAD_ALREADY_CONVERTED(HttpStatus.CONFLICT),
+    LEAD_INVALID_STATUS_TRANSITION(HttpStatus.BAD_REQUEST),
     NOTIFICATION_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR), // tuỳ chọn — Zalo ZNS/SMS sau v1.0
 
     // ==== Generic ====

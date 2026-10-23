@@ -63,7 +63,7 @@ gym-management-system/
 │   │   │   │   └── zalo/             # Tuỳ chọn, sau v1.0 — nhắc gia hạn qua Zalo ZNS/SMS
 │   │   │   └── exception/            # GlobalExceptionHandler, ErrorCode, custom exceptions
 │   │   └── resources/
-│   │       ├── application.yml.example
+│   │       ├── application-local.example.yml
 │   │       ├── db/migration/         # Flyway: V1__..., V2__..., ...
 │   │       └── templates/            # Email / notification templates
 │   └── test/java/com/gym/management/
@@ -174,3 +174,6 @@ Sales tạo/nhận Lead (status = NEW) → chăm sóc (CONTACTED)
 - `FaceMatchService` được trừu tượng hoá qua interface — có thể đổi thuật toán so khớp (nâng cấp lên embedding chuẩn hơn, hoặc gọi Cloud API) mà không đổi API/DB phía trên, miễn giữ đúng contract "nhận descriptor, trả userId hoặc rỗng".
 - Cổng thanh toán thật (VietQR/MoMo) và thông báo (Zalo ZNS/SMS) để sẵn package `integration/` — bổ sung sau v1.0 nếu cần demo với dữ liệu thật, không bắt buộc cho phạm vi 10 tuần hiện tại.
 - Sẵn sàng tách microservice sau này nếu cần (Face Attendance và Booking là 2 ứng viên tách trước tiên do đặc thù throughput/latency khác các module còn lại).
+
+## Triển khai tự động
+Jenkins build bằng JDK 17 và Maven, đóng gói jar, rồi triển khai thành Windows service (NSSM).

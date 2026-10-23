@@ -2,16 +2,16 @@ package com.gym.management.service.impl;
 
 import com.gym.management.constant.PaymentMethodType;
 import com.gym.management.constant.PaymentStatus;
-import com.gym.management.constant.RelatedType;
 import com.gym.management.dto.response.PaymentTransactionResponse;
 import com.gym.management.entity.PaymentTransaction;
 import com.gym.management.entity.User;
 import com.gym.management.exception.BusinessException;
 import com.gym.management.exception.ErrorCode;
 import com.gym.management.repository.PaymentTransactionRepository;
-import com.gym.management.service.MembershipService;
 import com.gym.management.service.PaymentService;
+import com.gym.management.service.event.PaymentConfirmedEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,21 +24,24 @@ import java.util.stream.Collectors;
 /**
  * Agent 2 - Membership, Package & Payment Module.
  *
- * Lưu ý về phụ thuộc: PaymentServiceImpl PHỤ THUỘC MembershipService (1 chiều) để gọi
- * activateFromPendingPayment khi confirm 1 giao dịch MEMBERSHIP. Chiều ngược lại
- * (MembershipServiceImpl → PaymentService) cũng tồn tại (để tạo giao dịch PENDING lúc
- * đăng ký/nâng/hạ cấp) — do đó về mặt Spring bean đây LÀ một cặp phụ thuộc 2 chiều.
- * Không phát sinh circular-dependency lỗi vì cả 2 constructor chỉ cần INTERFACE của
- * nhau (Spring xử lý được qua proxy khi cả 2 đều là @Service cùng module), nhưng nếu
- * sau này refactor tách nhỏ hơn, cân nhắc dùng ApplicationEventPublisher để tách rời
- * hẳn 2 luồng thay vì gọi trực tiếp.
+ * Lưu ý về phụ thuộc: PaymentServiceImpl KHÔNG phụ thuộc MembershipService. Trước đây 2 bên inject
+ * constructor lẫn nhau (Membership → Payment để tạo giao dịch PENDING lúc đăng ký/nâng/hạ cấp;
+ * Payment → Membership để kích hoạt gói trong confirmPayment) nên ứng dụng không khởi động được —
+ * Spring Boot cấm vòng phụ thuộc bean theo mặc định (nhận định cũ ở đây rằng "Spring xử lý được qua
+ * proxy" là SAI, mvn verify với Mockito không bắt được lỗi này).
+ *
+ * Nay chỉ còn 1 chiều Membership → Payment. Khi xác nhận xong 1 giao dịch, Payment phát
+ * {@link PaymentConfirmedEvent} (đồng bộ, chung transaction) và
+ * {@link com.gym.management.service.listener.MembershipPaymentListener} kích hoạt gói. Module khác
+ * (vd POS của Agent 5) lắng nghe cùng sự kiện này và lọc theo relatedType.
+ * KHÔNG thêm lại phụ thuộc ngược Payment → Membership và KHÔNG bật spring.main.allow-circular-references.
  */
 @Service
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentTransactionRepository paymentTransactionRepository;
-    private final MembershipService membershipService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -61,7 +64,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
 
         if (PaymentStatus.SUCCESS.equals(tx.getStatus())) {
-            return toResponse(tx); // idempotent — xác nhận lần 2 không lỗi, không lặp side-effect
+            return toResponse(tx); // idempotent — xác nhận lần 2 không lỗi, không phát lại sự kiện, không lặp side-effect
         }
 
         if (paymentMethod != null && !paymentMethod.isBlank()) {
@@ -70,12 +73,12 @@ public class PaymentServiceImpl implements PaymentService {
         tx.setStatus(PaymentStatus.SUCCESS);
         tx = paymentTransactionRepository.save(tx);
 
-        // Điểm nối DUY NHẤT giữa Payment và Membership — không lặp lại logic activate ở nơi khác.
-        if (RelatedType.MEMBERSHIP.equals(tx.getRelatedType())) {
-            membershipService.activateFromPendingPayment(tx.getRelatedId());
-        }
-        // RelatedType.POS: Agent 5 tự xử lý tiếp nghiệp vụ trừ kho ở module riêng, module này
-        // chỉ đảm bảo giao dịch được ghi log và đổi trạng thái đúng.
+        // Điểm nối DUY NHẤT giữa Payment và các module khác — Payment không gọi thẳng Membership (tránh vòng
+        // phụ thuộc bean), chỉ phát sự kiện đồng bộ chung transaction:
+        //  - MEMBERSHIP: MembershipPaymentListener kích hoạt gói (PENDING → ACTIVE).
+        //  - POS: Agent 5 có thể lắng nghe cùng sự kiện để trừ kho ở module riêng; module này chỉ đảm bảo
+        //    giao dịch được ghi log và đổi trạng thái đúng.
+        eventPublisher.publishEvent(new PaymentConfirmedEvent(tx.getId(), tx.getRelatedType(), tx.getRelatedId()));
 
         return toResponse(tx);
     }
