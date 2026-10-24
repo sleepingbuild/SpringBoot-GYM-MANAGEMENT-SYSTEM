@@ -39,4 +39,9 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> error(String message, ErrorCode errorCode) {
         return new ApiResponse<>(false, message, null, errorCode.name());
     }
+
+    /** Dùng cho mã lỗi chung chưa có trong enum ErrorCode (vd: DATA_CONFLICT). */
+    public static <T> ApiResponse<T> error(String message, String errorCode) {
+        return new ApiResponse<>(false, message, null, errorCode);
+    }
 }

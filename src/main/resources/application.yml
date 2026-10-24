@@ -1,0 +1,108 @@
+# application.yml — cấu hình CHUNG của dự án, được commit vào repo.
+# Quy tắc: KHÔNG đặt bí mật thật ở đây (JWT secret, mật khẩu production, khoá API).
+#  - Bí mật dùng khi chạy máy cá nhân: đặt trong application-local.yml (KHÔNG commit, xem application-local.example.yml)
+#    hoặc biến môi trường.
+#  - Chạy: mvn spring-boot:run "-Dspring-boot.run.profiles=local"
+
+spring:
+  application:
+    name: gym-management-system
+
+  datasource:
+    url: "${DB_URL:jdbc:sqlserver://localhost:1433;databaseName=gms_db;encrypt=true;trustServerCertificate=true}"
+    username: "${DB_USERNAME:sa}"
+    # Mật khẩu mặc định chỉ cho môi trường dev, trùng với docker-compose.yml. Triển khai thật phải đặt DB_PASSWORD.
+    password: "${DB_PASSWORD:GmsStrongP@ss123}"
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate   # Flyway quản lý schema, JPA chỉ validate
+    properties:
+      hibernate:
+        format_sql: true
+        timezone:
+          default_storage: NORMALIZE_UTC
+    show-sql: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    # Dev: cho phép áp migration có số thấp hơn version đã áp trên DB local (V3-V5 merge sau V6).
+    # Migration có khoá ngoại (V5 -> bookings) vẫn cần V3 đã có trước.
+    out-of-order: true
+
+  data:
+    redis:
+      host: "${REDIS_HOST:localhost}"
+      port: "${REDIS_PORT:6379}"
+      password: "${REDIS_PASSWORD:}"
+
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+server:
+  port: 8080
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+# ==== Cấu hình riêng GMS ====
+gms:
+  jwt:
+    # Bắt buộc phải cung cấp (application-local.yml hoặc biến môi trường GMS_JWT_SECRET). Cố ý KHÔNG có giá trị mặc định.
+    secret: "${GMS_JWT_SECRET}"
+    access-token-expiration-ms: 900000        # 15 phút
+    refresh-token-expiration-ms: 604800000    # 7 ngày
+
+  upload:
+    dir: uploads                              # thư mục lưu file upload, phục vụ qua /uploads/**
+
+  booking:
+    min-lead-minutes: 30
+    slot-duration-minutes: 60
+    pending-cancel-threshold-minutes: 60
+    # Luật mới (CHANGE_PT_ATTENDANCE_AND_PAY.md). Tên khoá chờ Agent 3 xác nhận khớp với code.
+    no-show-grace-minutes: 15                 # sau S+15 phút: PT chưa quét -> PT_NO_SHOW; học viên chưa quét -> NO_SHOW
+    late-cancel-hours: 2                      # huỷ CONFIRMED khi còn dưới 2 giờ -> LATE_CANCELLED
+
+  face-attendance:
+    match-threshold: 0.45
+    default-shift-start: "07:00"
+    default-shift-end: "21:00"
+    min-scan-interval-seconds: 120
+    trainer-min-scan-interval-seconds: 15     # PT dạy hai buổi liền nhau: không bị chặn quét lần hai
+
+  # Tích hợp bên thứ ba: chỉ là chỗ giữ chỗ, chưa dùng ở v1.0. Giá trị thật đặt ở application-local.yml / biến môi trường.
+  vietqr:
+    client-id: "CHANGE_ME"
+    api-key: "CHANGE_ME"
+    base-url: "https://api.vietqr.io"
+
+  momo:
+    partner-code: "CHANGE_ME"
+    access-key: "CHANGE_ME"
+    secret-key: "CHANGE_ME"
+    endpoint: "CHANGE_ME"
+    return-url: "CHANGE_ME"
+    ipn-url: "CHANGE_ME"
+
+  zalo-zns:
+    app-id: "CHANGE_ME"
+    secret-key: "CHANGE_ME"
+    template-id: "CHANGE_ME"
+
+  sms-brandname:
+    api-key: "CHANGE_ME"
+    brandname: "GYM-GMS"
+
+logging:
+  level:
+    com.gym.management: DEBUG
+    org.springframework.security: INFO
