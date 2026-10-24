@@ -6,6 +6,7 @@ import com.gym.management.dto.request.ConvertLeadRequest;
 import com.gym.management.dto.request.LeadRequest;
 import com.gym.management.dto.response.LeadResponse;
 import com.gym.management.entity.Lead;
+import com.gym.management.entity.User;
 import com.gym.management.exception.BusinessException;
 import com.gym.management.exception.ErrorCode;
 import com.gym.management.repository.LeadRepository;
@@ -78,6 +79,12 @@ class LeadServiceImplTest {
         when(leadRepository.findByIdForUpdate(leadId)).thenReturn(Optional.of(l));
         when(leadRepository.findById(leadId)).thenReturn(Optional.of(l));
         return l;
+    }
+
+    private User userWithId(UUID id) {
+        User u = new User();
+        u.setId(id);
+        return u;
     }
 
     private LeadRequest request(String phone) {
@@ -242,7 +249,7 @@ class LeadServiceImplTest {
         Lead l = lead(LeadStatus.CONTACTED, salesA);
         UUID newUserId = UUID.randomUUID();
         when(authService.createMemberAccount("Nguyễn Văn A", "member@example.com", "0912345678", "tempPass123"))
-                .thenReturn(newUserId);
+                .thenReturn(userWithId(newUserId));
 
         LeadResponse res = service.convert(leadId, convertRequest());
 
@@ -256,7 +263,7 @@ class LeadServiceImplTest {
         loginAs(salesA, false);
         lead(LeadStatus.NEW, salesA);
         when(authService.createMemberAccount(anyString(), anyString(), anyString(), anyString()))
-                .thenReturn(UUID.randomUUID());
+                .thenReturn(userWithId(UUID.randomUUID()));
         assertEquals("CONVERTED", service.convert(leadId, convertRequest()).getStatus());
     }
 

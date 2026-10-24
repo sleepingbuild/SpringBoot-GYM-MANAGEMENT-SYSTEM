@@ -151,7 +151,7 @@ public class LeadServiceImpl implements LeadService {
                 lead.getFullName(),
                 request.getEmail().trim().toLowerCase(),
                 lead.getPhone(),
-                request.getPassword());
+                request.getPassword()).getId();
 
         lead.setStatus(LeadStatus.CONVERTED);
         lead.setConvertedUserId(userId);
