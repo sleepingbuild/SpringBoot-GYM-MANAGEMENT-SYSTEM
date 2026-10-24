@@ -27,6 +27,9 @@ public class LeadResponse {
     /** Chỉ có giá trị khi tạo lead: true nếu số điện thoại đã có ở lead khác. */
     private Boolean duplicatePhone;
 
+    /** Chỉ có khi convert mà không truyền mật khẩu: mật khẩu sinh ngẫu nhiên, hiển thị một lần duy nhất. */
+    private String temporaryPassword;
+
     public static LeadResponse from(Lead lead) {
         LeadResponse r = new LeadResponse();
         r.id = lead.getId();

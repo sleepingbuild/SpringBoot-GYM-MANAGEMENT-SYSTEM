@@ -98,7 +98,9 @@ public class LeadController {
     @PostMapping("/{id}/convert")
     @PreAuthorize("hasAnyRole('SALES','SUPER_ADMIN')")
     @Operation(summary = "Chuyển lead thành hội viên",
-            description = "Tạo tài khoản MEMBER từ lead (cần email và mật khẩu tạm), đặt lead = CONVERTED. "
+            description = "Tạo tài khoản MEMBER từ lead (cần email), đặt lead = CONVERTED. Mật khẩu tuỳ chọn: "
+                    + "bỏ trống thì hệ thống sinh mật khẩu ngẫu nhiên 12 ký tự và trả trong temporaryPassword, "
+                    + "chỉ hiển thị một lần (hãy chuyển cho hội viên qua kênh riêng). "
                     + "Không mua gói ở bước này (dùng /member-packages) và không sinh hoa hồng.")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Đã chuyển đổi")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "LEAD_NOT_FOUND")

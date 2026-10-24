@@ -24,6 +24,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -41,6 +42,10 @@ public class LeadServiceImpl implements LeadService {
 
     private static final Set<String> SORTABLE = Set.of("createdAt", "updatedAt", "fullName", "status");
     private static final Pattern VN_PHONE = Pattern.compile("^0\\d{9,10}$");
+    private static final SecureRandom RANDOM = new SecureRandom();
+    /** Bỏ các ký tự dễ nhầm (0/O, 1/l/I) vì Sales sẽ đọc hoặc chép mật khẩu cho hội viên. */
+    private static final String PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+    static final int GENERATED_PASSWORD_LENGTH = 12;
 
     private final LeadRepository leadRepository;
     private final AuthService authService;
@@ -147,16 +152,22 @@ public class LeadServiceImpl implements LeadService {
 
         // Tạo tài khoản qua service của Agent 1 (kiểm tra email/số điện thoại trùng nằm ở đó).
         // Cùng transaction: nếu lưu lead lỗi thì tài khoản cũng bị rollback.
+        boolean generated = request.getPassword() == null || request.getPassword().isBlank();
+        String rawPassword = generated ? generatePassword() : request.getPassword();
         UUID userId = authService.createMemberAccount(
                 lead.getFullName(),
                 request.getEmail().trim().toLowerCase(),
                 lead.getPhone(),
-                request.getPassword()).getId();
+                rawPassword).getId();
 
         lead.setStatus(LeadStatus.CONVERTED);
         lead.setConvertedUserId(userId);
         claimIfUnassigned(lead);
-        return LeadResponse.from(leadRepository.save(lead));
+        LeadResponse response = LeadResponse.from(leadRepository.save(lead));
+        if (generated) {
+            response.setTemporaryPassword(rawPassword); // chỉ trả một lần, không lưu ở đâu khác
+        }
+        return response;
     }
 
     // ---------- helpers ----------
@@ -216,6 +227,14 @@ public class LeadServiceImpl implements LeadService {
                     "Số điện thoại không hợp lệ (cần dạng 0xxxxxxxxx hoặc +84xxxxxxxxx)");
         }
         return p;
+    }
+
+    static String generatePassword() {
+        StringBuilder sb = new StringBuilder(GENERATED_PASSWORD_LENGTH);
+        for (int i = 0; i < GENERATED_PASSWORD_LENGTH; i++) {
+            sb.append(PASSWORD_ALPHABET.charAt(RANDOM.nextInt(PASSWORD_ALPHABET.length())));
+        }
+        return sb.toString();
     }
 
     private static String blankToNull(String s) {

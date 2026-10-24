@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-/** Lead chỉ có tên và số điện thoại, nên convert phải nhận thêm email và mật khẩu tạm. */
+/** Lead chỉ có tên và số điện thoại, nên convert phải nhận thêm email (mật khẩu tuỳ chọn). */
 @Getter
 @Setter
 public class ConvertLeadRequest {
@@ -16,7 +16,7 @@ public class ConvertLeadRequest {
     @Size(max = 150, message = "Email tối đa 150 ký tự")
     private String email;
 
-    @NotBlank(message = "Mật khẩu tạm không được để trống")
+    /** Tuỳ chọn. Bỏ trống thì hệ thống sinh mật khẩu ngẫu nhiên và trả về một lần trong response. */
     @Size(min = 8, message = "Mật khẩu tối thiểu 8 ký tự")
     private String password;
 }

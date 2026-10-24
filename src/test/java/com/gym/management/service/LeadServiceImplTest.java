@@ -17,6 +17,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -256,6 +257,24 @@ class LeadServiceImplTest {
         assertEquals("CONVERTED", res.getStatus());
         assertEquals(newUserId, res.getConvertedUserId());
         assertEquals(LeadStatus.CONVERTED, l.getStatus());
+        assertNull(res.getTemporaryPassword());
+    }
+
+    @Test
+    void convert_generatesRandomPasswordWhenOmitted() {
+        loginAs(salesA, false);
+        lead(LeadStatus.CONTACTED, salesA);
+        when(authService.createMemberAccount(any(), any(), any(), any()))
+                .thenReturn(userWithId(UUID.randomUUID()));
+        ConvertLeadRequest req = new ConvertLeadRequest();
+        req.setEmail("member@example.com");
+
+        LeadResponse res = service.convert(leadId, req);
+
+        ArgumentCaptor<String> password = ArgumentCaptor.forClass(String.class);
+        verify(authService).createMemberAccount(any(), any(), any(), password.capture());
+        assertEquals(12, password.getValue().length());
+        assertEquals(password.getValue(), res.getTemporaryPassword());
     }
 
     @Test
