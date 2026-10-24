@@ -202,7 +202,9 @@ class LeadServiceImplTest {
     void changeStatus_invalidTransitionIsRejected() {
         loginAs(salesA, false);
         lead(LeadStatus.CONTACTED, salesA);
-        assertThrows(BusinessException.class, () -> service.changeStatus(leadId, statusRequest("NEW")));
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> service.changeStatus(leadId, statusRequest("NEW")));
+        assertEquals(ErrorCode.LEAD_INVALID_STATUS_TRANSITION, ex.getErrorCode());
         verify(leadRepository, never()).save(any());
     }
 
@@ -271,7 +273,8 @@ class LeadServiceImplTest {
     void convert_lostLeadCannotBeConverted() {
         loginAs(salesA, false);
         lead(LeadStatus.LOST, salesA);
-        assertThrows(BusinessException.class, () -> service.convert(leadId, convertRequest()));
+        BusinessException ex = assertThrows(BusinessException.class, () -> service.convert(leadId, convertRequest()));
+        assertEquals(ErrorCode.LEAD_INVALID_STATUS_TRANSITION, ex.getErrorCode());
         verify(authService, never()).createMemberAccount(any(), any(), any(), any());
     }
 

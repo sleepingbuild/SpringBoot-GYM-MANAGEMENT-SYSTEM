@@ -125,8 +125,7 @@ public class LeadServiceImpl implements LeadService {
             throw new BusinessException(ErrorCode.LEAD_ALREADY_CONVERTED, "Lead đã chuyển đổi, không thể đổi trạng thái");
         }
         if (!lead.getStatus().canTransitionTo(target)) {
-            // TODO: đổi sang ErrorCode.LEAD_INVALID_STATUS_TRANSITION khi Agent 1 thêm mã này
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+            throw new BusinessException(ErrorCode.LEAD_INVALID_STATUS_TRANSITION,
                     "Không thể chuyển lead từ " + lead.getStatus() + " sang " + target);
         }
         lead.setStatus(target);
@@ -142,8 +141,7 @@ public class LeadServiceImpl implements LeadService {
             throw new BusinessException(ErrorCode.LEAD_ALREADY_CONVERTED, "Lead đã được chuyển đổi trước đó");
         }
         if (!lead.getStatus().canTransitionTo(LeadStatus.CONVERTED)) {
-            // TODO: đổi sang ErrorCode.LEAD_INVALID_STATUS_TRANSITION khi Agent 1 thêm mã này
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+            throw new BusinessException(ErrorCode.LEAD_INVALID_STATUS_TRANSITION,
                     "Lead đang ở trạng thái " + lead.getStatus() + ", không thể chuyển đổi thành hội viên");
         }
 
