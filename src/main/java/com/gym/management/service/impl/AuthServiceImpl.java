@@ -37,8 +37,24 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        User user = createMemberAccount(
+                request.getFullName(), request.getEmail(), request.getPhone(), request.getPassword());
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                user.getEmail(), null, List.of());
+        return buildAuthResponse(user, authentication);
+    }
+
+    @Override
+    @Transactional
+    public User createMemberAccount(String fullName, String email, String phone, String rawPassword) {
+        String normalizedPhone = normalizePhone(phone);
+
+        if (userRepository.existsByEmail(email)) {
             throw new BusinessException(ErrorCode.AUTH_EMAIL_ALREADY_EXISTS, "Email đã được sử dụng");
+        }
+        if (normalizedPhone != null && userRepository.existsByPhone(normalizedPhone)) {
+            throw new BusinessException(ErrorCode.AUTH_PHONE_ALREADY_EXISTS, "Số điện thoại đã được sử dụng");
         }
 
         Role memberRole = roleRepository.findByName(RoleName.MEMBER.name())
@@ -46,16 +62,12 @@ public class AuthServiceImpl implements AuthService {
                         "Role MEMBER chưa được seed trong DB - kiểm tra V1__init_schema.sql"));
 
         User user = new User();
-        user.setFullName(request.getFullName());
-        user.setEmail(request.getEmail());
-        user.setPhone(request.getPhone());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setFullName(fullName);
+        user.setEmail(email);
+        user.setPhone(normalizedPhone);
+        user.setPasswordHash(passwordEncoder.encode(rawPassword));
         user.setRoles(Set.of(memberRole));
-        userRepository.save(user);
-
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-                user.getEmail(), null, List.of());
-        return buildAuthResponse(user, authentication);
+        return userRepository.save(user);
     }
 
     @Override
@@ -88,6 +100,15 @@ public class AuthServiceImpl implements AuthService {
             var expiresAt = jwtTokenProvider.getExpirationFromToken(accessToken);
             tokenBlacklistService.blacklist(accessToken, expiresAt);
         }
+    }
+
+    /** Cắt khoảng trắng hai đầu; chuỗi rỗng trở thành null để không vi phạm unique của users.phone. */
+    private static String normalizePhone(String phone) {
+        if (phone == null) {
+            return null;
+        }
+        String trimmed = phone.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private AuthResponse buildAuthResponse(User user, Authentication authentication) {
