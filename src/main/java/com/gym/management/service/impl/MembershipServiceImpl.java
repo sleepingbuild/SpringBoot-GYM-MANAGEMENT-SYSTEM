@@ -208,13 +208,15 @@ public class MembershipServiceImpl implements MembershipService {
         User user = current.getUser();
         Branch branch = branchId != null ? resolveBranch(branchId) : current.getBranch();
 
-        // Gói cũ GIỮ NGUYÊN — chỉ tạo bản ghi SCHEDULED bắt đầu đúng ngày gói cũ hết hạn.
+        // Gói cũ GIỮ NGUYÊN — chỉ tạo bản ghi SCHEDULED bắt đầu NGÀY SAU end_date của gói cũ.
+        // end_date là ngày CUỐI CÙNG gói cũ còn hiệu lực (lazy-check chỉ chuyển EXPIRED khi
+        // today > end_date), nên nếu start_date = end_date thì đúng ngày đó cả 2 gói cùng ACTIVE.
         MemberPackage newMp = new MemberPackage();
         newMp.setUser(user);
         newMp.setGymPackage(newPkg);
         newMp.setBranch(branch);
         newMp.setStatus(MembershipStatus.SCHEDULED);
-        newMp.setStartDate(current.getEndDate());
+        newMp.setStartDate(current.getEndDate().plusDays(1));
         newMp.setEndDate(computeEndDate(newPkg, newMp.getStartDate()));
         newMp.setRemainingSessions(newPkg.getSessionCount());
         newMp = memberPackageRepository.save(newMp);
@@ -254,22 +256,39 @@ public class MembershipServiceImpl implements MembershipService {
     }
 
     // ============================================================
-    // Trừ buổi tập (dùng bởi Agent 3/4)
+    // Trừ buổi tập — gọi bởi BookingSettledMembershipListener khi booking được chốt
+    // (COMPLETED / MEMBER_NO_SHOW / LATE_CANCEL). Xem Javadoc ở MembershipService.
     // ============================================================
 
     @Override
     @Transactional
-    public void consumeSession(UUID userId) {
-        MemberPackage mp = getCurrentMembership(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBERSHIP_NOT_FOUND));
+    public ConsumeResult tryConsumeSession(UUID userId) {
+        Optional<MemberPackage> current = getCurrentMembership(userId);
+        if (current.isEmpty()) {
+            return ConsumeResult.NO_ACTIVE_MEMBERSHIP;
+        }
+        MemberPackage mp = current.get();
         if (mp.getRemainingSessions() == null) {
-            return; // gói không giới hạn buổi (vd TIME_BASED không kèm session_count)
+            return ConsumeResult.UNLIMITED; // gói không giới hạn buổi (vd TIME_BASED không kèm session_count)
         }
         if (mp.getRemainingSessions() <= 0) {
-            throw new BusinessException(ErrorCode.MEMBERSHIP_NO_SESSION);
+            return ConsumeResult.NO_SESSION_LEFT; // không trừ âm
         }
         mp.setRemainingSessions(mp.getRemainingSessions() - 1);
         memberPackageRepository.save(mp);
+        return ConsumeResult.CONSUMED;
+    }
+
+    @Override
+    @Transactional
+    public void consumeSession(UUID userId) {
+        ConsumeResult result = tryConsumeSession(userId);
+        if (result == ConsumeResult.NO_ACTIVE_MEMBERSHIP) {
+            throw new BusinessException(ErrorCode.MEMBERSHIP_NOT_FOUND);
+        }
+        if (result == ConsumeResult.NO_SESSION_LEFT) {
+            throw new BusinessException(ErrorCode.MEMBERSHIP_NO_SESSION);
+        }
     }
 
     // ============================================================
