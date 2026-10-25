@@ -41,7 +41,7 @@ public class SecurityConfig {
             "/api/v1/auth/**",
             "/api/v1/payments/webhook",
             "/uploads/**",
-            "/swagger-ui/**",
+            "/swagger-ui/**", "/swagger-ui.html",
             "/v3/api-docs/**",
             "/actuator/health"
     };

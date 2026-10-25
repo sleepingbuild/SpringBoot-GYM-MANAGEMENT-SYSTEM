@@ -1,14 +1,18 @@
 package com.gym.management.exception;
 
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.stream.Collectors;
 
@@ -39,6 +43,44 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(message, ErrorCode.VALIDATION_ERROR));
+    }
+
+    /** Body JSON sai cú pháp, thiếu body, hoặc sai kiểu dữ liệu (vd: chữ vào trường số). */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotReadable(HttpMessageNotReadableException ex) {
+        log.warn("Request body không đọc được: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("Dữ liệu gửi lên không hợp lệ hoặc sai định dạng", ErrorCode.VALIDATION_ERROR));
+    }
+
+    /** Tham số URL/query sai kiểu (vd: id không phải UUID, ngày sai định dạng). */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        log.warn("Tham số '{}' sai kiểu: {}", ex.getName(), ex.getValue());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("Tham số '" + ex.getName() + "' có giá trị không hợp lệ", ErrorCode.VALIDATION_ERROR));
+    }
+
+    /** Vi phạm ràng buộc validation khi dùng @Validated ở class hoặc tham số. */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(ConstraintViolationException ex) {
+        String message = ex.getConstraintViolations().stream()
+                .map(v -> v.getMessage())
+                .collect(Collectors.joining("; "));
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(message, ErrorCode.VALIDATION_ERROR));
+    }
+
+    /** Vi phạm unique/khoá ngoại ở DB (vd: hai request cùng lúc chèn trùng). Trả 409, không lộ chi tiết SQL. */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(DataIntegrityViolationException ex) {
+        log.warn("DataIntegrityViolation: {}", ex.getMostSpecificCause().getMessage());
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error("Dữ liệu bị trùng hoặc vi phạm ràng buộc", ErrorCode.DATA_CONFLICT));
     }
 
     @ExceptionHandler(BadCredentialsException.class)

@@ -66,6 +66,7 @@ public enum ErrorCode {
     NOTIFICATION_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR), // tuỳ chọn — Zalo ZNS/SMS sau v1.0
 
     // ==== Generic ====
+    DATA_CONFLICT(HttpStatus.CONFLICT),
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST),
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
