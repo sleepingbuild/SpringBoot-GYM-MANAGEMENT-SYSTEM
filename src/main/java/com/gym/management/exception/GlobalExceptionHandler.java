@@ -80,7 +80,7 @@ public class GlobalExceptionHandler {
         log.warn("DataIntegrityViolation: {}", ex.getMostSpecificCause().getMessage());
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error("Dữ liệu bị trùng hoặc vi phạm ràng buộc", "DATA_CONFLICT"));
+                .body(ApiResponse.error("Dữ liệu bị trùng hoặc vi phạm ràng buộc", ErrorCode.DATA_CONFLICT));
     }
 
     @ExceptionHandler(BadCredentialsException.class)

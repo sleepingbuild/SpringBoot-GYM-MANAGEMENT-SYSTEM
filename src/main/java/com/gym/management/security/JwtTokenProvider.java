@@ -3,6 +3,7 @@ package com.gym.management.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -28,6 +29,15 @@ public class JwtTokenProvider {
 
     @Value("${gms.jwt.refresh-token-expiration-ms}")
     private long refreshTokenExpirationMs;
+
+    @PostConstruct
+    void validateSecret() {
+        if (jwtSecret == null || jwtSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException(
+                    "gms.jwt.secret phải dài tối thiểu 32 byte (256 bit) cho HS256; "
+                            + "đặt qua biến môi trường hoặc application-local.yml");
+        }
+    }
 
     private SecretKey key() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
