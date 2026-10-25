@@ -87,8 +87,12 @@
 ### Membership, Package & Payment (Agent 2)
 | Method | Endpoint | Role |
 |---|---|---|
-| GET | `/api/v1/packages` | Mọi user đã đăng nhập (xem gói đang mở bán) |
-| POST/PUT/DELETE | `/api/v1/packages` | Super Admin |
+| GET | `/api/v1/packages` | Công khai, không cần đăng nhập (chỉ gói đang mở bán, phân trang) |
+| GET | `/api/v1/packages/{id}` | Công khai (chỉ gói đang mở bán; gói đã ngừng bán trả 404 `PACKAGE_NOT_FOUND`) |
+| GET | `/api/v1/packages/admin` | Super Admin — toàn bộ gói kể cả đã ngừng bán, phân trang |
+| GET | `/api/v1/packages/admin/{id}` | Super Admin — chi tiết 1 gói bất kể trạng thái |
+| POST | `/api/v1/packages` | Super Admin |
+| PUT/DELETE | `/api/v1/packages/{id}` | Super Admin (DELETE = ngừng bán, `is_active = false`) |
 | POST | `/api/v1/member-packages` | Receptionist (bán gói) hoặc Member (tự mua) |
 | GET | `/api/v1/member-packages/me` | Member — dùng `getCurrentMembership` |
 | POST | `/api/v1/member-packages/{id}/upgrade` | Receptionist/Member |
