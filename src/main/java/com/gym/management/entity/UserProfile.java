@@ -11,11 +11,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /**
  * Agent 1 - Module Hồ sơ cá nhân.
- * Áp dụng cho Member và Trainer (tự xem/sửa tuổi, cân nặng, chiều cao, mục tiêu, avatar).
- * Validate tuổi ≥ 18 so với User.createdAt (ngày đăng ký) — xem REQUIREMENTS.md mục 1.
+ * Áp dụng cho Member và Trainer (tự xem/sửa ngày sinh, cân nặng, chiều cao, mục tiêu, avatar).
+ * Validate từ 18 tuổi trở lên tính đến ngày đăng ký (User.createdAt) ở tầng service,
+ * vì ràng buộc liên quan hai bảng nên không đặt CHECK trong DB — xem REQUIREMENTS.md mục 1.
  */
 @Entity
 @Table(name = "user_profiles")
@@ -28,8 +30,8 @@ public class UserProfile extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    @Column
-    private Integer age;
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
 
     @Column(name = "weight_kg", precision = 5, scale = 2)
     private BigDecimal weightKg;

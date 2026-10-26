@@ -38,7 +38,8 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
-    @Column(unique = true, length = 20)
+    /** Duy nhất khi có giá trị (filtered unique index uq_users_phone, xem V9); cho phép nhiều dòng NULL. */
+    @Column(length = 20)
     private String phone;
 
     @Column(name = "password_hash", nullable = false)
@@ -46,9 +47,6 @@ public class User extends BaseEntity {
 
     @Column(nullable = false, length = 20)
     private String status = "ACTIVE"; // ACTIVE, INACTIVE, BANNED
-
-    @Column(name = "avatar_url")
-    private String avatarUrl;
 
     @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
     @JoinTable(
