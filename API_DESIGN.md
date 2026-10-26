@@ -84,6 +84,8 @@
 | PUT | `/api/v1/profile/me` | Member/Trainer |
 | POST | `/api/v1/profile/me/avatar` (multipart) | Member/Trainer |
 
+> **Hồ sơ cá nhân:** `PUT /api/v1/profile/me` nhận `dateOfBirth` (`yyyy-MM-dd`), `weightKg`, `heightCm`, `goal`. Ngày sinh phải cho tuổi từ 18 trở lên tính đến ngày đăng ký của tài khoản và không quá 120 tuổi; vi phạm trả 400 `PROFILE_INVALID_AGE`. Response trả `dateOfBirth` và `age` (tính sẵn từ ngày sinh, `null` nếu chưa có). Ảnh đại diện chỉ lưu ở hồ sơ (`avatarUrl`), không còn ở tài khoản.
+
 ### Membership, Package & Payment (Agent 2)
 | Method | Endpoint | Role |
 |---|---|---|
