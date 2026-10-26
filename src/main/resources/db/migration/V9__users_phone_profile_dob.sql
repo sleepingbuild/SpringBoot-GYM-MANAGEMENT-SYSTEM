@@ -8,14 +8,21 @@
 -- 1a. Chuoi rong/khoang trang tro thanh NULL
 UPDATE users SET phone = NULL WHERE phone IS NOT NULL AND LTRIM(RTRIM(phone)) = '';
 
--- 1b. Go UNIQUE constraint tu dat ten tren users.phone (ten do SQL Server sinh nen phai tra cuu)
+-- 1b. Go UNIQUE constraint tu dat ten tren users.phone (ten do SQL Server sinh nen phai tra cuu).
+--     Luu y T-SQL: khong duoc goi ham (QUOTENAME) hay noi chuoi ben trong EXEC( ... ),
+--     phai gan vao bien truoc roi EXEC sp_executesql.
 DECLARE @uq sysname;
+DECLARE @drop nvarchar(400);
 SELECT @uq = kc.name
 FROM sys.key_constraints kc
 JOIN sys.index_columns ic ON ic.object_id = kc.parent_object_id AND ic.index_id = kc.unique_index_id
 JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id
 WHERE kc.parent_object_id = OBJECT_ID('users') AND kc.type = 'UQ' AND c.name = 'phone';
-IF @uq IS NOT NULL EXEC('ALTER TABLE users DROP CONSTRAINT ' + QUOTENAME(@uq));
+IF @uq IS NOT NULL
+BEGIN
+    SET @drop = N'ALTER TABLE users DROP CONSTRAINT ' + QUOTENAME(@uq);
+    EXEC sp_executesql @drop;
+END
 
 -- 1c. Filtered unique index: chi rang buoc khi phone co gia tri
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'uq_users_phone' AND object_id = OBJECT_ID('users'))
