@@ -26,7 +26,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/profile")
 @RequiredArgsConstructor
-@Tag(name = "Profile", description = "Hồ sơ cá nhân — tuổi, cân nặng, chiều cao, mục tiêu, avatar")
+@Tag(name = "Profile", description = "Hồ sơ cá nhân — ngày sinh, cân nặng, chiều cao, mục tiêu, avatar")
 public class ProfileController {
 
     private final ProfileService profileService;
@@ -41,7 +41,7 @@ public class ProfileController {
     }
 
     @PutMapping("/me")
-    @Operation(summary = "Cập nhật tuổi/cân nặng/chiều cao/mục tiêu")
+    @Operation(summary = "Cập nhật ngày sinh/cân nặng/chiều cao/mục tiêu")
     public ApiResponse<ProfileResponse> updateMyProfile(@CurrentUser UUID currentUserId,
                                                           @Valid @RequestBody UpdateProfileRequest request) {
         return ApiResponse.success("Cập nhật hồ sơ thành công", profileService.updateMyProfile(currentUserId, request));
