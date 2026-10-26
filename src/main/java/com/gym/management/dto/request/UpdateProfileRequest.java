@@ -1,19 +1,20 @@
 package com.gym.management.dto.request;
 
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Getter
 @Setter
 public class UpdateProfileRequest {
 
-    @Min(value = 0, message = "Tuổi không hợp lệ")
-    private Integer age;
+    @Past(message = "Ngày sinh phải là một ngày trong quá khứ")
+    private LocalDate dateOfBirth;
 
     @DecimalMin(value = "0", inclusive = false, message = "Cân nặng không hợp lệ")
     private BigDecimal weightKg;

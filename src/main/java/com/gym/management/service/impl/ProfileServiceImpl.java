@@ -13,6 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.UUID;
 
 @Service
@@ -20,9 +23,11 @@ import java.util.UUID;
 public class ProfileServiceImpl implements ProfileService {
 
     private static final int MIN_AGE = 18;
+    private static final int MAX_AGE = 120;
 
     private final UserProfileRepository userProfileRepository;
     private final UserRepository userRepository;
+    private final Clock clock;
 
     @Override
     public ProfileResponse getMyProfile(UUID userId) {
@@ -34,11 +39,9 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     @Transactional
     public ProfileResponse updateMyProfile(UUID userId, UpdateProfileRequest request) {
-        if (request.getAge() != null && request.getAge() < MIN_AGE) {
-            throw new BusinessException(ErrorCode.PROFILE_INVALID_AGE, "Tuổi phải từ " + MIN_AGE + " trở lên");
-        }
-
         User user = getUser(userId);
+        validateDateOfBirth(user, request.getDateOfBirth());
+
         UserProfile profile = userProfileRepository.findByUserId(userId)
                 .orElseGet(() -> {
                     UserProfile p = new UserProfile();
@@ -46,7 +49,7 @@ public class ProfileServiceImpl implements ProfileService {
                     return p;
                 });
 
-        profile.setAge(request.getAge());
+        profile.setDateOfBirth(request.getDateOfBirth());
         profile.setWeightKg(request.getWeightKg());
         profile.setHeightCm(request.getHeightCm());
         profile.setGoal(request.getGoal());
@@ -70,6 +73,23 @@ public class ProfileServiceImpl implements ProfileService {
         return toResponse(user, profile);
     }
 
+    /** Từ 18 tuổi trở lên tính đến ngày đăng ký của tài khoản; không quá {@value #MAX_AGE} tuổi so với hiện tại. */
+    private void validateDateOfBirth(User user, LocalDate dateOfBirth) {
+        if (dateOfBirth == null) {
+            return;
+        }
+        LocalDate today = LocalDate.now(clock);
+        LocalDate registeredOn = user.getCreatedAt() != null ? user.getCreatedAt().toLocalDate() : today;
+
+        if (dateOfBirth.isAfter(registeredOn.minusYears(MIN_AGE))) {
+            throw new BusinessException(ErrorCode.PROFILE_INVALID_AGE,
+                    "Phải từ " + MIN_AGE + " tuổi trở lên tính đến ngày đăng ký");
+        }
+        if (dateOfBirth.isBefore(today.minusYears(MAX_AGE))) {
+            throw new BusinessException(ErrorCode.PROFILE_INVALID_AGE, "Ngày sinh không hợp lệ");
+        }
+    }
+
     private User getUser(UUID userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROFILE_NOT_FOUND, "Không tìm thấy user"));
@@ -78,11 +98,13 @@ public class ProfileServiceImpl implements ProfileService {
     private ProfileResponse toResponse(User user, UserProfile profile) {
         if (profile == null) {
             return new ProfileResponse(user.getId(), user.getFullName(), user.getEmail(),
-                    null, null, null, null, null);
+                    null, null, null, null, null, null);
         }
+        LocalDate dob = profile.getDateOfBirth();
+        Integer age = dob == null ? null : Period.between(dob, LocalDate.now(clock)).getYears();
         return new ProfileResponse(
                 user.getId(), user.getFullName(), user.getEmail(),
-                profile.getAge(), profile.getWeightKg(), profile.getHeightCm(),
+                dob, age, profile.getWeightKg(), profile.getHeightCm(),
                 profile.getGoal(), profile.getAvatarUrl());
     }
 }
