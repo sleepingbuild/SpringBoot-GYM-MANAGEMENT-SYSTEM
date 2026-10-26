@@ -7,6 +7,7 @@ import com.gym.management.repository.GymCheckInRepository;
 import com.gym.management.service.GymCheckInService;
 import com.gym.management.service.MembershipService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,10 +58,8 @@ public class GymCheckInServiceImpl implements GymCheckInService {
         if (membershipService.getCurrentMembership(memberId).isPresent()) {
             return;
         }
-        // getHistory(UUID) đang @Deprecated; dùng tạm vì chỉ cần biết có gói nào hay chưa.
-        // TODO: đổi sang getHistory(UUID, Pageable) khi biết accessor của PageResponse.
-        @SuppressWarnings("deprecation")
-        boolean hasAnyPackage = !membershipService.getHistory(memberId).isEmpty();
+        // Chỉ cần biết hội viên đã từng có gói nào chưa: lấy 1 phần tử đầu của lịch sử (mọi trạng thái).
+        boolean hasAnyPackage = membershipService.getHistory(memberId, PageRequest.of(0, 1)).getTotalElements() > 0;
         if (hasAnyPackage) {
             throw new BusinessException(ErrorCode.MEMBERSHIP_EXPIRED,
                     "Gói tập của hội viên đã hết hạn");

@@ -1,6 +1,7 @@
 package com.gym.management.service.impl;
 
 import com.gym.management.dto.response.MemberPackageResponse;
+import com.gym.management.dto.response.PageResponse;
 import com.gym.management.entity.GymCheckIn;
 import com.gym.management.entity.MemberPackage;
 import com.gym.management.exception.BusinessException;
@@ -14,9 +15,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,7 +26,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@SuppressWarnings("deprecation")
 @ExtendWith(MockitoExtension.class)
 class GymCheckInServiceImplTest {
 
@@ -42,6 +42,13 @@ class GymCheckInServiceImplTest {
         c.setMemberId(memberId);
         c.setCheckInTime(checkInTime);
         return c;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void givenHistoryTotal(long total) {
+        PageResponse<MemberPackageResponse> page = mock(PageResponse.class);
+        when(page.getTotalElements()).thenReturn(total);
+        when(membershipService.getHistory(eq(memberId), any(Pageable.class))).thenReturn(page);
     }
 
     private void givenActiveMembership() {
@@ -74,7 +81,7 @@ class GymCheckInServiceImplTest {
     void firstScan_memberHasNoPackageAtAll_throwsMembershipNotFound_andSavesNothing() {
         when(gymCheckInRepository.findFirstByMemberIdOrderByCheckInTimeDesc(memberId)).thenReturn(Optional.empty());
         when(membershipService.getCurrentMembership(memberId)).thenReturn(Optional.empty());
-        when(membershipService.getHistory(memberId)).thenReturn(List.of());
+        givenHistoryTotal(0L);
 
         assertThatThrownBy(() -> service.recordFaceScan(memberId, NOW))
                 .isInstanceOf(BusinessException.class)
@@ -87,7 +94,7 @@ class GymCheckInServiceImplTest {
     void firstScan_memberPackageExpired_throwsMembershipExpired_andSavesNothing() {
         when(gymCheckInRepository.findFirstByMemberIdOrderByCheckInTimeDesc(memberId)).thenReturn(Optional.empty());
         when(membershipService.getCurrentMembership(memberId)).thenReturn(Optional.empty());
-        when(membershipService.getHistory(memberId)).thenReturn(List.of(mock(MemberPackageResponse.class)));
+        givenHistoryTotal(1L);
 
         assertThatThrownBy(() -> service.recordFaceScan(memberId, NOW))
                 .isInstanceOf(BusinessException.class)
