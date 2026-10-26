@@ -17,7 +17,14 @@ public interface PackageService {
     /** Soft-delete: set is_active = false, KHÔNG xoá cứng (nhiều member_packages có thể tham chiếu). */
     void deactivate(UUID id);
 
+    /** Chi tiết 1 gói bất kể trạng thái — dùng cho Super Admin / nội bộ, KHÔNG dùng cho endpoint công khai. */
     PackageResponse getById(UUID id);
+
+    /**
+     * Chi tiết 1 gói CÔNG KHAI (story G3): chỉ gói đang mở bán. Gói đã ngừng bán coi như không tồn tại
+     * (PACKAGE_NOT_FOUND) để khách chưa đăng nhập không xem được gói đã gỡ.
+     */
+    PackageResponse getActiveById(UUID id);
 
     /** @deprecated dùng {@link #listActive(Pageable)} — giữ lại cho nơi cần List thuần (nội bộ). */
     @Deprecated

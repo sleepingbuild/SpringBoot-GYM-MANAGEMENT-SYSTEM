@@ -29,6 +29,10 @@ import java.util.UUID;
  * Đã chốt với Phi (xem Agent2-Respone.md mục 3.1): tách GET (mọi role đã đăng nhập) khỏi
  * POST/PUT/DELETE (Super Admin) — khác với dòng gộp chung trong API_DESIGN.md bản gốc;
  * API_DESIGN.md cần cập nhật lại cho khớp (xem AGENT2_README.md).
+ *
+ * Story G3 (DECISIONS_DB_V2.md): GET danh sách và GET chi tiết gói ĐANG MỞ BÁN là công khai,
+ * khách chưa đăng nhập cũng xem được (SecurityConfig mở đúng 2 đường dẫn này, xem PR [shared]).
+ * Xem gói đã ngừng bán chỉ có ở /admin và /admin/{id} (Super Admin).
  */
 @RestController
 @RequestMapping("/api/v1/packages")
@@ -39,7 +43,7 @@ public class PackageController {
     private final PackageService packageService;
 
     @GetMapping
-    @Operation(summary = "Danh sách gói tập đang mở bán, phân trang (public — mọi role đã đăng nhập)")
+    @Operation(summary = "Danh sách gói tập đang mở bán, phân trang (công khai — không cần đăng nhập)")
     public ApiResponse<PageResponse<PackageResponse>> listActive(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -57,10 +61,17 @@ public class PackageController {
         return ApiResponse.success(packageService.listAll(PageableUtils.of(page, size, sort)));
     }
 
-    @GetMapping("/{id}")
-    @Operation(summary = "Chi tiết 1 gói tập")
-    public ApiResponse<PackageResponse> getById(@PathVariable UUID id) {
+    @GetMapping("/admin/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Chi tiết 1 gói tập bất kể trạng thái, kể cả đã ngừng bán (Super Admin)")
+    public ApiResponse<PackageResponse> getByIdForAdmin(@PathVariable UUID id) {
         return ApiResponse.success(packageService.getById(id));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Chi tiết 1 gói tập đang mở bán (công khai — gói đã ngừng bán trả 404)")
+    public ApiResponse<PackageResponse> getById(@PathVariable UUID id) {
+        return ApiResponse.success(packageService.getActiveById(id));
     }
 
     @PostMapping
