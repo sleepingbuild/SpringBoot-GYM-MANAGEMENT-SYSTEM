@@ -120,7 +120,7 @@
 ### Face Attendance & Chấm công (Agent 4)
 | Method | Endpoint | Role |
 |---|---|---|
-| POST | `/api/v1/face-profiles/{userId}` (multipart ảnh tĩnh, backend tự trích descriptor) | Receptionist/Admin — đăng ký hộ |
+| POST | `/api/v1/face-profiles/{userId}` (JSON descriptor, client chọn ảnh và trích bằng face-api.js) | Receptionist/Admin — đăng ký hộ |
 | POST | `/api/v1/face-profiles/me` (descriptor JSON, client tự trích) | Member/Trainer/Receptionist/Sales — tự đăng ký |
 | GET/DELETE | `/api/v1/face-profiles/{userId}` | Receptionist/Admin |
 | POST | `/api/v1/face-attendance/kiosk` (descriptor JSON) | Receptionist/Admin — 1:N. Kết quả ghi theo role người được nhận diện (Member/Trainer → booking, Receptionist/Sales → `staff_attendances`) |
