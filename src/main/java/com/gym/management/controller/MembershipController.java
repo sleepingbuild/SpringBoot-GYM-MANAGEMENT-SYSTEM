@@ -85,6 +85,29 @@ public class MembershipController {
         return ApiResponse.success(membershipService.getHistory(CurrentUserId.get(), PageableUtils.of(page, size, sort)));
     }
 
+    /**
+     * H2 (frontend đợt 1): Lễ tân/Admin tra cứu gói của hội viên khác. Hai endpoint dưới đây dùng lại đúng
+     * {@code getCurrentMembershipResponse} / {@code getHistory} của service (không có logic mới) — để lấy
+     * {id} gói ACTIVE khi nâng/hạ cấp hộ và xem hội viên đang ở trạng thái nào.
+     */
+    @GetMapping("/current")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST','SUPER_ADMIN')")
+    @Operation(summary = "Gói ACTIVE hiện tại của 1 hội viên (Lễ tân/Admin tra cứu hộ); không có gói ACTIVE → MEMBERSHIP_NOT_FOUND")
+    public ApiResponse<MemberPackageResponse> getCurrentMembershipOf(@RequestParam UUID userId) {
+        return ApiResponse.success(membershipService.getCurrentMembershipResponse(userId));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('RECEPTIONIST','SUPER_ADMIN')")
+    @Operation(summary = "Lịch sử toàn bộ gói tập của 1 hội viên (mọi trạng thái), phân trang (Lễ tân/Admin)")
+    public ApiResponse<PageResponse<MemberPackageResponse>> getHistoryOf(
+            @RequestParam UUID userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt,desc") String sort) {
+        return ApiResponse.success(membershipService.getHistory(userId, PageableUtils.of(page, size, sort)));
+    }
+
     private UUID resolveTargetUserId(UUID requestedUserId, Authentication authentication) {
         UUID callerId = CurrentUserId.get();
         if (requestedUserId == null || requestedUserId.equals(callerId)) {
