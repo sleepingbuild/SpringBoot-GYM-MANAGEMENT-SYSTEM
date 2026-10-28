@@ -131,11 +131,18 @@
 ### POS & Commission (Agent 5)
 | Method | Endpoint | Role |
 |---|---|---|
-| GET/POST/PUT | `/api/v1/products` | Receptionist/Admin |
-| POST | `/api/v1/pos/orders` | Receptionist |
-| GET | `/api/v1/pos/orders?branchId=...` | Receptionist/Admin |
-| GET | `/api/v1/commissions/me` | Trainer — lương theo buổi của chính mình |
-| GET | `/api/v1/commissions?staffId=...&month=...` | Admin |
+| GET | `/api/v1/products` | Đã đăng nhập — sản phẩm đang bán, phân trang |
+| GET | `/api/v1/products/admin` | Receptionist/Admin — gồm cả sản phẩm đã ngừng bán |
+| GET | `/api/v1/products/{id}` | Đã đăng nhập |
+| POST/PUT | `/api/v1/products` , `/api/v1/products/{id}` | Receptionist/Admin |
+| DELETE | `/api/v1/products/{id}` | Receptionist/Admin — xoá mềm (`is_active = false`) |
+| POST | `/api/v1/pos/orders` | Receptionist/Admin — giá lấy từ DB, trừ kho + thu tiền ngay trong 1 transaction (qua `PaymentService`, `RelatedType.POS`) |
+| GET | `/api/v1/pos/orders/{id}` | Receptionist/Admin |
+| GET | `/api/v1/pos/orders?branchId=...&from=...&to=...` | Receptionist/Admin — phân trang, mặc định hôm nay |
+| POST | `/api/v1/pos/orders/{id}/cancel` | Receptionist/Admin — huỷ đơn `COMPLETED`, hoàn tồn kho (không hoàn tiền) |
+| GET | `/api/v1/commissions/me` | Trainer — lương theo buổi của chính mình, phân trang |
+| GET | `/api/v1/commissions?staffId=...&month=yyyy-MM` | Admin — phân trang |
+| POST | `/api/v1/commissions/{id}/mark-paid` | Admin — `PENDING` → `PAID`, ghi `paid_at` |
 | GET/PUT | `/api/v1/trainer-pay-rates/{trainerId}` | Super Admin — xem/đặt lương mỗi buổi của PT |
 
 ### Leads/CRM (Agent 6)
