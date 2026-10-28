@@ -45,10 +45,7 @@ export interface UpdateProfileRequest {
   goal: string | null;
 }
 
-/**
- * PageResponse.java - TODO(Agent 1): đối chiếu với file thật trước khi các agent dùng.
- * Tạm giả định các trường phổ biến; sai thì sửa ở đây một chỗ.
- */
+/** PageResponse.java (Agent 2). Đã đối chiếu với file thật: `page` bắt đầu từ 0. */
 export interface PageResponse<T> {
   content: T[];
   page: number;

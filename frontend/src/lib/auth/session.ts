@@ -67,7 +67,8 @@ export const session = {
 
   /**
    * Làm mới token bằng refreshToken. Nhiều request cùng gặp lỗi phiên chỉ gọi một lần (single-flight).
-   * Trả true nếu có phiên mới. Giả định endpoint: POST /api/v1/auth/refresh với body { refreshToken }.
+   * Trả true nếu có phiên mới. Backend khai báo `refresh(@RequestParam String refreshToken)` nên KHÔNG nhận JSON;
+   * gửi dạng form (application/x-www-form-urlencoded) để token không nằm trên URL (tránh bị ghi vào log).
    */
   refresh(): Promise<boolean> {
     if (refreshInFlight) return refreshInFlight;
@@ -78,8 +79,8 @@ export const session = {
       try {
         const res = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken: token }),
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ refreshToken: token }).toString(),
         });
         if (!res.ok) return false;
         const body = (await res.json()) as ApiResponse<AuthResponse>;

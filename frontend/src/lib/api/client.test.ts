@@ -88,6 +88,22 @@ describe("apiFetch", () => {
     expect((retry.headers as Record<string, string>).Authorization).toBe("Bearer access-2");
   });
 
+  it("làm mới token gửi refreshToken dạng form (backend dùng @RequestParam), không phải JSON, không đặt token trên URL", async () => {
+    signIn();
+    fetchMock
+      .mockResolvedValueOnce(json(403, null))
+      .mockResolvedValueOnce(ok(authData))
+      .mockResolvedValueOnce(ok({ done: true }));
+
+    await apiFetch("/api/v1/profile/me");
+
+    const [refreshUrl, refreshInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(refreshUrl.endsWith("/api/v1/auth/refresh")).toBe(true);
+    expect(refreshInit.method).toBe("POST");
+    expect((refreshInit.headers as Record<string, string>)["Content-Type"]).toBe("application/x-www-form-urlencoded");
+    expect(refreshInit.body).toBe("refreshToken=refresh-1");
+  });
+
   it("403 không có errorCode và làm mới thất bại: kind session, phiên bị xoá, báo hết hạn", async () => {
     signIn();
     const expired = vi.fn();

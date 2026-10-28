@@ -79,15 +79,26 @@ Thời gian từ backend là `LocalDateTime` giờ Việt Nam, không có múi g
 
 ## Camera và HTTPS (Agent 4)
 
-`getUserMedia` chỉ chạy ở `localhost` hoặc HTTPS. Thử kiosk trên chính máy chạy frontend thì dùng `http://localhost:3000`. Thiết bị khác (điện thoại) cần HTTPS: dùng đường hầm HTTPS (ví dụ ngrok trỏ tới cổng 3000) hoặc `next dev --experimental-https`.
+`getUserMedia` chỉ chạy ở `localhost` hoặc HTTPS. Thử kiosk trên chính máy chạy frontend thì dùng `http://localhost:3000`. Thiết bị khác (điện thoại) cần HTTPS: ưu tiên `next dev --experimental-https` trong mạng nội bộ. Chỉ dùng đường hầm công khai (ngrok) khi thật cần và tắt ngay sau khi thử, vì phiên bản Next.js hiện tại có cảnh báo bảo mật (xem mục dưới).
 
-## Những điều khung dựa trên giả định (cần đối chiếu với backend)
+## Bảo mật phụ thuộc (cần biết)
 
-Khung được viết theo các DTO Agent 1 đã thấy. Bốn điểm sau chưa đối chiếu trực tiếp với controller thật; sai thì sửa đúng một chỗ:
+`npm audit --omit=dev` báo nhiều cảnh báo cho Next.js 14.2.35, và bản vá nằm ở nhánh 16 (cần React 19, đổi cách dùng `params`, bỏ `next lint`), nên khung chưa nâng cấp. Phần lớn cảnh báo liên quan tới tính năng khung **không dùng**. Để giữ nguyên tình trạng đó:
 
-1. Làm mới token: `POST /api/v1/auth/refresh` với body `{ "refreshToken": "..." }` (`src/lib/auth/session.ts`).
-2. Đăng xuất: `POST /api/v1/auth/logout` với header `Authorization: Bearer <accessToken>` (`src/lib/auth/AuthContext.tsx`).
-3. Hình dạng `PageResponse` (`content`, `page`, `size`, `totalElements`, `totalPages`) ở `src/lib/types.ts`.
-4. Trường của `AuthResponse`: `accessToken`, `refreshToken`, `email`, `fullName`, `roles`.
+- Không dùng Server Actions, tối ưu ảnh của Next (`next/image` với ảnh ngoài), `rewrites`, `middleware`, trình chủ tuỳ chỉnh (custom server), hay `i18n` của Pages Router.
+- Không đưa máy chủ Next ra Internet công khai. Chạy dev trong mạng nội bộ.
+- Trước khi triển khai công khai: nâng Next.js lên nhánh có bản vá (Agent 1 làm ở PR riêng).
+
+Đừng chạy `npm audit fix --force`: nó nâng phiên bản lớn và làm hỏng khung.
+
+## Đã đối chiếu với backend và còn lại
+
+Đã đối chiếu với `AuthController` và `PageResponse` thật:
+
+- Làm mới token: `POST /api/v1/auth/refresh` nhận `refreshToken` qua `@RequestParam`, nên khung gửi dạng form (`application/x-www-form-urlencoded`), không gửi JSON (`src/lib/auth/session.ts`).
+- Đăng xuất: `POST /api/v1/auth/logout` với header `Authorization: Bearer <accessToken>`.
+- `PageResponse`: `content`, `page` (từ 0), `size`, `totalElements`, `totalPages`.
+
+Còn một điểm chưa đối chiếu trực tiếp: tên các trường của `AuthResponse` (`accessToken`, `refreshToken`, `email`, `fullName`, `roles`) được suy ra từ cách backend dựng đối tượng. Nếu đăng nhập báo lỗi hoặc không vào được, kiểm tra `/v3/api-docs` rồi sửa `AuthResponse` ở `src/lib/types.ts`.
 
 Chưa có trong khung: tải ảnh đại diện (`POST /api/v1/profile/me/avatar`), stage build frontend trong Jenkins.
