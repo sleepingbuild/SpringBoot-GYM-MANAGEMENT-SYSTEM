@@ -107,7 +107,7 @@
 | Method | Endpoint | Role |
 |---|---|---|
 | GET/POST/PUT/DELETE | `/api/v1/trainer-schedules` | Trainer (của chính mình) / Admin |
-| GET | `/api/v1/trainer-schedules/available?trainerId=...&date=...` | Member — xem slot trống |
+| GET | `/api/v1/trainer-schedules/available?trainerId=...&date=...` | Member / Lễ tân / Admin — xem slot trống |
 | POST | `/api/v1/bookings` | Member (tự đặt) / Receptionist (đặt hộ) |
 | PUT | `/api/v1/bookings/{id}` | Member/Receptionist (sửa lịch, áp lại đủ rule) |
 | POST | `/api/v1/bookings/{id}/confirm` | Trainer |
