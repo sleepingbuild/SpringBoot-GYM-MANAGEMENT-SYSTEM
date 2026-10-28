@@ -1,0 +1,73 @@
+@import "@fontsource/be-vietnam-pro/vietnamese-400.css";
+@import "@fontsource/be-vietnam-pro/vietnamese-500.css";
+@import "@fontsource/be-vietnam-pro/vietnamese-600.css";
+@import "@fontsource/be-vietnam-pro/vietnamese-700.css";
+@import "@fontsource/be-vietnam-pro/latin-400.css";
+@import "@fontsource/be-vietnam-pro/latin-500.css";
+@import "@fontsource/be-vietnam-pro/latin-600.css";
+@import "@fontsource/be-vietnam-pro/latin-700.css";
+@import "@fontsource/be-vietnam-pro/latin-ext-400.css";
+@import "@fontsource/be-vietnam-pro/latin-ext-500.css";
+@import "@fontsource/be-vietnam-pro/latin-ext-600.css";
+@import "@fontsource/be-vietnam-pro/latin-ext-700.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-chalk font-sans text-base text-ink antialiased;
+  }
+  h1, h2, h3 {
+    @apply font-semibold text-ink;
+  }
+  :focus-visible {
+    @apply outline-none ring-2 ring-plate ring-offset-2 ring-offset-chalk;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex min-h-[2.5rem] items-center justify-center gap-2 rounded-control px-4 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply btn bg-plate text-white hover:bg-plate-dark;
+  }
+  .btn-secondary {
+    @apply btn border border-line bg-paper text-ink hover:bg-chalk;
+  }
+  .btn-danger {
+    @apply btn bg-rubber text-white hover:opacity-90;
+  }
+  .input {
+    @apply block w-full rounded-control border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-steel/70 focus:border-plate disabled:bg-chalk;
+  }
+  .input-error {
+    @apply border-rubber;
+  }
+  .panel {
+    @apply rounded-panel border border-line bg-paper;
+  }
+  /* Vạch kẻ làn sàn tập: yếu tố nhận diện duy nhất của giao diện, chỉ dùng ở trang đăng nhập. */
+  .floor-lanes {
+    background-color: #0e5a6b;
+    background-image: repeating-linear-gradient(
+      100deg,
+      transparent 0,
+      transparent 54px,
+      rgba(242, 244, 241, 0.16) 54px,
+      rgba(242, 244, 241, 0.16) 58px
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
