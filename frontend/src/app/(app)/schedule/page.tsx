@@ -1,10 +1,10 @@
 ﻿import { RequireRole } from "@/components/layout/RequireRole";
-import { ScheduleManager } from "@/features/schedule/ScheduleManager";
+import { TrainerWorkspace } from "@/features/schedule/TrainerWorkspace";
 
 export default function SchedulePage() {
   return (
     <RequireRole roles={["TRAINER"]}>
-      <ScheduleManager />
+      <TrainerWorkspace />
     </RequireRole>
   );
 }
