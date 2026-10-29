@@ -30,6 +30,14 @@ public class FaceProfileController {
                 faceProfileService.registerSelf(CurrentUserId.get(), request));
     }
 
+    @Operation(summary = "Xem trạng thái đăng ký hồ sơ khuôn mặt của chính mình",
+            description = "Chỉ trả registered và updatedAt, KHÔNG trả descriptor. Chưa đăng ký thì registered = false, updatedAt = null.")
+    @GetMapping("/me")
+    @PreAuthorize("hasAnyRole('MEMBER', 'TRAINER', 'RECEPTIONIST', 'SALES')")
+    public ApiResponse<?> myStatus() {
+        return ApiResponse.success(faceProfileService.getMyStatus(CurrentUserId.get()));
+    }
+
     @Operation(summary = "Đăng ký hộ hồ sơ khuôn mặt cho người dùng khác",
             description = "Lễ tân/Admin chọn ảnh trong trình duyệt, face-api.js trích descriptor, backend chỉ nhận JSON descriptor.")
     @PostMapping("/{userId}")

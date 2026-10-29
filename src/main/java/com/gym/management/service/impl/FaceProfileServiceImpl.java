@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gym.management.dto.request.FaceDescriptorRequest;
 import com.gym.management.dto.response.FaceProfileResponse;
+import com.gym.management.dto.response.FaceProfileStatusResponse;
 import com.gym.management.entity.FaceProfile;
 import com.gym.management.entity.User;
 import com.gym.management.exception.BusinessException;
@@ -43,6 +44,20 @@ public class FaceProfileServiceImpl implements FaceProfileService {
         return toResponse(faceProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FACE_PROFILE_NOT_FOUND,
                         "Người dùng chưa đăng ký hồ sơ khuôn mặt")));
+    }
+
+    @Override
+    public FaceProfileStatusResponse getMyStatus(UUID currentUserId) {
+        return faceProfileRepository.findByUserId(currentUserId)
+                .map(p -> FaceProfileStatusResponse.builder()
+                        .registered(true)
+                        // updated_at có thể null nếu chưa từng sửa: lấy ngày tạo
+                        .updatedAt(p.getUpdatedAt() != null ? p.getUpdatedAt() : p.getCreatedAt())
+                        .build())
+                .orElseGet(() -> FaceProfileStatusResponse.builder()
+                        .registered(false)
+                        .updatedAt(null)
+                        .build());
     }
 
     @Override
