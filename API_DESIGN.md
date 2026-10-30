@@ -46,6 +46,9 @@
 | `MEMBERSHIP_EXPIRED` | Gói đã hết hạn | 400 |
 | `MEMBERSHIP_NO_SESSION` | Hết buổi tập | 400 |
 | `MEMBERSHIP_PENDING_EXISTS` | Đang có gói chờ thanh toán, không cho đăng ký thêm | 409 |
+| `PAYMENT_NOT_FOUND` | Không tìm thấy giao dịch thanh toán | 404 |
+| `PAYMENT_DUPLICATE_TRANSACTION` | Trùng mã giao dịch (rất hiếm, thử lại) | 409 |
+| `PAYMENT_NOT_REFUNDABLE` | Không hoàn tiền được: đơn POS chưa có giao dịch, giao dịch chưa thu tiền thành công, hoặc giao dịch không thuộc đơn POS | 409 |
 | `SCHEDULE_TIME_INVALID` | Ngày/giờ ca làm việc không hợp lệ (quá khứ, giờ < hiện tại) | 400 |
 | `BOOKING_SLOT_TAKEN` | Khung giờ đã có người đặt | 409 |
 | `BOOKING_OUT_OF_WORKING_HOURS` | Ngoài ca làm việc của PT | 400 |
