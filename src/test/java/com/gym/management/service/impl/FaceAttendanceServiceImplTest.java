@@ -459,4 +459,19 @@ class FaceAttendanceServiceImplTest {
         assertThat(response.getTargetType()).isEqualTo("STAFF_ATTENDANCE");
         verifyNoInteractions(bookingService);
     }
+
+    @Test
+    void memberScan_rejectedByGymCheckIn_releasesDedupKey() {
+        User member = buildUser("MEMBER");
+        givenKioskMatchedAndNotDuplicate(member);
+        when(bookingService.recordFaceScan(eq(member.getId()), any(LocalDateTime.class)))
+                .thenReturn(Optional.empty());
+        when(gymCheckInService.recordFaceScan(eq(member.getId()), any(LocalDateTime.class)))
+                .thenThrow(new BusinessException(ErrorCode.MEMBERSHIP_EXPIRED, "x"));
+
+        assertThatThrownBy(() -> service.kioskScan(buildRequest()))
+                .isInstanceOf(BusinessException.class);
+
+        verify(redisTemplate).delete("face-scan:" + member.getId());
+    }
 }

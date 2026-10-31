@@ -97,7 +97,13 @@ public class FaceAttendanceServiceImpl implements FaceAttendanceService {
                     .build();
         }
 
-        return transactionTemplate.execute(status -> doProcessScan(user, roleNames));
+        try {
+            return transactionTemplate.execute(status -> doProcessScan(user, roleNames));
+        } catch (RuntimeException e) {
+            // Lượt quét bị từ chối (ví dụ MEMBERSHIP_EXPIRED): giải phóng khóa để hội viên quét lại ngay sau khi xử lý xong.
+            redisTemplate.delete(dedupKey);
+            throw e;
+        }
     }
 
     private FaceAttendanceResponse doProcessScan(User user, Set<String> roleNames) {

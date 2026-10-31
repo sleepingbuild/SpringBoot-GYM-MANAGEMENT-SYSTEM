@@ -19,6 +19,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class GymCheckInServiceImpl implements GymCheckInService {
 
+    // Thông báo trung tính cho mọi trường hợp không có gói ACTIVE (Agent 1): không nói "hết hạn" vì có thể
+    // hội viên chỉ có gói PENDING/CANCELLED. Mã lỗi (MEMBERSHIP_NOT_FOUND / MEMBERSHIP_EXPIRED) giữ nguyên.
+    private static final String MESSAGE_NO_ACTIVE_MEMBERSHIP = "Không có gói tập còn hiệu lực";
+
     private final GymCheckInRepository gymCheckInRepository;
     private final MembershipService membershipService;
 
@@ -62,9 +66,9 @@ public class GymCheckInServiceImpl implements GymCheckInService {
         boolean hasAnyPackage = membershipService.getHistory(memberId, PageRequest.of(0, 1)).getTotalElements() > 0;
         if (hasAnyPackage) {
             throw new BusinessException(ErrorCode.MEMBERSHIP_EXPIRED,
-                    "Gói tập của hội viên đã hết hạn");
+                    MESSAGE_NO_ACTIVE_MEMBERSHIP);
         }
         throw new BusinessException(ErrorCode.MEMBERSHIP_NOT_FOUND,
-                "Hội viên chưa có gói tập");
+                MESSAGE_NO_ACTIVE_MEMBERSHIP);
     }
 }

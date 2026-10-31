@@ -130,6 +130,7 @@
 | GET | `/api/v1/check-ins/me` | Member — lịch sử vào phòng tập, mới nhất trước, chưa phân trang. Mỗi phần tử: `type` (`GYM_VISIT` = lượt không PT từ `gym_check_ins`, `PT_SESSION` = buổi có PT từ `bookings`), `id`, `checkInTime`, `checkOutTime` (null = chưa quét ra), `method`, `trainerName` (chỉ `PT_SESSION`) |
 
 Ghi chú CH2 (V8): Member quét mặt (kiosk hoặc self) mà không có booking phù hợp thì response có `targetType = GYM_CHECK_IN`, `bookingLinked = false`, `action` là `CHECK_IN` hoặc `CHECK_OUT`. Lượt vào mới yêu cầu gói ACTIVE: không có gói nào trả `MEMBERSHIP_NOT_FOUND`, có gói nhưng hết hạn trả `MEMBERSHIP_EXPIRED` (cả hai HTTP theo `ErrorCode`). Lượt có booking chỉ cập nhật `bookings`, không tạo dòng `gym_check_ins`.
+Quét tự phục vụ (`/face-attendance/self`) dùng chung quy tắc với kiosk: cùng ghi `gym_check_ins` và cùng kiểm tra gói. Khi không có gói ACTIVE, thông báo lỗi là "Không có gói tập còn hiệu lực" cho cả hai mã. `GET /check-ins/me` trả toàn bộ lịch sử (chưa phân trang); sẽ thêm lọc theo khoảng ngày khi cần.
 ### POS & Commission (Agent 5)
 | Method | Endpoint | Role |
 |---|---|---|
