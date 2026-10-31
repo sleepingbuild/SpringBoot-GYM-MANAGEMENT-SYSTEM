@@ -120,14 +120,17 @@
 ### Face Attendance & Chấm công (Agent 4)
 | Method | Endpoint | Role |
 |---|---|---|
-| POST | `/api/v1/face-profiles/{userId}` (multipart ảnh tĩnh, backend tự trích descriptor) | Receptionist/Admin — đăng ký hộ |
+| POST | `/api/v1/face-profiles/{userId}` (JSON descriptor, client chọn ảnh và trích bằng face-api.js) | Receptionist/Admin — đăng ký hộ |
 | POST | `/api/v1/face-profiles/me` (descriptor JSON, client tự trích) | Member/Trainer/Receptionist/Sales — tự đăng ký |
 | GET/DELETE | `/api/v1/face-profiles/{userId}` | Receptionist/Admin |
 | POST | `/api/v1/face-attendance/kiosk` (descriptor JSON) | Receptionist/Admin — 1:N. Kết quả ghi theo role người được nhận diện (Member/Trainer → booking, Receptionist/Sales → `staff_attendances`) |
 | POST | `/api/v1/face-attendance/self` (descriptor JSON) | Member/Trainer/Receptionist/Sales đã đăng nhập — 1:1. Trainer: lượt quét gắn vào booking đang diễn ra; response có `bookingId`, `earlyLeave`, `reasonRequired`, `message` |
 | GET | `/api/v1/staff-attendance/me` | Receptionist/Sales |
 | GET | `/api/v1/staff-attendance?date=...` | Admin — báo cáo chấm công |
+| GET | `/api/v1/check-ins/me` | Member — lịch sử vào phòng tập, mới nhất trước, chưa phân trang. Mỗi phần tử: `type` (`GYM_VISIT` = lượt không PT từ `gym_check_ins`, `PT_SESSION` = buổi có PT từ `bookings`), `id`, `checkInTime`, `checkOutTime` (null = chưa quét ra), `method`, `trainerName` (chỉ `PT_SESSION`) |
 
+Ghi chú CH2 (V8): Member quét mặt (kiosk hoặc self) mà không có booking phù hợp thì response có `targetType = GYM_CHECK_IN`, `bookingLinked = false`, `action` là `CHECK_IN` hoặc `CHECK_OUT`. Lượt vào mới yêu cầu gói ACTIVE: không có gói nào trả `MEMBERSHIP_NOT_FOUND`, có gói nhưng hết hạn trả `MEMBERSHIP_EXPIRED` (cả hai HTTP theo `ErrorCode`). Lượt có booking chỉ cập nhật `bookings`, không tạo dòng `gym_check_ins`.
+Quét tự phục vụ (`/face-attendance/self`) dùng chung quy tắc với kiosk: cùng ghi `gym_check_ins` và cùng kiểm tra gói. Khi không có gói ACTIVE, thông báo lỗi là "Không có gói tập còn hiệu lực" cho cả hai mã. `GET /check-ins/me` trả toàn bộ lịch sử (chưa phân trang); sẽ thêm lọc theo khoảng ngày khi cần.
 ### POS & Commission (Agent 5)
 | Method | Endpoint | Role |
 |---|---|---|

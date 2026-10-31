@@ -10,6 +10,7 @@ import com.gym.management.integration.hardware.FaceMatchService;
 import com.gym.management.repository.UserRepository;
 import com.gym.management.service.BookingService;
 import com.gym.management.service.FaceAttendanceService;
+import com.gym.management.service.GymCheckInService;
 import com.gym.management.service.StaffAttendanceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +18,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -36,6 +38,8 @@ public class FaceAttendanceServiceImpl implements FaceAttendanceService {
     private final StaffAttendanceService staffAttendanceService;
     private final StringRedisTemplate redisTemplate;
     private final TransactionTemplate transactionTemplate;
+    private final Clock clock;
+    private final GymCheckInService gymCheckInService;
 
     @Value("${gms.face-attendance.min-scan-interval-seconds:120}")
     private long minScanIntervalSeconds;
@@ -87,30 +91,51 @@ public class FaceAttendanceServiceImpl implements FaceAttendanceService {
                     .matchedUserName(user.getFullName())
                     .action("NONE")
                     .targetType(null)
-                    .scanTime(LocalDateTime.now())
+                    .scanTime(LocalDateTime.now(clock))
                     .bookingLinked(false)
                     .duplicateScan(true)
                     .build();
         }
 
-        return transactionTemplate.execute(status -> doProcessScan(user, roleNames));
+        try {
+            return transactionTemplate.execute(status -> doProcessScan(user, roleNames));
+        } catch (RuntimeException e) {
+            // Lượt quét bị từ chối (ví dụ MEMBERSHIP_EXPIRED): giải phóng khóa để hội viên quét lại ngay sau khi xử lý xong.
+            redisTemplate.delete(dedupKey);
+            throw e;
+        }
     }
 
     private FaceAttendanceResponse doProcessScan(User user, Set<String> roleNames) {
         UUID matchedUserId = user.getId();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         if (roleNames.contains("MEMBER")) {
             Optional<BookingResponse> booking = bookingService.recordFaceScan(matchedUserId, now);
-            boolean linked = booking.isPresent();
-            String action = linked && booking.get().getCheckOutTime() != null ? "CHECK_OUT" : "CHECK_IN";
+            if (booking.isPresent()) {
+                // Có buổi PT phù hợp: chỉ cập nhật bookings, KHÔNG ghi gym_check_ins (CH2,
+                // tránh đếm hai lần trong báo cáo lưu lượng).
+                String action = booking.get().getCheckOutTime() != null ? "CHECK_OUT" : "CHECK_IN";
+                return FaceAttendanceResponse.builder()
+                        .matchedUserId(matchedUserId)
+                        .matchedUserName(user.getFullName())
+                        .action(action)
+                        .targetType("BOOKING")
+                        .scanTime(now)
+                        .bookingLinked(true)
+                        .duplicateScan(false)
+                        .build();
+            }
+
+            // Không có buổi PT phù hợp: ghi lượt vào/ra phòng tập (CH2 / V8).
+            GymCheckInService.ScanResult result = gymCheckInService.recordFaceScan(matchedUserId, now);
             return FaceAttendanceResponse.builder()
                     .matchedUserId(matchedUserId)
                     .matchedUserName(user.getFullName())
-                    .action(action)
-                    .targetType("BOOKING")
+                    .action(result.action())
+                    .targetType("GYM_CHECK_IN")
                     .scanTime(now)
-                    .bookingLinked(linked)
+                    .bookingLinked(false)
                     .duplicateScan(false)
                     .build();
         }
