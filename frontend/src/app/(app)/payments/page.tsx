@@ -1,14 +1,10 @@
-import { ModulePlaceholder } from "@/components/ui/ModulePlaceholder";
+import { RequireRole } from "@/components/layout/RequireRole";
+import { PaymentsDesk } from "@/features/membership/PaymentsDesk";
 
 export default function Page() {
   return (
-    <ModulePlaceholder
-      title="Thanh toán"
-      owner="Agent 2"
-      screens={[
-        "Xác nhận thanh toán đang chờ",
-        "Bán gói hộ hội viên",
-      ]}
-    />
+    <RequireRole roles={["RECEPTIONIST", "SUPER_ADMIN"]}>
+      <PaymentsDesk />
+    </RequireRole>
   );
 }

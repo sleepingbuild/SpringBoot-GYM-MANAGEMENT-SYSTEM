@@ -1,15 +1,10 @@
-import { ModulePlaceholder } from "@/components/ui/ModulePlaceholder";
+import { RequireRole } from "@/components/layout/RequireRole";
+import { PackageList } from "@/features/membership/PackageList";
 
 export default function Page() {
   return (
-    <ModulePlaceholder
-      title="Gói tập"
-      owner="Agent 2"
-      screens={[
-        "Danh sách gói tập",
-        "Chi tiết gói",
-        "Đăng ký gói (hội viên)",
-      ]}
-    />
+    <RequireRole roles={["MEMBER", "RECEPTIONIST", "SUPER_ADMIN"]}>
+      <PackageList />
+    </RequireRole>
   );
 }

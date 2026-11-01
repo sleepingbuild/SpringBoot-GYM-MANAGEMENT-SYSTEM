@@ -1,14 +1,10 @@
-import { ModulePlaceholder } from "@/components/ui/ModulePlaceholder";
+import { RequireRole } from "@/components/layout/RequireRole";
+import { AdminPackages } from "@/features/membership/AdminPackages";
 
 export default function Page() {
   return (
-    <ModulePlaceholder
-      title="Quản trị gói"
-      owner="Agent 2"
-      screens={[
-        "Danh sách gói (kể cả đã ngừng bán)",
-        "Tạo, sửa, ngừng bán gói",
-      ]}
-    />
+    <RequireRole roles={["SUPER_ADMIN"]}>
+      <AdminPackages />
+    </RequireRole>
   );
 }
