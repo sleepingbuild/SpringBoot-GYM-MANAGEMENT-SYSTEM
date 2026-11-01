@@ -96,12 +96,15 @@
 | POST | `/api/v1/packages` | Super Admin |
 | PUT/DELETE | `/api/v1/packages/{id}` | Super Admin (DELETE = ngừng bán, `is_active = false`) |
 | POST | `/api/v1/member-packages` | Receptionist (bán gói) hoặc Member (tự mua) |
-| GET | `/api/v1/member-packages/me` | Member — dùng `getCurrentMembership` |
+| GET | `/api/v1/member-packages/me` | Member, Trainer, Receptionist, Super Admin — gói ACTIVE của chính mình (dùng `getCurrentMembership`); không có gói ACTIVE trả `MEMBERSHIP_NOT_FOUND` |
+| GET | `/api/v1/member-packages/me/history` | Như trên — lịch sử toàn bộ gói của chính mình (mọi trạng thái), phân trang |
+| GET | `/api/v1/member-packages/current?userId={id}` | Receptionist, Super Admin — gói ACTIVE của một hội viên (để nâng, hạ cấp hộ); không có gói ACTIVE trả `MEMBERSHIP_NOT_FOUND` |
+| GET | `/api/v1/member-packages?userId={id}` | Receptionist, Super Admin — lịch sử gói của một hội viên (mọi trạng thái), phân trang |
 | POST | `/api/v1/member-packages/{id}/upgrade` | Receptionist/Member |
 | POST | `/api/v1/member-packages/{id}/downgrade` | Receptionist/Member |
-| POST | `/api/v1/payments/{transactionId}/confirm` | Receptionist — xác nhận thanh toán tại chỗ |
-| GET | `/api/v1/payments/me` | Member — lịch sử thanh toán |
-| GET | `/api/v1/payments?from=...&to=...` | Receptionist/Admin |
+| POST | `/api/v1/payments/{transactionId}/confirm` | Receptionist, Super Admin — xác nhận thanh toán tại chỗ. Body tùy chọn `{ "paymentMethod": "..." }` (`CASH` hoặc `LOCAL_CONFIRM`); bỏ trống thì giữ phương thức đã ghi lúc tạo giao dịch (mặc định `CASH`) |
+| GET | `/api/v1/payments/me` | Member, Trainer, Receptionist, Super Admin — lịch sử thanh toán của chính mình, phân trang |
+| GET | `/api/v1/payments?from=...&to=...` | Receptionist, Super Admin — giao dịch theo khoảng ngày [from, to] (mặc định hôm nay), phân trang |
 
 ### Lịch làm việc PT & Booking (Agent 3)
 | Method | Endpoint | Role |
