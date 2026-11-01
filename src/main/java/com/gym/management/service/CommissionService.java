@@ -23,8 +23,9 @@ public interface CommissionService {
      * Ghi nhận lương cho 1 buổi đã chốt (gọi bởi {@code BookingSettledCommissionListener}).
      * Tự tra {@code trainer_pay_rates} — KHÔNG nhận amount từ bên gọi, để "số tiền mỗi buổi"
      * chỉ có đúng 1 nguồn chân lý. Idempotent theo booking_id (gọi lại không tạo thêm bản ghi).
-     * KHÔNG BAO GIỜ ném exception — PT chưa có mức lương thì bỏ qua và chỉ log cảnh báo, vì
-     * listener chạy đồng bộ trong transaction completeBooking của Agent 3 (xem Javadoc listener).
+     * Chạy trong transaction RIÊNG (REQUIRES_NEW), được gọi sau khi transaction chốt buổi của Agent 3
+     * đã commit — lỗi ở đây không thể làm rollback việc chốt buổi (xem Javadoc listener).
+     * PT chưa có mức lương thì bỏ qua và chỉ log cảnh báo, không ném exception.
      */
     void recordSessionPay(UUID trainerId, UUID bookingId, BookingSettledEvent.Outcome outcome);
 

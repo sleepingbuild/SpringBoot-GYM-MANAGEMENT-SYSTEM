@@ -4,20 +4,24 @@ import com.gym.management.service.CommissionService;
 import com.gym.management.service.event.BookingSettledEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * Agent 5 - POS & Commission Module.
  *
- * ⚠️ {@code @EventListener} đồng bộ — chạy ngay trong transaction của
- * {@code BookingServiceImpl#completeBooking}/{@code cancelBooking}/{@code applyLazyStatus}
- * (Agent 3), KHÔNG phải sau khi commit. Vì vậy method này TUYỆT ĐỐI không được ném
- * exception: một lỗi ở đây sẽ làm transaction hoàn thành/huỷ buổi của PT bị rollback theo
- * (xem docs/CHANGE_PT_ATTENDANCE_AND_PAY.md mục Agent 5 và cảnh báo thực tế Agent 2 đã gặp
- * ở AGENT2_REVIEW_REQUEST_PR_A.md mục 3). Toàn bộ logic nghiệp vụ (chống trùng, PT chưa có
- * mức lương) nằm trong {@link CommissionService#recordSessionPay}, bản thân nó cũng không
- * ném exception; try/catch dưới đây chỉ là lớp phòng thủ cuối cùng.
+ * Chạy SAU KHI transaction chốt buổi của Agent 3 đã commit ({@code AFTER_COMMIT}) và ghi lương
+ * trong transaction RIÊNG ({@code REQUIRES_NEW} ở {@link CommissionService#recordSessionPay}).
+ * Lý do (góp ý của Agent 1 ở PR #70): nếu chạy đồng bộ chung transaction với
+ * {@code completeBooking}/{@code cancelBooking}/{@code applyLazyStatus}, một lỗi đi xuyên qua
+ * ranh giới {@code @Transactional} (kể cả lỗi từ repository) đánh dấu transaction chung là
+ * rollback-only trước khi tới {@code try/catch} bên dưới, nên buổi tập của PT vẫn bị rollback dù
+ * lỗi đã được bắt. Tách transaction thì lỗi tính lương không thể ảnh hưởng việc chốt buổi.
+ *
+ * Đánh đổi: nếu ghi lương thất bại thì buổi vẫn chốt nhưng KHÔNG có bản ghi lương (chỉ có log
+ * ERROR/WARN, cần bù thủ công). {@code fallbackExecution = true}: nếu có nơi phát event ngoài
+ * transaction thì vẫn xử lý ngay thay vì bỏ rơi event.
  */
 @Slf4j
 @Component
@@ -26,7 +30,7 @@ public class BookingSettledCommissionListener {
 
     private final CommissionService commissionService;
 
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onBookingSettled(BookingSettledEvent event) {
         if (!event.fullDuration()) {
             log.info("Booking {} fullDuration=false — PT không dạy đủ thời gian và không nộp lý do, bỏ qua tính lương",

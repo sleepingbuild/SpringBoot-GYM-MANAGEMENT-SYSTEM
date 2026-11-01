@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -38,7 +39,7 @@ public class CommissionServiceImpl implements CommissionService {
     private final UserRepository userRepository;
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordSessionPay(UUID trainerId, UUID bookingId, BookingSettledEvent.Outcome outcome) {
         if (commissionRepository.existsByBookingId(bookingId)) {
             // Idempotent theo thiết kế — có thể nhận cùng 1 event (hoặc lazy-check chạy lại)
