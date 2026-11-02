@@ -9,16 +9,24 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.DynamicUpdate;
 
 import java.time.LocalDate;
 
 /**
  * Agent 2 - Membership & Package Module.
- * Bản TỐI THIỂU (start_date/end_date/remaining_sessions/status) để BookingService
+ *
+ * <p>{@link DynamicUpdate}: Hibernate chỉ ghi các cột THẬT SỰ đổi. Bắt buộc có vì
+ * {@code remaining_sessions} được trừ bằng câu UPDATE nguyên tử
+ * ({@code MemberPackageRepository#consumeOneSession}); nếu không, một lần đổi {@code status}
+ * (lazy-check) sẽ ghi đè {@code remaining_sessions} bằng giá trị cũ đọc trước đó.
+ *
+ * <p>Bản TỐI THIỂU (start_date/end_date/remaining_sessions/status) để BookingService
  * (Agent 3) áp được rule "giới hạn buổi/tuần" và trừ buổi khi hoàn thành. Agent 2
  * mở rộng thêm nghiệp vụ nâng/hạ cấp đầy đủ sau (xem REQUIREMENTS.md mục 2).
  */
 @Entity
+@DynamicUpdate
 @Table(name = "member_packages")
 @Getter
 @Setter
