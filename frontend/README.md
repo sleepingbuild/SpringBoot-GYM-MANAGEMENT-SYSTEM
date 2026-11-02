@@ -81,6 +81,25 @@ Thời gian từ backend là `LocalDateTime` giờ Việt Nam, không có múi g
 
 `getUserMedia` chỉ chạy ở `localhost` hoặc HTTPS. Thử kiosk trên chính máy chạy frontend thì dùng `http://localhost:3000`. Thiết bị khác (điện thoại) cần HTTPS: ưu tiên `next dev --experimental-https` trong mạng nội bộ. Chỉ dùng đường hầm công khai (ngrok) khi thật cần và tắt ngay sau khi thử, vì phiên bản Next.js hiện tại có cảnh báo bảo mật (xem mục dưới).
 
+## Bán lẻ (POS) và lương PT (Agent 5)
+
+Hai màn hình: `/pos` (Lễ tân, Quản trị viên) và `/commissions` (PT xem lương của mình; Quản trị viên tra cứu, đánh dấu chi trả và đặt mức lương mỗi buổi).
+
+**Cách thử** (cần backend đã có V5 trở lên và dữ liệu mẫu):
+
+1. Nạp dữ liệu mẫu: `scripts/dev-seed/00_users.sql` (Agent 1) rồi `scripts/dev-seed/30_pos.sql`. Chưa có tài khoản mẫu thì đăng ký ở `/register` rồi cấp vai trò bằng SQL.
+2. `/pos` > thẻ **Bán hàng**: chọn sản phẩm, thêm vào đơn, bấm Thu tiền. Tồn kho giảm ngay; thêm quá tồn kho bị chặn ở giao diện và backend vẫn kiểm tra lại (`PRODUCT_OUT_OF_STOCK`).
+3. Thẻ **Sản phẩm**: thêm, sửa, ngừng bán. Thẻ **Đơn hàng**: lọc theo ngày, xem chi tiết, huỷ đơn (hoàn lại tồn kho).
+4. `/commissions` bằng tài khoản Quản trị viên: thẻ **Mức lương mỗi buổi** để đặt mức cho PT, thẻ **Tra cứu lương** để đánh dấu đã chi trả.
+
+**Giới hạn hiện tại:**
+
+- Chưa có màn chọn hội viên hay PT theo tên: ô **Mã hội viên** và **Mã PT** nhận UUID dán vào. Khi backend có `/users?role=MEMBER&q=` và `/trainers` thì đổi sang ô chọn.
+- Bán cho **khách vãng lai** (để trống mã hội viên) chỉ chạy khi backend đã cho phép giao dịch không gắn hội viên (V7 của Agent 2). Trước đó backend báo lỗi và giao diện hiện đúng thông báo đó.
+- Huỷ đơn hiện **chỉ hoàn tồn kho, chưa đảo giao dịch thanh toán**. Sẽ cập nhật khi backend có hoàn tiền.
+- Dòng lương chỉ có sau khi PT được đặt mức lương mỗi buổi **và** buổi dạy được chốt. Các tổng tiền trên màn hình là tổng của trang đang xem, không phải tổng cả kỳ khi còn nhiều trang.
+- Màn hình chưa thử trên trình duyệt với backend thật khi viết phần này (chỉ qua `npm run build`, `npm run lint`, `npm run typecheck` và `npm test`).
+
 ## Bảo mật phụ thuộc (cần biết)
 
 `npm audit --omit=dev` báo nhiều cảnh báo cho Next.js 14.2.35, và bản vá nằm ở nhánh 16 (cần React 19, đổi cách dùng `params`, bỏ `next lint`), nên khung chưa nâng cấp. Phần lớn cảnh báo liên quan tới tính năng khung **không dùng**. Để giữ nguyên tình trạng đó:
