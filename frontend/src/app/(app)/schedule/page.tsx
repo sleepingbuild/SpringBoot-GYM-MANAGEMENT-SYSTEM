@@ -1,15 +1,10 @@
-import { ModulePlaceholder } from "@/components/ui/ModulePlaceholder";
+﻿import { RequireRole } from "@/components/layout/RequireRole";
+import { TrainerWorkspace } from "@/features/schedule/TrainerWorkspace";
 
-export default function Page() {
+export default function SchedulePage() {
   return (
-    <ModulePlaceholder
-      title="Lịch dạy"
-      owner="Agent 3"
-      screens={[
-        "Khai lịch làm việc",
-        "Các buổi dạy sắp tới",
-        "Hoàn thành buổi, nộp lý do rời buổi sớm",
-      ]}
-    />
+    <RequireRole roles={["TRAINER"]}>
+      <TrainerWorkspace />
+    </RequireRole>
   );
 }

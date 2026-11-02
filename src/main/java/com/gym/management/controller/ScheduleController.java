@@ -61,6 +61,7 @@ public class ScheduleController {
     }
 
     @GetMapping("/available")
+    @PreAuthorize("hasAnyRole('MEMBER', 'RECEPTIONIST', 'SUPER_ADMIN')")
     @Operation(summary = "Slot trống của PT trong 1 ngày")
     public ApiResponse<?> available(
             @RequestParam UUID trainerId,

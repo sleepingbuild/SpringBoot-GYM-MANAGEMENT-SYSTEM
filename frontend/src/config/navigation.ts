@@ -41,7 +41,7 @@ export const NAVIGATION: NavGroup[] = [
     title: "Lịch tập",
     items: [
       { href: "/bookings", label: "Đặt lịch PT", roles: ["MEMBER", "RECEPTIONIST", "SUPER_ADMIN"], status: "planned", owner: "Agent 3" },
-      { href: "/schedule", label: "Lịch dạy", roles: ["TRAINER"], status: "planned", owner: "Agent 3" },
+      { href: "/schedule", label: "Lịch dạy", roles: ["TRAINER"], status: "ready", owner: "Agent 3" },
     ],
   },
   {

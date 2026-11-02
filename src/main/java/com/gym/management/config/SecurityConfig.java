@@ -4,6 +4,7 @@ import com.gym.management.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -54,6 +55,15 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        // Story G3 (Agent 2): khách chưa đăng nhập xem được gói tập đang mở bán.
+                        // Rule "/admin" PHẢI đứng trước vì "/{id}" cũng khớp chữ "admin";
+                        // phần phân quyền Super Admin vẫn do @PreAuthorize ở PackageController đảm nhiệm.
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/packages/admin",
+                                "/api/v1/packages/admin/**").authenticated()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/packages",
+                                "/api/v1/packages/{id}").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

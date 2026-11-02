@@ -1,15 +1,10 @@
-import { ModulePlaceholder } from "@/components/ui/ModulePlaceholder";
+﻿import { RequireRole } from "@/components/layout/RequireRole";
+import { MemberBookings } from "@/features/bookings/MemberBookings";
 
-export default function Page() {
+export default function BookingsPage() {
   return (
-    <ModulePlaceholder
-      title="Đặt lịch PT"
-      owner="Agent 3"
-      screens={[
-        "Chọn huấn luyện viên và xem khung giờ trống",
-        "Đặt, xác nhận, huỷ buổi tập",
-        "Danh sách buổi của tôi",
-      ]}
-    />
+    <RequireRole roles={["MEMBER"]}>
+      <MemberBookings />
+    </RequireRole>
   );
 }
