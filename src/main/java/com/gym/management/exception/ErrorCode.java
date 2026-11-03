@@ -32,6 +32,7 @@ public enum ErrorCode {
     MEMBERSHIP_PENDING_EXISTS(HttpStatus.CONFLICT),
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND),
     PAYMENT_DUPLICATE_TRANSACTION(HttpStatus.CONFLICT),
+    PAYMENT_NOT_REFUNDABLE(HttpStatus.CONFLICT), // hoàn tiền: chỉ giao dịch POS đang SUCCESS
     PAYMENT_WEBHOOK_INVALID_SIGNATURE(HttpStatus.BAD_REQUEST), // tuỳ chọn, chỉ dùng nếu bổ sung cổng thanh toán thật sau v1.0
 
     // ==== Lịch làm việc PT & Booking (Agent 3) ====
