@@ -18,6 +18,7 @@ import java.util.UUID;
 public class PaymentTransactionResponse {
     private UUID id;
     private UUID userId;
+    private String userFullName; // null với giao dịch POS của khách vãng lai
     private String relatedType;
     private UUID relatedId;
     private BigDecimal amount;
