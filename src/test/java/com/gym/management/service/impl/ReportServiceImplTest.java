@@ -15,7 +15,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -43,12 +42,13 @@ import static org.mockito.Mockito.when;
 class ReportServiceImplTest {
 
     @Mock ReportRepository repo;
-    @InjectMocks ReportServiceImpl service;
+    ReportServiceImpl service;
 
     @BeforeEach
-    void fixClock() {
+    void setUp() {
         // 2026-10-16 10:00 giờ Việt Nam
-        service.clock = Clock.fixed(Instant.parse("2026-10-16T03:00:00Z"), ReportServiceImpl.VN_ZONE);
+        Clock clock = Clock.fixed(Instant.parse("2026-10-16T03:00:00Z"), ReportServiceImpl.VN_ZONE);
+        service = new ReportServiceImpl(repo, clock);
     }
 
     private static BigDecimal bd(String v) {
