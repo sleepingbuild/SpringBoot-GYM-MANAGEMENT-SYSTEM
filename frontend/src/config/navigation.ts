@@ -41,7 +41,7 @@ export const NAVIGATION: NavGroup[] = [
     title: "Lịch tập",
     items: [
       { href: "/bookings", label: "Đặt lịch PT", roles: ["MEMBER", "RECEPTIONIST", "SUPER_ADMIN"], status: "planned", owner: "Agent 3" },
-      { href: "/schedule", label: "Lịch dạy", roles: ["TRAINER"], status: "planned", owner: "Agent 3" },
+      { href: "/schedule", label: "Lịch dạy", roles: ["TRAINER"], status: "ready", owner: "Agent 3" },
     ],
   },
   {
@@ -64,8 +64,8 @@ export const NAVIGATION: NavGroup[] = [
   {
     title: "Kinh doanh",
     items: [
-      { href: "/leads", label: "Khách tiềm năng", roles: ["SALES", "SUPER_ADMIN"], status: "planned", owner: "Agent 6" },
-      { href: "/reports", label: "Báo cáo", roles: ["SUPER_ADMIN"], status: "planned", owner: "Agent 6" },
+      { href: "/leads", label: "Khách tiềm năng", roles: ["SALES", "SUPER_ADMIN"], status: "ready", owner: "Agent 6" },
+      { href: "/reports", label: "Báo cáo", roles: ["SUPER_ADMIN"], status: "ready", owner: "Agent 6" },
     ],
   },
 ];

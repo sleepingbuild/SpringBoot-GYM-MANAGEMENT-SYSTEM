@@ -42,8 +42,8 @@ public class ReportServiceImpl implements ReportService {
 
     private final ReportRepository reportRepository;
 
-    /** Không phải final để test cố định "hôm nay"; không nằm trong constructor. */
-    Clock clock = Clock.system(VN_ZONE);
+    /** Bean Clock dùng chung của dự án (múi giờ Asia/Ho_Chi_Minh), để "hôm nay" khớp mọi module. */
+    private final Clock clock;
 
     private record Range(LocalDate from, LocalDate to) {
     }

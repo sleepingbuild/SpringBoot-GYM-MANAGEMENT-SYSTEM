@@ -96,18 +96,21 @@
 | POST | `/api/v1/packages` | Super Admin |
 | PUT/DELETE | `/api/v1/packages/{id}` | Super Admin (DELETE = ngừng bán, `is_active = false`) |
 | POST | `/api/v1/member-packages` | Receptionist (bán gói) hoặc Member (tự mua) |
-| GET | `/api/v1/member-packages/me` | Member — dùng `getCurrentMembership` |
+| GET | `/api/v1/member-packages/me` | Member, Trainer, Receptionist, Super Admin — gói ACTIVE của chính mình (dùng `getCurrentMembership`); không có gói ACTIVE trả `MEMBERSHIP_NOT_FOUND` |
+| GET | `/api/v1/member-packages/me/history` | Như trên — lịch sử toàn bộ gói của chính mình (mọi trạng thái), phân trang |
+| GET | `/api/v1/member-packages/current?userId={id}` | Receptionist, Super Admin — gói ACTIVE của một hội viên (để nâng, hạ cấp hộ); không có gói ACTIVE trả `MEMBERSHIP_NOT_FOUND` |
+| GET | `/api/v1/member-packages?userId={id}` | Receptionist, Super Admin — lịch sử gói của một hội viên (mọi trạng thái), phân trang |
 | POST | `/api/v1/member-packages/{id}/upgrade` | Receptionist/Member |
 | POST | `/api/v1/member-packages/{id}/downgrade` | Receptionist/Member |
-| POST | `/api/v1/payments/{transactionId}/confirm` | Receptionist — xác nhận thanh toán tại chỗ |
-| GET | `/api/v1/payments/me` | Member — lịch sử thanh toán |
-| GET | `/api/v1/payments?from=...&to=...` | Receptionist/Admin |
+| POST | `/api/v1/payments/{transactionId}/confirm` | Receptionist, Super Admin — xác nhận thanh toán tại chỗ. Body tùy chọn `{ "paymentMethod": "..." }` (`CASH` hoặc `LOCAL_CONFIRM`); bỏ trống thì giữ phương thức đã ghi lúc tạo giao dịch (mặc định `CASH`) |
+| GET | `/api/v1/payments/me` | Member, Trainer, Receptionist, Super Admin — lịch sử thanh toán của chính mình, phân trang |
+| GET | `/api/v1/payments?from=...&to=...` | Receptionist, Super Admin — giao dịch theo khoảng ngày [from, to] (mặc định hôm nay), phân trang |
 
 ### Lịch làm việc PT & Booking (Agent 3)
 | Method | Endpoint | Role |
 |---|---|---|
 | GET/POST/PUT/DELETE | `/api/v1/trainer-schedules` | Trainer (của chính mình) / Admin |
-| GET | `/api/v1/trainer-schedules/available?trainerId=...&date=...` | Member — xem slot trống |
+| GET | `/api/v1/trainer-schedules/available?trainerId=...&date=...` | Member / Lễ tân / Admin — xem slot trống |
 | POST | `/api/v1/bookings` | Member (tự đặt) / Receptionist (đặt hộ) |
 | PUT | `/api/v1/bookings/{id}` | Member/Receptionist (sửa lịch, áp lại đủ rule) |
 | POST | `/api/v1/bookings/{id}/confirm` | Trainer |
@@ -120,22 +123,32 @@
 ### Face Attendance & Chấm công (Agent 4)
 | Method | Endpoint | Role |
 |---|---|---|
-| POST | `/api/v1/face-profiles/{userId}` (multipart ảnh tĩnh, backend tự trích descriptor) | Receptionist/Admin — đăng ký hộ |
+| POST | `/api/v1/face-profiles/{userId}` (JSON descriptor, client chọn ảnh và trích bằng face-api.js) | Receptionist/Admin — đăng ký hộ |
 | POST | `/api/v1/face-profiles/me` (descriptor JSON, client tự trích) | Member/Trainer/Receptionist/Sales — tự đăng ký |
 | GET/DELETE | `/api/v1/face-profiles/{userId}` | Receptionist/Admin |
 | POST | `/api/v1/face-attendance/kiosk` (descriptor JSON) | Receptionist/Admin — 1:N. Kết quả ghi theo role người được nhận diện (Member/Trainer → booking, Receptionist/Sales → `staff_attendances`) |
 | POST | `/api/v1/face-attendance/self` (descriptor JSON) | Member/Trainer/Receptionist/Sales đã đăng nhập — 1:1. Trainer: lượt quét gắn vào booking đang diễn ra; response có `bookingId`, `earlyLeave`, `reasonRequired`, `message` |
 | GET | `/api/v1/staff-attendance/me` | Receptionist/Sales |
 | GET | `/api/v1/staff-attendance?date=...` | Admin — báo cáo chấm công |
+| GET | `/api/v1/check-ins/me` | Member — lịch sử vào phòng tập, mới nhất trước, chưa phân trang. Mỗi phần tử: `type` (`GYM_VISIT` = lượt không PT từ `gym_check_ins`, `PT_SESSION` = buổi có PT từ `bookings`), `id`, `checkInTime`, `checkOutTime` (null = chưa quét ra), `method`, `trainerName` (chỉ `PT_SESSION`) |
 
+Ghi chú CH2 (V8): Member quét mặt (kiosk hoặc self) mà không có booking phù hợp thì response có `targetType = GYM_CHECK_IN`, `bookingLinked = false`, `action` là `CHECK_IN` hoặc `CHECK_OUT`. Lượt vào mới yêu cầu gói ACTIVE: không có gói nào trả `MEMBERSHIP_NOT_FOUND`, có gói nhưng hết hạn trả `MEMBERSHIP_EXPIRED` (cả hai HTTP theo `ErrorCode`). Lượt có booking chỉ cập nhật `bookings`, không tạo dòng `gym_check_ins`.
+Quét tự phục vụ (`/face-attendance/self`) dùng chung quy tắc với kiosk: cùng ghi `gym_check_ins` và cùng kiểm tra gói. Khi không có gói ACTIVE, thông báo lỗi là "Không có gói tập còn hiệu lực" cho cả hai mã. `GET /check-ins/me` trả toàn bộ lịch sử (chưa phân trang); sẽ thêm lọc theo khoảng ngày khi cần.
 ### POS & Commission (Agent 5)
 | Method | Endpoint | Role |
 |---|---|---|
-| GET/POST/PUT | `/api/v1/products` | Receptionist/Admin |
-| POST | `/api/v1/pos/orders` | Receptionist |
-| GET | `/api/v1/pos/orders?branchId=...` | Receptionist/Admin |
-| GET | `/api/v1/commissions/me` | Trainer — lương theo buổi của chính mình |
-| GET | `/api/v1/commissions?staffId=...&month=...` | Admin |
+| GET | `/api/v1/products` | Đã đăng nhập — sản phẩm đang bán, phân trang |
+| GET | `/api/v1/products/admin` | Receptionist/Admin — gồm cả sản phẩm đã ngừng bán |
+| GET | `/api/v1/products/{id}` | Đã đăng nhập |
+| POST/PUT | `/api/v1/products` , `/api/v1/products/{id}` | Receptionist/Admin |
+| DELETE | `/api/v1/products/{id}` | Receptionist/Admin — xoá mềm (`is_active = false`) |
+| POST | `/api/v1/pos/orders` | Receptionist/Admin — giá lấy từ DB, trừ kho + thu tiền ngay trong 1 transaction (qua `PaymentService`, `RelatedType.POS`) |
+| GET | `/api/v1/pos/orders/{id}` | Receptionist/Admin |
+| GET | `/api/v1/pos/orders?branchId=...&from=...&to=...` | Receptionist/Admin — phân trang, mặc định hôm nay |
+| POST | `/api/v1/pos/orders/{id}/cancel` | Receptionist/Admin — huỷ đơn `COMPLETED`, hoàn tồn kho (không hoàn tiền) |
+| GET | `/api/v1/commissions/me` | Trainer — lương theo buổi của chính mình, phân trang |
+| GET | `/api/v1/commissions?staffId=...&month=yyyy-MM` | Admin — phân trang |
+| POST | `/api/v1/commissions/{id}/mark-paid` | Admin — `PENDING` → `PAID`, ghi `paid_at` |
 | GET/PUT | `/api/v1/trainer-pay-rates/{trainerId}` | Super Admin — xem/đặt lương mỗi buổi của PT |
 
 ### Leads/CRM (Agent 6)

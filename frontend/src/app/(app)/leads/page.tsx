@@ -1,16 +1,10 @@
-import { ModulePlaceholder } from "@/components/ui/ModulePlaceholder";
+import { RequireRole } from "@/components/layout/RequireRole";
+import { LeadsPage } from "@/features/leads/LeadsPage";
 
 export default function Page() {
   return (
-    <ModulePlaceholder
-      title="Khách tiềm năng"
-      owner="Agent 6"
-      screens={[
-        "Danh sách và tìm kiếm khách tiềm năng",
-        "Tạo, sửa, đổi trạng thái",
-        "Chuyển thành hội viên",
-        "Hội viên sắp hết hạn",
-      ]}
-    />
+    <RequireRole roles={["SALES", "SUPER_ADMIN"]}>
+      <LeadsPage />
+    </RequireRole>
   );
 }

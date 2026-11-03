@@ -23,6 +23,12 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
+import com.gym.management.service.GymCheckInService;
+
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -51,6 +57,7 @@ class FaceAttendanceServiceImplTest {
     @Mock private StaffAttendanceService staffAttendanceService;
     @Mock private StringRedisTemplate redisTemplate;
     @Mock private ValueOperations<String, String> valueOperations;
+    @Mock private GymCheckInService gymCheckInService;
 
     private FaceAttendanceServiceImpl service;
 
@@ -67,10 +74,14 @@ class FaceAttendanceServiceImplTest {
     void setUp() {
         service = new FaceAttendanceServiceImpl(
                 faceMatchService, userRepository, bookingService, staffAttendanceService,
-                redisTemplate, new PassThroughTransactionTemplate());
+                redisTemplate, new PassThroughTransactionTemplate(),
+                Clock.fixed(Instant.parse("2026-10-25T10:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh")),
+                gymCheckInService);
         ReflectionTestUtils.setField(service, "minScanIntervalSeconds", 120L);
         ReflectionTestUtils.setField(service, "trainerMinScanIntervalSeconds", 15L);
         lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        lenient().when(gymCheckInService.recordFaceScan(any(), any()))
+                .thenReturn(new GymCheckInService.ScanResult("CHECK_IN", UUID.randomUUID()));
     }
 
     private static List<Double> buildDescriptor() {
@@ -190,7 +201,7 @@ class FaceAttendanceServiceImplTest {
     }
 
     @Test
-    void memberScan_noMatchingBookingToday_returnsBookingLinkedFalse() {
+    void memberScan_noMatchingBooking_recordsGymCheckIn() {
         User member = buildUser("MEMBER");
 
         givenKioskMatchedAndNotDuplicate(member);
@@ -200,6 +211,25 @@ class FaceAttendanceServiceImplTest {
         FaceAttendanceResponse response = service.kioskScan(buildRequest());
 
         assertThat(response.isBookingLinked()).isFalse();
+        assertThat(response.getAction()).isEqualTo("CHECK_IN");
+        assertThat(response.getTargetType()).isEqualTo("GYM_CHECK_IN");
+        verify(gymCheckInService).recordFaceScan(eq(member.getId()), any(LocalDateTime.class));
+    }
+
+    @Test
+    void memberScan_withMatchingBooking_doesNotCreateGymCheckIn() {
+        User member = buildUser("MEMBER");
+        BookingResponse bookingResponse = mock(BookingResponse.class);
+
+        givenKioskMatchedAndNotDuplicate(member);
+        when(bookingService.recordFaceScan(eq(member.getId()), any(LocalDateTime.class)))
+                .thenReturn(Optional.of(bookingResponse));
+
+        FaceAttendanceResponse response = service.kioskScan(buildRequest());
+
+        assertThat(response.isBookingLinked()).isTrue();
+        assertThat(response.getTargetType()).isEqualTo("BOOKING");
+        verifyNoInteractions(gymCheckInService);
     }
 
     @Test
@@ -428,5 +458,20 @@ class FaceAttendanceServiceImplTest {
 
         assertThat(response.getTargetType()).isEqualTo("STAFF_ATTENDANCE");
         verifyNoInteractions(bookingService);
+    }
+
+    @Test
+    void memberScan_rejectedByGymCheckIn_releasesDedupKey() {
+        User member = buildUser("MEMBER");
+        givenKioskMatchedAndNotDuplicate(member);
+        when(bookingService.recordFaceScan(eq(member.getId()), any(LocalDateTime.class)))
+                .thenReturn(Optional.empty());
+        when(gymCheckInService.recordFaceScan(eq(member.getId()), any(LocalDateTime.class)))
+                .thenThrow(new BusinessException(ErrorCode.MEMBERSHIP_EXPIRED, "x"));
+
+        assertThatThrownBy(() -> service.kioskScan(buildRequest()))
+                .isInstanceOf(BusinessException.class);
+
+        verify(redisTemplate).delete("face-scan:" + member.getId());
     }
 }
