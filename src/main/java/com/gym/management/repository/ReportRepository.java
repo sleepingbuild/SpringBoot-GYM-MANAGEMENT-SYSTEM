@@ -90,17 +90,27 @@ public class ReportRepository {
                 new RenewalCounts(rs.getLong("expired_count"), rs.getLong("renewed_count")));
     }
 
-    /** Lượt học viên quét mặt vào buổi PT, theo ngày và giờ. */
+    /**
+     * Lượt hội viên quét mặt vào phòng tập, theo ngày và giờ. Hợp của hai nguồn không giao nhau
+     * (xem V8): lượt có buổi PT phù hợp chỉ cập nhật bookings, lượt còn lại ghi gym_check_ins.
+     * Quét ra chỉ cập nhật chính dòng đó nên mỗi dòng là một lượt vào.
+     */
     public List<TrafficRow> checkinTraffic(LocalDateTime from, LocalDateTime toExclusive) {
         String sql = """
-                SELECT CAST(check_in_time AS DATE) AS day_value,
-                       DATEPART(HOUR, check_in_time) AS hour_value,
+                SELECT CAST(t.check_in_time AS DATE) AS day_value,
+                       DATEPART(HOUR, t.check_in_time) AS hour_value,
                        COUNT(*) AS cnt
-                FROM bookings
-                WHERE check_in_time IS NOT NULL
-                  AND check_in_time >= :from
-                  AND check_in_time < :to
-                GROUP BY CAST(check_in_time AS DATE), DATEPART(HOUR, check_in_time)
+                FROM (
+                    SELECT check_in_time FROM bookings
+                    WHERE check_in_time IS NOT NULL
+                      AND check_in_time >= :from
+                      AND check_in_time < :to
+                    UNION ALL
+                    SELECT check_in_time FROM gym_check_ins
+                    WHERE check_in_time >= :from
+                      AND check_in_time < :to
+                ) t
+                GROUP BY CAST(t.check_in_time AS DATE), DATEPART(HOUR, t.check_in_time)
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("from", Timestamp.valueOf(from))

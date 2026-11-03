@@ -1,6 +1,8 @@
 package com.gym.management.service.impl;
 
 import com.gym.management.dto.response.CheckinTrafficResponse;
+import com.gym.management.dto.response.CommissionSummaryResponse;
+import com.gym.management.dto.response.CommissionsSummaryResponse;
 import com.gym.management.dto.response.RenewalRateResponse;
 import com.gym.management.dto.response.RevenueReportResponse;
 import com.gym.management.dto.response.TopPackagesResponse;
@@ -11,6 +13,7 @@ import com.gym.management.repository.ReportRepository.RenewalCounts;
 import com.gym.management.repository.ReportRepository.RevenueRow;
 import com.gym.management.repository.ReportRepository.TopPackageRow;
 import com.gym.management.repository.ReportRepository.TrafficRow;
+import com.gym.management.service.CommissionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +28,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,13 +47,14 @@ import static org.mockito.Mockito.when;
 class ReportServiceImplTest {
 
     @Mock ReportRepository repo;
+    @Mock CommissionService commissionService;
     ReportServiceImpl service;
 
     @BeforeEach
     void setUp() {
         // 2026-10-16 10:00 giờ Việt Nam
         Clock clock = Clock.fixed(Instant.parse("2026-10-16T03:00:00Z"), ReportServiceImpl.VN_ZONE);
-        service = new ReportServiceImpl(repo, clock);
+        service = new ReportServiceImpl(repo, clock, commissionService);
     }
 
     private static BigDecimal bd(String v) {
@@ -219,5 +225,89 @@ class ReportServiceImplTest {
         assertThrows(BusinessException.class, () -> service.topPackages(null, null, "0"));
         assertThrows(BusinessException.class, () -> service.topPackages(null, null, "51"));
         verify(repo, never()).topPackages(any(), any(), anyInt());
+    }
+
+    // ---------- commissions-summary ----------
+
+    private static CommissionSummaryResponse monthSummary(String month, int sessions, String total,
+                                                          int pendingCount, String pending,
+                                                          int paidCount, String paid) {
+        return CommissionSummaryResponse.builder().month(month).totalSessions(sessions)
+                .totalAmount(bd(total)).pendingCount(pendingCount).pendingAmount(bd(pending))
+                .paidCount(paidCount).paidAmount(bd(paid)).build();
+    }
+
+    @Test
+    void commissionsSummary_defaultsToCurrentMonth() {
+        when(commissionService.summarize(YearMonth.of(2026, 10)))
+                .thenReturn(monthSummary("2026-10", 3, "300000", 1, "100000", 2, "200000"));
+
+        CommissionsSummaryResponse res = service.commissionsSummary(null, null);
+
+        assertEquals("2026-10", res.fromMonth());
+        assertEquals("2026-10", res.toMonth());
+        assertEquals(1, res.months().size());
+        assertEquals(3, res.totalSessions());
+        assertEquals(0, bd("300000").compareTo(res.totalAmount()));
+        assertEquals(0, bd("100000").compareTo(res.pendingAmount()));
+        assertEquals(0, bd("200000").compareTo(res.paidAmount()));
+    }
+
+    @Test
+    void commissionsSummary_sumsEveryMonthInRangeAndNeverPassesNull() {
+        when(commissionService.summarize(YearMonth.of(2026, 8)))
+                .thenReturn(monthSummary("2026-08", 2, "200000", 0, "0", 2, "200000"));
+        when(commissionService.summarize(YearMonth.of(2026, 9)))
+                .thenReturn(monthSummary("2026-09", 0, "0", 0, "0", 0, "0"));
+        when(commissionService.summarize(YearMonth.of(2026, 10)))
+                .thenReturn(monthSummary("2026-10", 3, "300000", 1, "100000", 2, "200000"));
+
+        CommissionsSummaryResponse res = service.commissionsSummary("2026-08", "2026-10");
+
+        assertEquals(3, res.months().size());
+        assertEquals("2026-08", res.months().get(0).month());
+        assertEquals("2026-10", res.months().get(2).month());
+        assertEquals(5, res.totalSessions());
+        assertEquals(1, res.pendingCount());
+        assertEquals(4, res.paidCount());
+        assertEquals(0, bd("500000").compareTo(res.totalAmount()));
+        assertEquals(0, bd("100000").compareTo(res.pendingAmount()));
+        assertEquals(0, bd("400000").compareTo(res.paidAmount()));
+        verify(commissionService, times(3)).summarize(any(YearMonth.class));
+    }
+
+    @Test
+    void commissionsSummary_acceptsExactly12Months() {
+        when(commissionService.summarize(any(YearMonth.class)))
+                .thenReturn(monthSummary("x", 0, "0", 0, "0", 0, "0"));
+
+        CommissionsSummaryResponse res = service.commissionsSummary("2025-11", "2026-10");
+
+        assertEquals(12, res.months().size());
+    }
+
+    @Test
+    void commissionsSummary_rejects13Months() {
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> service.commissionsSummary("2025-10", "2026-10"));
+        assertEquals(ErrorCode.VALIDATION_ERROR, ex.getErrorCode());
+        verify(commissionService, never()).summarize(any());
+    }
+
+    @Test
+    void commissionsSummary_rejectsFromAfterTo() {
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> service.commissionsSummary("2026-10", "2026-09"));
+        assertEquals(ErrorCode.VALIDATION_ERROR, ex.getErrorCode());
+    }
+
+    @Test
+    void commissionsSummary_rejectsBadMonthFormat() {
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> service.commissionsSummary("10/2026", null));
+        assertEquals(ErrorCode.VALIDATION_ERROR, ex.getErrorCode());
+        BusinessException ex2 = assertThrows(BusinessException.class,
+                () -> service.commissionsSummary(null, "2026-13"));
+        assertEquals(ErrorCode.VALIDATION_ERROR, ex2.getErrorCode());
     }
 }
