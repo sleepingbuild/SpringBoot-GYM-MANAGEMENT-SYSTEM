@@ -18,7 +18,11 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
 
     Page<PaymentTransaction> findByUserId(UUID userId, Pageable pageable);
 
-    Optional<PaymentTransaction> findFirstByRelatedTypeAndRelatedIdOrderByCreatedAtDesc(String relatedType, UUID relatedId);
+    /** Giao dịch mới nhất của 1 gói tập (thay cho findFirstByRelatedTypeAndRelatedId..., bỏ ở V7). */
+    Optional<PaymentTransaction> findFirstByMemberPackageIdOrderByCreatedAtDesc(UUID memberPackageId);
+
+    /** Giao dịch mới nhất của 1 đơn POS — để huỷ/hoàn tiền đơn POS tìm lại giao dịch của nó. */
+    Optional<PaymentTransaction> findFirstByPosOrderIdOrderByCreatedAtDesc(UUID posOrderId);
 
     /**
      * Thay cho GET /payments?branchId=... (hoãn — payment_transactions không có branch_id,

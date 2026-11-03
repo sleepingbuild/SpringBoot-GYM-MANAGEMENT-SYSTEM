@@ -2,6 +2,7 @@ package com.gym.management.service.impl;
 
 import com.gym.management.constant.PaymentMethodType;
 import com.gym.management.constant.PaymentStatus;
+import com.gym.management.constant.RelatedType;
 import com.gym.management.dto.response.PaymentTransactionResponse;
 import com.gym.management.entity.PaymentTransaction;
 import com.gym.management.entity.User;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -42,14 +44,18 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
 
     @Override
     @Transactional
     public PaymentTransactionResponse createPendingTransaction(User user, String relatedType, UUID relatedId, BigDecimal amount) {
+        // relatedType/relatedId được ánh xạ sang 2 khoá ngoại member_package_id / pos_order_id (V7).
+        if (relatedId == null || !(RelatedType.MEMBERSHIP.equals(relatedType) || RelatedType.POS.equals(relatedType))) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
         PaymentTransaction tx = new PaymentTransaction();
-        tx.setUser(user);
-        tx.setRelatedType(relatedType);
-        tx.setRelatedId(relatedId);
+        tx.setUser(user); // null = khách vãng lai của POS (đơn không gắn hội viên)
+        tx.setRelated(relatedType, relatedId);
         tx.setAmount(amount);
         tx.setPaymentMethod(PaymentMethodType.CASH); // mặc định, có thể đổi lúc confirm
         tx.setStatus(PaymentStatus.PENDING);
@@ -106,8 +112,8 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public com.gym.management.dto.response.PageResponse<PaymentTransactionResponse> getAllPayments(
             java.time.LocalDate from, java.time.LocalDate to, org.springframework.data.domain.Pageable pageable) {
-        java.time.LocalDate effectiveFrom = from != null ? from : java.time.LocalDate.now();
-        java.time.LocalDate effectiveTo = to != null ? to : java.time.LocalDate.now();
+        java.time.LocalDate effectiveFrom = from != null ? from : java.time.LocalDate.now(clock);
+        java.time.LocalDate effectiveTo = to != null ? to : java.time.LocalDate.now(clock);
         java.time.LocalDateTime fromDateTime = effectiveFrom.atStartOfDay();
         java.time.LocalDateTime toDateTime = effectiveTo.plusDays(1).atStartOfDay(); // exclusive upper bound, gồm trọn ngày "to"
         return com.gym.management.dto.response.PageResponse.from(
@@ -135,7 +141,7 @@ public class PaymentServiceImpl implements PaymentService {
     private PaymentTransactionResponse toResponse(PaymentTransaction tx) {
         return PaymentTransactionResponse.builder()
                 .id(tx.getId())
-                .userId(tx.getUser().getId())
+                .userId(tx.getUser() != null ? tx.getUser().getId() : null) // null: khách vãng lai POS
                 .relatedType(tx.getRelatedType())
                 .relatedId(tx.getRelatedId())
                 .amount(tx.getAmount())

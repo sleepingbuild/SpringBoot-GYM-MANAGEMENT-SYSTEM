@@ -1,11 +1,13 @@
 package com.gym.management.entity;
 
+import com.gym.management.constant.RelatedType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -20,9 +22,14 @@ import java.util.UUID;
  * {@link com.gym.management.service.PaymentService#confirmPayment}, không viết
  * riêng service xác nhận thanh toán cho từng module.
  *
- * relatedType/relatedId dùng kiểu "polymorphic thủ công" (không FK cứng) vì relatedId
- * có thể trỏ tới member_packages HOẶC pos_orders (2 bảng khác nhau) — đúng theo
- * DATABASE_SCHEMA.md.
+ * Từ V7 (CH1): mỗi giao dịch thuộc ĐÚNG MỘT trong hai loại, lưu bằng 2 khoá ngoại thật thay cho cặp
+ * related_type/related_id không có khoá ngoại: {@code memberPackageId} (member_packages) hoặc
+ * {@code posOrderId} (pos_orders). Hai cột là UUID thô, không map quan hệ JPA, để không phụ thuộc cứng
+ * vào entity của module khác. Code ngoài entity vẫn dùng cặp relatedType/relatedId (hằng số
+ * {@link RelatedType}) qua {@link #setRelated}, {@link #getRelatedType}, {@link #getRelatedId}.
+ *
+ * {@code user} là NGƯỜI MUA (hội viên); NULL với đơn POS của khách vãng lai. Nhân viên thu tiền không
+ * lưu ở đây (POS lưu ở pos_orders.staff_id).
  */
 @Entity
 @Table(name = "payment_transactions")
@@ -32,14 +39,14 @@ import java.util.UUID;
 public class PaymentTransaction extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id") // nullable: khách vãng lai của POS
     private User user;
 
-    @Column(name = "related_type", nullable = false, length = 20)
-    private String relatedType; // MEMBERSHIP, POS
+    @Column(name = "member_package_id")
+    private UUID memberPackageId;
 
-    @Column(name = "related_id", nullable = false)
-    private UUID relatedId; // id của member_packages hoặc pos_orders
+    @Column(name = "pos_order_id")
+    private UUID posOrderId;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
@@ -52,4 +59,32 @@ public class PaymentTransaction extends BaseEntity {
 
     @Column(name = "transaction_code", nullable = false, unique = true, length = 100)
     private String transactionCode;
+
+    /** {@link RelatedType#MEMBERSHIP} nếu thuộc gói tập, {@link RelatedType#POS} nếu thuộc đơn POS, null nếu chưa gán. */
+    @Transient
+    public String getRelatedType() {
+        if (memberPackageId != null) {
+            return RelatedType.MEMBERSHIP;
+        }
+        return posOrderId != null ? RelatedType.POS : null;
+    }
+
+    /** id của member_packages hoặc pos_orders tuỳ {@link #getRelatedType()}. */
+    @Transient
+    public UUID getRelatedId() {
+        return memberPackageId != null ? memberPackageId : posOrderId;
+    }
+
+    /** Gán loại và id liên quan; luôn xoá cột của loại còn lại để thoả ràng buộc "đúng một trong hai". */
+    public void setRelated(String relatedType, UUID relatedId) {
+        if (RelatedType.MEMBERSHIP.equals(relatedType)) {
+            this.memberPackageId = relatedId;
+            this.posOrderId = null;
+        } else if (RelatedType.POS.equals(relatedType)) {
+            this.posOrderId = relatedId;
+            this.memberPackageId = null;
+        } else {
+            throw new IllegalArgumentException("relatedType không hợp lệ: " + relatedType);
+        }
+    }
 }
