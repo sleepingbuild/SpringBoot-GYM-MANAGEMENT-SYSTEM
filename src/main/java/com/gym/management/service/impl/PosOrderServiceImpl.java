@@ -140,6 +140,11 @@ public class PosOrderServiceImpl implements PosOrderService {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Chỉ huỷ được đơn đã hoàn thành");
         }
 
+        // Hoàn tiền TRƯỚC khi hoàn kho: nếu không hoàn được (PAYMENT_NOT_REFUNDABLE) thì cả thao tác huỷ
+        // rollback — đơn vẫn COMPLETED, tồn kho không đổi. Agent 2 tự tìm giao dịch theo đơn (cột pos_order_id
+        // của V7); Agent 5 không giữ transactionId. Huỷ lại đơn đã CANCELLED thoát sớm ở trên nên không hoàn lần hai.
+        paymentService.refundByRelated(RelatedType.POS, order.getId());
+
         // Cùng thứ tự khoá (id tăng dần) với createOrder để huỷ đơn không khoá chéo với đơn đang tạo.
         List<PosOrderItem> byProduct = new ArrayList<>(order.getItems());
         byProduct.sort(Comparator.comparing(i -> i.getProduct().getId()));

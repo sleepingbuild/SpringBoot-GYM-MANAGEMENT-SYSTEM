@@ -159,7 +159,7 @@ Quét tự phục vụ (`/face-attendance/self`) dùng chung quy tắc với kio
 | POST | `/api/v1/pos/orders` | Receptionist/Admin — giá lấy từ DB, trừ kho + thu tiền ngay trong 1 transaction (qua `PaymentService`, `RelatedType.POS`) |
 | GET | `/api/v1/pos/orders/{id}` | Receptionist/Admin |
 | GET | `/api/v1/pos/orders?branchId=...&from=...&to=...` | Receptionist/Admin — phân trang, mặc định hôm nay |
-| POST | `/api/v1/pos/orders/{id}/cancel` | Receptionist/Admin — huỷ đơn `COMPLETED`, hoàn tồn kho (không hoàn tiền) |
+| POST | `/api/v1/pos/orders/{id}/cancel` | Receptionist/Admin — huỷ đơn `COMPLETED`: hoàn tiền giao dịch của đơn (`PaymentService.refundByRelated`), rồi hoàn tồn kho; không hoàn được tiền thì không huỷ (`PAYMENT_NOT_REFUNDABLE`); huỷ lại không hoàn thêm |
 | GET | `/api/v1/commissions/me` | Trainer — lương theo buổi của chính mình, phân trang |
 | GET | `/api/v1/commissions?staffId=...&month=yyyy-MM` | Admin — phân trang |
 | POST | `/api/v1/commissions/{id}/mark-paid` | Admin — `PENDING` → `PAID`, ghi `paid_at` |

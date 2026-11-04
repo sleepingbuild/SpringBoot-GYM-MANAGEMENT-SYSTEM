@@ -35,7 +35,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -256,10 +258,35 @@ class PosOrderServiceImplTest {
 
         PosOrderResponse first = service.cancelOrder(orderId);
         PosOrderResponse second = service.cancelOrder(orderId); // huỷ lại
+        verify(paymentService, times(1)).refundByRelated(RelatedType.POS, orderId); // chỉ hoàn tiền 1 lần
 
         assertThat(first.getStatus()).isEqualTo(PosOrderStatus.CANCELLED);
         assertThat(second.getStatus()).isEqualTo(PosOrderStatus.CANCELLED);
         assertThat(water.getStockQuantity()).isEqualTo(10); // hoàn đúng 1 lần
+    }
+
+    @Test
+    void cancelOrder_refundFails_leavesOrderAndStockUntouched() {
+        Product water = product("Nước suối", "10000.00", 7, true);
+        PosOrder order = new PosOrder();
+        UUID orderId = UUID.randomUUID();
+        ReflectionTestUtils.setField(order, "id", orderId);
+        order.setStaff(staff);
+        order.setStatus(PosOrderStatus.COMPLETED);
+        order.setPaymentMethod("CASH");
+        PosOrderItem item = new PosOrderItem();
+        item.setProduct(water);
+        item.setQuantity(3);
+        item.setUnitPrice(new BigDecimal("10000.00"));
+        order.addItem(item);
+        when(posOrderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        doThrow(new BusinessException(ErrorCode.VALIDATION_ERROR, "không hoàn được"))
+                .when(paymentService).refundByRelated(RelatedType.POS, orderId);
+
+        assertThatThrownBy(() -> service.cancelOrder(orderId)).isInstanceOf(BusinessException.class);
+
+        assertThat(water.getStockQuantity()).isEqualTo(7); // chưa hoàn kho
+        assertThat(order.getStatus()).isEqualTo(PosOrderStatus.COMPLETED);
     }
 
     @Test
