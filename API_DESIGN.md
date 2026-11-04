@@ -107,7 +107,7 @@
 | POST | `/api/v1/member-packages/{id}/downgrade` | Receptionist/Member |
 | POST | `/api/v1/payments/{transactionId}/confirm` | Receptionist, Super Admin — xác nhận thanh toán tại chỗ. Body tùy chọn `{ "paymentMethod": "..." }` (`CASH` hoặc `LOCAL_CONFIRM`); bỏ trống thì giữ phương thức đã ghi lúc tạo giao dịch (mặc định `CASH`) |
 | GET | `/api/v1/payments/me` | Member, Trainer, Receptionist, Super Admin — lịch sử thanh toán của chính mình, phân trang |
-| GET | `/api/v1/payments?from=...&to=...` | Receptionist, Super Admin — giao dịch theo khoảng ngày [from, to] (mặc định hôm nay), phân trang |
+| GET | `/api/v1/payments?from=&to=&status=&userId=` | Receptionist, Super Admin — tra cứu giao dịch, phân trang. Tất cả tham số đều tùy chọn: `status` (`PENDING`, `SUCCESS`, `FAILED`, `REFUNDED`; sai giá trị trả `VALIDATION_ERROR`) và `userId` (người mua). Không truyền ngày: không có bộ lọc nào thì lấy hôm nay, có `status` hoặc `userId` thì lấy mọi ngày (để tìm giao dịch chờ xác nhận cũ); truyền `from` hoặc `to` thì lọc theo ngày. Mỗi dòng có `userFullName` (`null` với đơn POS của khách vãng lai) |
 
 ### Lịch làm việc PT & Booking (Agent 3)
 | Method | Endpoint | Role |
