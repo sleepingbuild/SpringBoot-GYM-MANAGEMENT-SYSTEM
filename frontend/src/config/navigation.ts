@@ -47,11 +47,11 @@ export const NAVIGATION: NavGroup[] = [
   {
     title: "Điểm danh",
     items: [
-      { href: "/check-in", label: "Tự điểm danh", roles: ["MEMBER", "TRAINER", "RECEPTIONIST", "SALES"], status: "planned", owner: "Agent 4" },
-      { href: "/face-profile", label: "Đăng ký khuôn mặt", roles: ["MEMBER", "TRAINER", "RECEPTIONIST", "SALES"], status: "planned", owner: "Agent 4" },
-      { href: "/kiosk", label: "Kiosk điểm danh", roles: ["RECEPTIONIST", "SUPER_ADMIN"], status: "planned", owner: "Agent 4" },
-      { href: "/attendance", label: "Chấm công", roles: ["RECEPTIONIST", "SALES", "SUPER_ADMIN"], status: "planned", owner: "Agent 4" },
-      { href: "/check-ins", label: "Lịch sử check-in", roles: ["MEMBER"], status: "planned", owner: "Agent 4" },
+      { href: "/check-in", label: "Tự điểm danh", roles: ["MEMBER", "TRAINER", "RECEPTIONIST", "SALES"], status: "ready", owner: "Agent 4" },
+      { href: "/face-profile", label: "Đăng ký khuôn mặt", roles: ["MEMBER", "TRAINER", "RECEPTIONIST", "SALES"], status: "ready", owner: "Agent 4" },
+      { href: "/kiosk", label: "Kiosk điểm danh", roles: ["RECEPTIONIST", "SUPER_ADMIN"], status: "ready", owner: "Agent 4" },
+      { href: "/attendance", label: "Chấm công", roles: ["RECEPTIONIST", "SALES", "SUPER_ADMIN"], status: "ready", owner: "Agent 4" },
+      { href: "/check-ins", label: "Lịch sử check-in", roles: ["MEMBER"], status: "ready", owner: "Agent 4" },
     ],
   },
   {
