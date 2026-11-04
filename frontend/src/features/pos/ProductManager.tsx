@@ -11,20 +11,12 @@ import { useToast } from "@/lib/toast";
 import { createProduct, deactivateProduct, listAllProducts, updateProduct } from "./api";
 import { formatVnd } from "./format";
 import { Pager } from "./Pager";
+import { type ProductDraft, type ProductDraftErrors, validateProductDraft } from "./productValidation";
 import { CATEGORY_LABEL, type Product, type ProductCategory, type ProductInput } from "./types";
 
-interface Draft {
-  name: string;
-  category: ProductCategory;
-  price: string;
-  stockQuantity: string;
-  unit: string;
-  active: boolean;
-}
+const EMPTY: ProductDraft = { name: "", category: "DRINK", price: "", stockQuantity: "0", unit: "", active: true };
 
-const EMPTY: Draft = { name: "", category: "DRINK", price: "", stockQuantity: "0", unit: "", active: true };
-
-const toDraft = (p: Product): Draft => ({
+const toDraft = (p: Product): ProductDraft => ({
   name: p.name,
   category: p.category,
   price: String(p.price),
@@ -33,25 +25,14 @@ const toDraft = (p: Product): Draft => ({
   active: p.active,
 });
 
-/** Kiểm tra trước khi gửi; backend vẫn kiểm tra lại. Trả null nếu hợp lệ. */
-function validate(d: Draft): Partial<Record<keyof Draft, string>> {
-  const errors: Partial<Record<keyof Draft, string>> = {};
-  if (d.name.trim() === "") errors.name = "Nhập tên sản phẩm.";
-  const price = Number(d.price);
-  if (d.price.trim() === "" || !Number.isFinite(price) || price <= 0) errors.price = "Giá phải lớn hơn 0.";
-  const stock = Number(d.stockQuantity);
-  if (d.stockQuantity.trim() === "" || !Number.isInteger(stock) || stock < 0) errors.stockQuantity = "Tồn kho phải là số nguyên không âm.";
-  return errors;
-}
-
 export function ProductManager() {
   const toast = useToast();
   const [data, setData] = useState<PageResponse<Product> | null>(null);
   const [page, setPage] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Product | null>(null);
-  const [draft, setDraft] = useState<Draft>(EMPTY);
-  const [errors, setErrors] = useState<Partial<Record<keyof Draft, string>>>({});
+  const [draft, setDraft] = useState<ProductDraft>(EMPTY);
+  const [errors, setErrors] = useState<ProductDraftErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -84,7 +65,7 @@ export function ProductManager() {
   }
 
   async function save() {
-    const found = validate(draft);
+    const found = validateProductDraft(draft);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
     const body: ProductInput = {
@@ -197,7 +178,7 @@ export function ProductManager() {
         </div>
         <Field label="Giá (VND)" required inputMode="numeric" value={draft.price} error={errors.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} />
         <Field label="Tồn kho" required inputMode="numeric" value={draft.stockQuantity} error={errors.stockQuantity} onChange={(e) => setDraft({ ...draft, stockQuantity: e.target.value })} />
-        <Field label="Đơn vị" value={draft.unit} hint="Ví dụ: chai, hộp, cái." onChange={(e) => setDraft({ ...draft, unit: e.target.value })} />
+        <Field label="Đơn vị" value={draft.unit} error={errors.unit} hint="Ví dụ: chai, hộp, cái." onChange={(e) => setDraft({ ...draft, unit: e.target.value })} />
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} />
           Đang bán

@@ -1,5 +1,8 @@
 import type { Product } from "./types";
 
+/** Khớp @Max(1000) của PosOrderCreateRequest.Item.quantity ở backend. */
+export const MAX_LINE_QUANTITY = 1000;
+
 export interface CartLine {
   productId: string;
   name: string;
@@ -16,7 +19,7 @@ export function addToCart(lines: CartLine[], product: Product): CartLine[] {
   if (!existing) {
     return [
       ...lines,
-      { productId: product.id, name: product.name, unitPrice: product.price, quantity: 1, maxQuantity: product.stockQuantity },
+      { productId: product.id, name: product.name, unitPrice: product.price, quantity: 1, maxQuantity: Math.min(product.stockQuantity, MAX_LINE_QUANTITY) },
     ];
   }
   return lines.map((l) =>

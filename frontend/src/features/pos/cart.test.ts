@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addToCart, cartCount, cartTotal, removeLine, setQuantity, toOrderItems } from "./cart";
+import { MAX_LINE_QUANTITY, addToCart, cartCount, cartTotal, removeLine, setQuantity, toOrderItems } from "./cart";
 import type { Product } from "./types";
 
 const water: Product = { id: "p1", name: "Nước suối", category: "DRINK", price: 10000, stockQuantity: 3, unit: "chai", active: true };
@@ -49,6 +49,13 @@ describe("cart", () => {
       { productId: "p1", quantity: 1 },
       { productId: "p2", quantity: 1 },
     ]);
+  });
+
+  it("mỗi dòng không vượt giới hạn 1000 của backend dù tồn kho lớn hơn", () => {
+    const bulk: Product = { ...water, id: "p9", stockQuantity: 50000 };
+    const lines = addToCart([], bulk);
+    expect(lines[0].maxQuantity).toBe(MAX_LINE_QUANTITY);
+    expect(setQuantity(lines, "p9", 5000)[0].quantity).toBe(MAX_LINE_QUANTITY);
   });
 
   it("không làm thay đổi giỏ gốc", () => {
