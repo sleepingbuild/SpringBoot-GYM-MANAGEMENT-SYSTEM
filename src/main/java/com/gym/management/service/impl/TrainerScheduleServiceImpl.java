@@ -2,6 +2,7 @@ package com.gym.management.service.impl;
 
 import com.gym.management.dto.request.TrainerScheduleRequest;
 import com.gym.management.dto.response.AvailableSlotResponse;
+import com.gym.management.dto.response.AvailableTrainerResponse;
 import com.gym.management.dto.response.TrainerScheduleResponse;
 import com.gym.management.entity.Booking;
 import com.gym.management.entity.BookingStatus;
@@ -102,6 +103,31 @@ public class TrainerScheduleServiceImpl implements TrainerScheduleService {
         return schedules.stream().map(this::toResponse).toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<AvailableTrainerResponse> listAvailableTrainers(LocalDate date) {
+        java.util.Map<UUID, User> trainers = new java.util.LinkedHashMap<>();
+        for (TrainerSchedule s : scheduleRepository.findByWorkDateAndActiveTrue(date)) {
+            User trainer = s.getTrainer();
+            if ("ACTIVE".equals(trainer.getStatus())) {
+                trainers.putIfAbsent(trainer.getId(), trainer);
+            }
+        }
+        List<AvailableTrainerResponse> result = new ArrayList<>();
+        for (User trainer : trainers.values()) {
+            int slots = findAvailableSlots(trainer.getId(), date).size();
+            if (slots > 0) {
+                result.add(AvailableTrainerResponse.builder()
+                        .trainerId(trainer.getId())
+                        .trainerName(trainer.getFullName())
+                        .availableSlotCount(slots)
+                        .build());
+            }
+        }
+        result.sort(java.util.Comparator.comparing(AvailableTrainerResponse::getTrainerName,
+                java.util.Comparator.nullsLast(String::compareToIgnoreCase)));
+        return result;
+    }
     @Override
     @Transactional(readOnly = true)
     public List<AvailableSlotResponse> findAvailableSlots(UUID trainerId, LocalDate date) {

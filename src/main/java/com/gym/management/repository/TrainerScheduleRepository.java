@@ -15,6 +15,8 @@ public interface TrainerScheduleRepository extends JpaRepository<TrainerSchedule
 
     List<TrainerSchedule> findByTrainerIdAndWorkDateBetween(UUID trainerId, LocalDate from, LocalDate to);
 
+    List<TrainerSchedule> findByWorkDateAndActiveTrue(LocalDate workDate);
+
     /**
      * Lấy các ca CÙNG 1 PT bị trùng giờ trong CÙNG 1 ngày (không cấm trùng giờ giữa 2 PT khác
      * nhau — chỉ cấm trùng của cùng 1 PT). Dùng khi tạo/sửa ca để cảnh báo/hiển thị lane,
