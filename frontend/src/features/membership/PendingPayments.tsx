@@ -10,10 +10,11 @@ import { confirmPayment, listPayments } from "./api";
 import { ErrorBlock, LoadingBlock } from "./Feedback";
 import { SelectField } from "./FormControls";
 import { formatVnd } from "./format";
+import { MemberPicker } from "./MemberPicker";
 import { membershipErrorMessage } from "./messages";
 import { Pagination } from "./Pagination";
 import { PaymentTable, buyerName } from "./Tables";
-import type { PaymentTransaction } from "./types";
+import type { MemberSummary, PaymentTransaction } from "./types";
 import { useLoad } from "./useLoad";
 
 const STATUS_OPTIONS = [
@@ -30,13 +31,14 @@ export function PendingPayments() {
   const [status, setStatus] = useState("PENDING");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [buyer, setBuyer] = useState<MemberSummary | null>(null);
   const [page, setPage] = useState(0);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const state = useLoad(
-    (signal) => listPayments({ status: status || undefined, from: from || undefined, to: to || undefined }, page, 20, { signal }),
-    [status, from, to, page],
+    (signal) => listPayments({ status: status || undefined, from: from || undefined, to: to || undefined, userId: buyer?.id }, page, 20, { signal }),
+    [status, from, to, buyer?.id, page],
   );
 
   // Lọc thêm ở trình duyệt để màn hình đúng cả khi backend chưa hỗ trợ lọc theo trạng thái.
@@ -113,6 +115,17 @@ export function PendingPayments() {
             setPage(0);
           }}
         />
+        <div className="sm:col-span-3">
+          <p className="mb-1 text-sm font-medium text-ink">Lọc theo người mua</p>
+          <MemberPicker
+            value={buyer}
+            changeLabel="Bỏ lọc người mua"
+            onChange={(m) => {
+              setBuyer(m);
+              setPage(0);
+            }}
+          />
+        </div>
       </div>
 
       {state.status === "loading" && !state.data && <LoadingBlock text="Đang tải giao dịch…" />}
