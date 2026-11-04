@@ -110,7 +110,9 @@ public class PosOrderServiceImpl implements PosOrderService {
         }
 
         BigDecimal total = order.getTotalAmount(); // suy ra từ các dòng, không lưu cột (CH5)
-        order = posOrderRepository.save(order);
+        // saveAndFlush: dòng pos_orders phải thật sự được ghi TRƯỚC dòng payment_transactions, vì từ V7 giao dịch có
+        // khoá ngoại pos_order_id -> pos_orders(id). Không dựa vào thứ tự hàng đợi INSERT mặc định của Hibernate.
+        order = posOrderRepository.saveAndFlush(order);
 
         // Bán tại quầy = thu tiền ngay, không có bước "chờ xác nhận" như Membership —
         // tạo transaction PENDING rồi confirm luôn trong cùng request/transaction.

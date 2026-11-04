@@ -61,13 +61,15 @@ class PosOrderServiceImplTest {
         ReflectionTestUtils.setField(staff, "id", staffId);
         when(userRepository.findById(staffId)).thenReturn(Optional.of(staff));
         // save() trả lại chính entity, gán id như Hibernate sẽ làm
-        when(posOrderRepository.save(any(PosOrder.class))).thenAnswer(inv -> {
+        org.mockito.stubbing.Answer<PosOrder> assignIdLikeHibernate = inv -> {
             PosOrder o = inv.getArgument(0);
             if (o.getId() == null) {
                 ReflectionTestUtils.setField(o, "id", UUID.randomUUID());
             }
             return o;
-        });
+        };
+        when(posOrderRepository.save(any(PosOrder.class))).thenAnswer(assignIdLikeHibernate);
+        when(posOrderRepository.saveAndFlush(any(PosOrder.class))).thenAnswer(assignIdLikeHibernate);
         txId = UUID.randomUUID();
         when(paymentService.createPendingTransaction(any(), eq(RelatedType.POS), any(), any()))
                 .thenReturn(PaymentTransactionResponse.builder().id(txId).build());
@@ -228,6 +230,19 @@ class PosOrderServiceImplTest {
         assertThat(res.getStaffId()).isEqualTo(staffId);
         verify(paymentService).createPendingTransaction(eq(member), eq(RelatedType.POS), any(UUID.class),
                 eq(new BigDecimal("10000.00")));
+    }
+
+    @Test
+    void createOrder_flushesOrderBeforeCreatingThePaymentTransaction() {
+        Product water = product("Nước suối", "10000.00", 10, true);
+
+        service.createOrder(staffId, request(water, 1));
+
+        // Từ V7, payment_transactions.pos_order_id là khoá ngoại tới pos_orders: dòng đơn phải được ghi trước.
+        org.mockito.InOrder inOrder = org.mockito.Mockito.inOrder(posOrderRepository, paymentService);
+        inOrder.verify(posOrderRepository).saveAndFlush(any(PosOrder.class));
+        inOrder.verify(paymentService).createPendingTransaction(any(), eq(RelatedType.POS), any(UUID.class), any());
+        inOrder.verify(paymentService).confirmPayment(eq(txId), any());
     }
 
     @Test
