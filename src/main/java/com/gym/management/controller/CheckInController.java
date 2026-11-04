@@ -1,5 +1,6 @@
 package com.gym.management.controller;
 
+import com.gym.management.dto.response.CheckInHistoryItem;
 import com.gym.management.exception.ApiResponse;
 import com.gym.management.security.CurrentUserId;
 import com.gym.management.service.CheckInHistoryService;
@@ -10,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.List;
 
 @Tag(name = "Check-in", description = "Lịch sử vào phòng tập của hội viên (lượt tự do và buổi có PT)")
 @RestController
@@ -22,7 +24,7 @@ public class CheckInController {
     @Operation(summary = "Xem lịch sử check-in của chính mình (lượt vào phòng không PT và buổi có PT), mới nhất trước")
     @GetMapping("/me")
     @PreAuthorize("hasRole('MEMBER')")
-    public ApiResponse<?> myCheckIns() {
+    public ApiResponse<List<CheckInHistoryItem>> myCheckIns() {
         return ApiResponse.success(checkInHistoryService.findMyHistory(CurrentUserId.get()));
     }
 }

@@ -1,5 +1,6 @@
 package com.gym.management.controller;
 
+import com.gym.management.dto.response.FaceProfileResponse;
 import com.gym.management.dto.request.FaceDescriptorRequest;
 import com.gym.management.exception.ApiResponse;
 import com.gym.management.security.CurrentUserId;
@@ -25,7 +26,7 @@ public class FaceProfileController {
             description = "Client trích descriptor 128 chiều bằng face-api.js rồi gửi lên. Đăng ký lại sẽ ghi đè hồ sơ cũ.")
     @PostMapping("/me")
     @PreAuthorize("hasAnyRole('MEMBER', 'TRAINER', 'RECEPTIONIST', 'SALES')")
-    public ApiResponse<?> registerSelf(@Valid @RequestBody FaceDescriptorRequest request) {
+    public ApiResponse<FaceProfileResponse> registerSelf(@Valid @RequestBody FaceDescriptorRequest request) {
         return ApiResponse.success("Đăng ký khuôn mặt thành công",
                 faceProfileService.registerSelf(CurrentUserId.get(), request));
     }
@@ -34,7 +35,7 @@ public class FaceProfileController {
             description = "Lễ tân/Admin chọn ảnh trong trình duyệt, face-api.js trích descriptor, backend chỉ nhận JSON descriptor.")
     @PostMapping("/{userId}")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'SUPER_ADMIN')")
-    public ApiResponse<?> registerFor(@PathVariable UUID userId,
+    public ApiResponse<FaceProfileResponse> registerFor(@PathVariable UUID userId,
                                        @Valid @RequestBody FaceDescriptorRequest request) {
         return ApiResponse.success("Đăng ký hộ khuôn mặt thành công",
                 faceProfileService.registerFor(userId, CurrentUserId.get(), request));
@@ -43,14 +44,14 @@ public class FaceProfileController {
     @Operation(summary = "Xem hồ sơ khuôn mặt của một người dùng")
     @GetMapping("/{userId}")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'SUPER_ADMIN')")
-    public ApiResponse<?> get(@PathVariable UUID userId) {
+    public ApiResponse<FaceProfileResponse> get(@PathVariable UUID userId) {
         return ApiResponse.success(faceProfileService.getByUserId(userId));
     }
 
     @Operation(summary = "Xoá hồ sơ khuôn mặt của một người dùng")
     @DeleteMapping("/{userId}")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'SUPER_ADMIN')")
-    public ApiResponse<?> delete(@PathVariable UUID userId) {
+    public ApiResponse<Void> delete(@PathVariable UUID userId) {
         faceProfileService.deleteByUserId(userId);
         return ApiResponse.success("Đã xoá hồ sơ khuôn mặt", null);
     }

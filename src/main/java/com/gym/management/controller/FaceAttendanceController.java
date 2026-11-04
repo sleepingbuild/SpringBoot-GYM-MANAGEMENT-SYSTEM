@@ -1,5 +1,6 @@
 package com.gym.management.controller;
 
+import com.gym.management.dto.response.FaceAttendanceResponse;
 import com.gym.management.dto.request.FaceDescriptorRequest;
 import com.gym.management.exception.ApiResponse;
 import com.gym.management.security.CurrentUserId;
@@ -24,7 +25,7 @@ public class FaceAttendanceController {
                     + "MEMBER/TRAINER → booking, RECEPTIONIST/SALES → chấm công nhân sự.")
     @PostMapping("/kiosk")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'SUPER_ADMIN')")
-    public ApiResponse<?> kiosk(@Valid @RequestBody FaceDescriptorRequest request) {
+    public ApiResponse<FaceAttendanceResponse> kiosk(@Valid @RequestBody FaceDescriptorRequest request) {
         return ApiResponse.success(faceAttendanceService.kioskScan(request));
     }
 
@@ -32,7 +33,7 @@ public class FaceAttendanceController {
             description = "Dành cho MEMBER, TRAINER, RECEPTIONIST, SALES. Lần quét đầu trong ngày/buổi là vào, lần sau là ra.")
     @PostMapping("/self")
     @PreAuthorize("hasAnyRole('MEMBER', 'TRAINER', 'RECEPTIONIST', 'SALES')")
-    public ApiResponse<?> self(@Valid @RequestBody FaceDescriptorRequest request) {
+    public ApiResponse<FaceAttendanceResponse> self(@Valid @RequestBody FaceDescriptorRequest request) {
         return ApiResponse.success(faceAttendanceService.selfScan(CurrentUserId.get(), request));
     }
 }

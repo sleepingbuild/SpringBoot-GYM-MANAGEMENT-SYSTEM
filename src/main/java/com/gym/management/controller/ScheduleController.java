@@ -1,5 +1,7 @@
 package com.gym.management.controller;
 
+import com.gym.management.dto.response.AvailableSlotResponse;
+import com.gym.management.dto.response.TrainerScheduleResponse;
 import com.gym.management.dto.request.TrainerScheduleRequest;
 import com.gym.management.exception.ApiResponse;
 import com.gym.management.security.CurrentUserId;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.List;
 
 /** Ca làm việc của PT theo ngày cụ thể (work_date). Quyền theo role, không có tiền tố ROLE_ trong tên role. */
 @Tag(name = "Lịch làm việc PT")
@@ -28,7 +31,7 @@ public class ScheduleController {
     @PostMapping
     @PreAuthorize("hasAnyRole('TRAINER', 'SUPER_ADMIN')")
     @Operation(summary = "Tạo ca làm việc của PT (theo ngày cụ thể)")
-    public ApiResponse<?> create(@Valid @RequestBody TrainerScheduleRequest request) {
+    public ApiResponse<TrainerScheduleResponse> create(@Valid @RequestBody TrainerScheduleRequest request) {
         UUID currentUserId = CurrentUserId.get();
         return ApiResponse.success("Tạo ca làm việc thành công", scheduleService.createSchedule(currentUserId, request));
     }
@@ -36,7 +39,7 @@ public class ScheduleController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('TRAINER', 'SUPER_ADMIN')")
     @Operation(summary = "Sửa ca làm việc của PT")
-    public ApiResponse<?> update(@PathVariable UUID id, @Valid @RequestBody TrainerScheduleRequest request) {
+    public ApiResponse<TrainerScheduleResponse> update(@PathVariable UUID id, @Valid @RequestBody TrainerScheduleRequest request) {
         UUID currentUserId = CurrentUserId.get();
         return ApiResponse.success("Cập nhật ca làm việc thành công", scheduleService.updateSchedule(currentUserId, id, request));
     }
@@ -52,7 +55,7 @@ public class ScheduleController {
     @GetMapping
     @PreAuthorize("hasAnyRole('TRAINER', 'SUPER_ADMIN')")
     @Operation(summary = "Danh sách ca làm việc của PT")
-    public ApiResponse<?> listByTrainer(
+    public ApiResponse<List<TrainerScheduleResponse>> listByTrainer(
             @RequestParam(required = false) UUID trainerId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
@@ -63,7 +66,7 @@ public class ScheduleController {
     @GetMapping("/available")
     @PreAuthorize("hasAnyRole('MEMBER', 'RECEPTIONIST', 'SUPER_ADMIN')")
     @Operation(summary = "Slot trống của PT trong 1 ngày")
-    public ApiResponse<?> available(
+    public ApiResponse<List<AvailableSlotResponse>> available(
             @RequestParam UUID trainerId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ApiResponse.success(scheduleService.findAvailableSlots(trainerId, date));
