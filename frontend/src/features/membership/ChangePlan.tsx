@@ -37,8 +37,21 @@ function OptionList({ title, hint, kind, items, selected, onSelect }: { title: s
   );
 }
 
-/** Nâng cấp hoặc hạ cấp từ gói ACTIVE hiện tại. Backend là nơi kiểm tra điều kiện thật; ở đây chỉ gợi ý và giải thích hệ quả. */
-export function ChangePlan({ current, onDone, onCancel }: { current: MemberPackage; onDone: () => void; onCancel: () => void }) {
+/**
+ * Nâng cấp hoặc hạ cấp từ gói ACTIVE hiện tại. Backend là nơi kiểm tra điều kiện thật; ở đây chỉ gợi ý và giải thích hệ quả.
+ * `forStaff`: Lễ tân, Admin đổi gói hộ hội viên (H2): đổi lời giải thích sang ngôi của nhân viên.
+ */
+export function ChangePlan({
+  current,
+  onDone,
+  onCancel,
+  forStaff = false,
+}: {
+  current: MemberPackage;
+  onDone: () => void;
+  onCancel: () => void;
+  forStaff?: boolean;
+}) {
   const toast = useToast();
   const packages = useLoad((signal) => listPackages(0, 50, { signal }), []);
   const [choice, setChoice] = useState<Choice | null>(null);
@@ -53,7 +66,7 @@ export function ChangePlan({ current, onDone, onCancel }: { current: MemberPacka
   if (!currentPkg) {
     return (
       <Alert tone="warning" title="Chưa thể tự đổi gói">
-        Gói hiện tại đã ngừng bán nên không so được giá. Liên hệ lễ tân để được đổi gói.
+        {forStaff ? "Gói hiện tại đã ngừng bán nên không so được giá, chưa đổi gói hộ được từ màn này." : "Gói hiện tại đã ngừng bán nên không so được giá. Liên hệ lễ tân để được đổi gói."}
       </Alert>
     );
   }
@@ -83,8 +96,9 @@ export function ChangePlan({ current, onDone, onCancel }: { current: MemberPacka
         <Alert tone="success" title={kind === "upgrade" ? "Đã tạo gói nâng cấp" : "Đã đặt lịch hạ cấp"}>
           {kind === "upgrade" ? (
             <>
-              Gói cũ đã được huỷ. Gói mới <strong>{purchase.memberPackage.packageName}</strong> sẽ kích hoạt sau khi lễ tân xác nhận bạn đã thanh toán{" "}
-              <strong>{formatVnd(purchase.paymentTransaction.amount)}</strong> (mã <span className="font-mono">{purchase.paymentTransaction.transactionCode}</span>).
+              {forStaff ? "Gói cũ của hội viên đã được huỷ." : "Gói cũ đã được huỷ."} Gói mới <strong>{purchase.memberPackage.packageName}</strong> sẽ kích hoạt sau khi{" "}
+              {forStaff ? "bạn xác nhận đã thu" : "lễ tân xác nhận bạn đã thanh toán"} <strong>{formatVnd(purchase.paymentTransaction.amount)}</strong> (mã{" "}
+              <span className="font-mono">{purchase.paymentTransaction.transactionCode}</span>).{forStaff && " Xác nhận ở tab Chờ xác nhận."}
             </>
           ) : (
             <>
@@ -111,7 +125,9 @@ export function ChangePlan({ current, onDone, onCancel }: { current: MemberPacka
       {choice && (
         <Alert tone="warning" title={choice.kind === "upgrade" ? `Nâng cấp lên ${choice.pkg.name}?` : `Hạ cấp xuống ${choice.pkg.name}?`}>
           {choice.kind === "upgrade"
-            ? `Gói hiện tại bị huỷ NGAY khi bạn xác nhận. Gói mới (${formatVnd(choice.pkg.price)}) chỉ dùng được sau khi thanh toán và được lễ tân xác nhận.`
+            ? forStaff
+              ? `Gói hiện tại của hội viên bị huỷ NGAY khi bạn xác nhận. Gói mới (${formatVnd(choice.pkg.price)}) chỉ dùng được sau khi thu tiền và xác nhận ở tab Chờ xác nhận.`
+              : `Gói hiện tại bị huỷ NGAY khi bạn xác nhận. Gói mới (${formatVnd(choice.pkg.price)}) chỉ dùng được sau khi thanh toán và được lễ tân xác nhận.`
             : `Gói hiện tại vẫn dùng đến hết hạn. Gói mới (${formatVnd(choice.pkg.price)}) bắt đầu ngay sau đó và được tính tiền ngay bây giờ.`}
         </Alert>
       )}

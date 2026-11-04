@@ -8,13 +8,28 @@ import { searchMembers } from "./api";
 import { membershipErrorMessage } from "./messages";
 import type { MemberSummary } from "./types";
 
+/** Thông báo lỗi từ backend có thể không có dấu chấm cuối; thêm vào để câu nối tiếp không bị dính liền. */
+function endWithPeriod(message: string): string {
+  const text = message.trim();
+  return /[.!?…]$/.test(text) ? text : `${text}.`;
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Chọn hội viên để bán gói hộ. Tìm theo tên, số điện thoại hoặc email qua GET /api/v1/users (do Agent 1 làm).
  * Khi API đó chưa có hoặc lỗi, chuyển sang nhập thẳng mã hội viên để vẫn dùng được.
  */
-export function MemberPicker({ value, onChange }: { value: MemberSummary | null; onChange: (m: MemberSummary | null) => void }) {
+export function MemberPicker({
+  value,
+  onChange,
+  changeLabel = "Chọn người khác",
+}: {
+  value: MemberSummary | null;
+  onChange: (m: MemberSummary | null) => void;
+  /** Nhãn nút khi đã chọn xong (bộ lọc dùng "Bỏ lọc người mua"). */
+  changeLabel?: string;
+}) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<MemberSummary[]>([]);
   const [searching, setSearching] = useState(false);
@@ -60,7 +75,7 @@ export function MemberPicker({ value, onChange }: { value: MemberSummary | null;
           {value.email && ` · ${value.email}`}
         </span>
         <Button variant="secondary" onClick={() => onChange(null)}>
-          Chọn người khác
+          {changeLabel}
         </Button>
       </div>
     );
@@ -84,7 +99,7 @@ export function MemberPicker({ value, onChange }: { value: MemberSummary | null;
 
       {searchError != null && (
         <Alert tone="warning" title="Chưa tìm được hội viên">
-          {membershipErrorMessage(searchError, "Chức năng tìm hội viên chưa sẵn sàng.")} Bạn vẫn có thể nhập mã hội viên bên dưới.
+          {endWithPeriod(membershipErrorMessage(searchError, "Chức năng tìm hội viên chưa sẵn sàng."))} Bạn vẫn có thể nhập mã hội viên bên dưới.
         </Alert>
       )}
 

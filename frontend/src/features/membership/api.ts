@@ -59,6 +59,21 @@ export function listMyMemberships(page = 0, size = 10, opts: Opts = {}) {
   return apiFetch<PageResponse<MemberPackage>>("/api/v1/member-packages/me/history", { query: { page, size }, ...opts });
 }
 
+/** Lễ tân, Admin xem gói ACTIVE của một hội viên (H2); null khi hội viên chưa có (backend trả MEMBERSHIP_NOT_FOUND). */
+export async function getMemberCurrentMembership(userId: string, opts: Opts = {}): Promise<MemberPackage | null> {
+  try {
+    return await apiFetch<MemberPackage>("/api/v1/member-packages/current", { query: { userId }, ...opts });
+  } catch (err) {
+    if (err instanceof ApiError && err.is("MEMBERSHIP_NOT_FOUND")) return null;
+    throw err;
+  }
+}
+
+/** Lễ tân, Admin xem lịch sử gói (mọi trạng thái) của một hội viên (H2), phân trang. */
+export function listMemberMemberships(userId: string, page = 0, size = 10, opts: Opts = {}) {
+  return apiFetch<PageResponse<MemberPackage>>("/api/v1/member-packages", { query: { userId, page, size }, ...opts });
+}
+
 /** Hội viên tự mua (bỏ `userId`) hoặc Lễ tân, Admin bán hộ (truyền `userId` của hội viên). */
 export function registerPackage(input: { packageId: string; userId?: string; branchId?: string }) {
   return apiFetch<PackagePurchase>("/api/v1/member-packages", { method: "POST", body: input });
@@ -91,7 +106,7 @@ export interface PaymentFilter {
   userId?: string;
 }
 
-/** Lễ tân, Admin tra cứu giao dịch. `status` và `userId` chỉ có tác dụng sau khi backend có H3; trước đó bị bỏ qua. */
+/** Lễ tân, Admin tra cứu giao dịch. Lọc `status` và `userId` do backend (H3) làm; màn hình vẫn lọc thêm `status` ở trình duyệt để đúng cả khi chạy với backend cũ. */
 export function listPayments(filter: PaymentFilter, page = 0, size = 20, opts: Opts = {}) {
   return apiFetch<PageResponse<PaymentTransaction>>("/api/v1/payments", {
     query: { from: filter.from, to: filter.to, status: filter.status, userId: filter.userId, page, size },
