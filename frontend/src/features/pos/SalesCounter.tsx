@@ -178,7 +178,7 @@ export function SalesCounter() {
             value={memberId}
             onChange={(e) => setMemberId(e.target.value)}
             error={memberError}
-            hint="Dán mã (UUID) của hội viên. Khách vãng lai chỉ bán được khi backend đã hỗ trợ giao dịch không gắn hội viên; nếu chưa, hệ thống sẽ báo lỗi."
+            hint="Dán mã (UUID) của hội viên. Để trống nếu bán cho khách vãng lai."
           />
           <div>
             <label htmlFor="pos-method" className="mb-1 block text-sm font-medium">
