@@ -3,9 +3,11 @@ package com.gym.management.controller;
 import com.gym.management.dto.request.ChangeLeadStatusRequest;
 import com.gym.management.dto.request.ConvertLeadRequest;
 import com.gym.management.dto.request.LeadRequest;
+import com.gym.management.dto.response.ExpiringMemberResponse;
 import com.gym.management.dto.response.LeadResponse;
 import com.gym.management.dto.response.PageResponse;
 import com.gym.management.exception.ApiResponse;
+import com.gym.management.service.ExpiringMembershipService;
 import com.gym.management.service.LeadService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -33,6 +36,7 @@ import java.util.UUID;
 public class LeadController {
 
     private final LeadService leadService;
+    private final ExpiringMembershipService expiringMembershipService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SALES','SUPER_ADMIN')")
@@ -108,5 +112,19 @@ public class LeadController {
             description = "LEAD_ALREADY_CONVERTED hoặc email/số điện thoại đã được dùng")
     public ApiResponse<LeadResponse> convert(@PathVariable UUID id, @Valid @RequestBody ConvertLeadRequest request) {
         return ApiResponse.success("Chuyển đổi lead thành hội viên thành công", leadService.convert(id, request));
+    }
+
+    @GetMapping("/expiring-soon")
+    @PreAuthorize("hasAnyRole('SALES','SUPER_ADMIN')")
+    @Operation(summary = "Hội viên sắp hết hạn",
+            description = "Liệt kê hội viên có gói ACTIVE hết hạn từ hôm nay đến hôm nay cộng days ngày (days từ 1 đến 90, "
+                    + "mặc định 7), sắp theo ngày hết hạn tăng dần. Bỏ hội viên đã có gói ACTIVE hoặc SCHEDULED khác "
+                    + "kết thúc muộn hơn (đã gia hạn) và tài khoản không còn hoạt động. Gói đã quá ngày hết hạn không "
+                    + "được liệt kê. Mọi Sales đều xem được danh sách này, không bị giới hạn theo lead được giao.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Danh sách hội viên sắp hết hạn")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "days ngoài khoảng 1 đến 90")
+    public ApiResponse<List<ExpiringMemberResponse>> expiringSoon(
+            @RequestParam(defaultValue = "" + ExpiringMembershipService.DEFAULT_DAYS) int days) {
+        return ApiResponse.success(expiringMembershipService.findExpiringSoon(days));
     }
 }
