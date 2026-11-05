@@ -2,6 +2,7 @@ package com.gym.management.service;
 
 import com.gym.management.dto.request.TrainerScheduleRequest;
 import com.gym.management.dto.response.AvailableSlotResponse;
+import com.gym.management.dto.response.AvailableTrainerResponse;
 import com.gym.management.dto.response.TrainerScheduleResponse;
 
 import java.time.LocalDate;
@@ -24,6 +25,12 @@ public interface TrainerScheduleService {
      * Độ dài mỗi slot lấy theo `gms.booking.slot-duration-minutes` (mặc định 60 phút, Phi đã duyệt).
      */
     List<AvailableSlotResponse> findAvailableSlots(UUID trainerId, LocalDate date);
+
+    /**
+     * Cac PT dang hoat dong co it nhat mot slot trong trong `date`, kem so slot trong, xep theo ten.
+     * Dung cho man hinh dat lich cua hoi vien (chon PT truoc khi chon gio).
+     */
+    List<AvailableTrainerResponse> listAvailableTrainers(LocalDate date);
 
     /** Dùng nội bộ bởi BookingService để kiểm tra 1 khung giờ có nằm trong ca làm việc thật không. */
     boolean isWithinWorkingHours(UUID trainerId, LocalDate date, java.time.LocalTime start, java.time.LocalTime end);

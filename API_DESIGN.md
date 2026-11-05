@@ -46,6 +46,9 @@
 | `MEMBERSHIP_EXPIRED` | Gói đã hết hạn | 400 |
 | `MEMBERSHIP_NO_SESSION` | Hết buổi tập | 400 |
 | `MEMBERSHIP_PENDING_EXISTS` | Đang có gói chờ thanh toán, không cho đăng ký thêm | 409 |
+| `PAYMENT_NOT_FOUND` | Không tìm thấy giao dịch thanh toán | 404 |
+| `PAYMENT_DUPLICATE_TRANSACTION` | Trùng mã giao dịch (rất hiếm, thử lại) | 409 |
+| `PAYMENT_NOT_REFUNDABLE` | Không hoàn tiền được: đơn POS chưa có giao dịch, giao dịch chưa thu tiền thành công, hoặc giao dịch không thuộc đơn POS | 409 |
 | `SCHEDULE_TIME_INVALID` | Ngày/giờ ca làm việc không hợp lệ (quá khứ, giờ < hiện tại) | 400 |
 | `BOOKING_SLOT_TAKEN` | Khung giờ đã có người đặt | 409 |
 | `BOOKING_OUT_OF_WORKING_HOURS` | Ngoài ca làm việc của PT | 400 |
@@ -86,6 +89,15 @@
 
 > **Hồ sơ cá nhân:** `PUT /api/v1/profile/me` nhận `dateOfBirth` (`yyyy-MM-dd`), `weightKg`, `heightCm`, `goal`. Ngày sinh phải cho tuổi từ 18 trở lên tính đến ngày đăng ký của tài khoản và không quá 120 tuổi; vi phạm trả 400 `PROFILE_INVALID_AGE`. Response trả `dateOfBirth` và `age` (tính sẵn từ ngày sinh, `null` nếu chưa có). Ảnh đại diện chỉ lưu ở hồ sơ (`avatarUrl`), không còn ở tài khoản.
 
+### Danh mục dùng chung (Agent 1)
+| Method | Endpoint | Role |
+|---|---|---|
+| GET | `/api/v1/users?role=MEMBER&q=&page=&size=` | Receptionist/Super Admin — tìm hội viên đang hoạt động theo tên, số điện thoại hoặc email. Chỉ trả `id`, `fullName`, `phone`, `email`. `role` chỉ nhận `MEMBER` (giá trị khác trả 400 `VALIDATION_ERROR`). Sắp theo tên, `size` tối đa 50 |
+| GET | `/api/v1/trainers` | Mọi người dùng đã đăng nhập — huấn luyện viên đang hoạt động: `id`, `fullName`, `avatarUrl` |
+| GET | `/api/v1/branches` | Mọi người dùng đã đăng nhập — chi nhánh đang hoạt động: `id`, `name` |
+
+> **Xác thực:** người chưa đăng nhập (không có token, token sai hoặc hết hạn) nhận **401** với `errorCode = AUTH_TOKEN_INVALID`. Đã đăng nhập nhưng không đủ quyền nhận **403** với `errorCode = AUTH_FORBIDDEN_ROLE`. Cả hai đều có body JSON `ApiResponse`.
+
 ### Membership, Package & Payment (Agent 2)
 | Method | Endpoint | Role |
 |---|---|---|
@@ -104,21 +116,23 @@
 | POST | `/api/v1/member-packages/{id}/downgrade` | Receptionist/Member |
 | POST | `/api/v1/payments/{transactionId}/confirm` | Receptionist, Super Admin — xác nhận thanh toán tại chỗ. Body tùy chọn `{ "paymentMethod": "..." }` (`CASH` hoặc `LOCAL_CONFIRM`); bỏ trống thì giữ phương thức đã ghi lúc tạo giao dịch (mặc định `CASH`) |
 | GET | `/api/v1/payments/me` | Member, Trainer, Receptionist, Super Admin — lịch sử thanh toán của chính mình, phân trang |
-| GET | `/api/v1/payments?from=...&to=...` | Receptionist, Super Admin — giao dịch theo khoảng ngày [from, to] (mặc định hôm nay), phân trang |
+| GET | `/api/v1/payments?from=&to=&status=&userId=` | Receptionist, Super Admin — tra cứu giao dịch, phân trang. Tất cả tham số đều tùy chọn: `status` (`PENDING`, `SUCCESS`, `FAILED`, `REFUNDED`; sai giá trị trả `VALIDATION_ERROR`) và `userId` (người mua). Không truyền ngày: không có bộ lọc nào thì lấy hôm nay, có `status` hoặc `userId` thì lấy mọi ngày (để tìm giao dịch chờ xác nhận cũ); truyền `from` hoặc `to` thì lọc theo ngày. Mỗi dòng có `userFullName` (`null` với đơn POS của khách vãng lai) |
 
 ### Lịch làm việc PT & Booking (Agent 3)
 | Method | Endpoint | Role |
 |---|---|---|
 | GET/POST/PUT/DELETE | `/api/v1/trainer-schedules` | Trainer (của chính mình) / Admin |
 | GET | `/api/v1/trainer-schedules/available?trainerId=...&date=...` | Member / Lễ tân / Admin — xem slot trống |
+| GET | `/api/v1/trainer-schedules/trainers?date=...` | Member / Lễ tân / Admin — các PT đang hoạt động còn ít nhất một slot trống trong ngày: `trainerId`, `trainerName`, `availableSlotCount`, xếp theo tên |
 | POST | `/api/v1/bookings` | Member (tự đặt) / Receptionist (đặt hộ) |
 | PUT | `/api/v1/bookings/{id}` | Member/Receptionist (sửa lịch, áp lại đủ rule) |
 | POST | `/api/v1/bookings/{id}/confirm` | Trainer |
 | POST | `/api/v1/bookings/{id}/cancel` | Member/Trainer/Receptionist — huỷ muộn (dưới 2 giờ, booking `CONFIRMED`) → `LATE_CANCELLED`, mất 1 buổi, PT vẫn có lương |
 | POST | `/api/v1/bookings/{id}/complete` | Trainer — chỉ khi `CONFIRMED`, học viên đã check-in, PT đã quét vào và ra |
 | PUT | `/api/v1/bookings/{id}/early-leave-reason` | Trainer — nộp lý do ra sớm (`{ "reason": "..." }`), trước khi hoàn thành |
-| GET | `/api/v1/bookings/me` | Member/Trainer |
-| GET | `/api/v1/bookings?branchId=...&date=...` | Receptionist/Admin |
+| GET | `/api/v1/bookings/me` | Member/Trainer — lọc tuỳ chọn `status`, `from`, `to` (`yyyy-MM-dd`); lọc theo trạng thái sau khi áp lazy-status |
+| GET | `/api/v1/bookings/{id}` | Member/Trainer/Receptionist/Admin — chi tiết một buổi; chỉ chủ buổi (học viên hoặc PT) hoặc nhân viên, người khác bị `AUTH_FORBIDDEN_ROLE` |
+| GET | `/api/v1/bookings?date=...&branchId=...` | Receptionist/Admin — `branchId` không bắt buộc; bỏ trống thì liệt kê mọi chi nhánh (kể cả buổi chưa gắn chi nhánh) |
 
 ### Face Attendance & Chấm công (Agent 4)
 | Method | Endpoint | Role |

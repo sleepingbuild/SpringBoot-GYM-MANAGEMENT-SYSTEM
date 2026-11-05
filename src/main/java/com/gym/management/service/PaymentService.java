@@ -36,6 +36,28 @@ public interface PaymentService {
      */
     PaymentTransactionResponse confirmPayment(UUID transactionId, String paymentMethod);
 
+    /**
+     * Hoàn tiền 1 giao dịch POS khi đơn bị huỷ (SUCCESS → REFUNDED). Idempotent: đã REFUNDED thì trả nguyên
+     * trạng, KHÔNG hoàn lần 2. Chỉ hoàn giao dịch POS đã SUCCESS: giao dịch gói tập (chưa hỗ trợ hoàn tiền)
+     * hoặc giao dịch chưa SUCCESS → PAYMENT_NOT_REFUNDABLE. Báo cáo doanh thu chỉ cộng SUCCESS nên tự loại
+     * giao dịch đã hoàn. Việc trả tồn kho khi huỷ đơn là của POS, không thuộc method này.
+     */
+    PaymentTransactionResponse refundPayment(UUID transactionId);
+
+    /**
+     * Hoàn tiền theo thực thể nghiệp vụ mà giao dịch gắn vào — để module khác (POS huỷ đơn) không phải lưu id giao dịch.
+     * Tên và ngữ nghĩa theo quyết định của Agent 1. {@code relatedType} là chuỗi hằng của
+     * {@code RelatedType} (lớp hằng, KHÔNG phải enum).
+     * <ul>
+     *   <li>{@code POS}: tìm giao dịch MỚI NHẤT của đơn (cột pos_order_id) rồi hoàn như {@link #refundPayment}.
+     *       Gọi lần hai khi đã REFUNDED: không lỗi, không hoàn thêm (huỷ đơn có thể được thử lại).
+     *       Đơn chưa có giao dịch nào, hoặc giao dịch chưa SUCCESS → PAYMENT_NOT_REFUNDABLE.</li>
+     *   <li>{@code MEMBERSHIP}: gói tập chưa hỗ trợ hoàn tiền → PAYMENT_NOT_REFUNDABLE.</li>
+     *   <li>{@code relatedType} khác hoặc {@code relatedId} null → VALIDATION_ERROR.</li>
+     * </ul>
+     */
+    PaymentTransactionResponse refundByRelated(String relatedType, UUID relatedId);
+
     PaymentTransaction getEntityById(UUID transactionId);
 
     /** @deprecated dùng {@link #getMyPayments(UUID, org.springframework.data.domain.Pageable)}. */
@@ -45,9 +67,21 @@ public interface PaymentService {
     com.gym.management.dto.response.PageResponse<PaymentTransactionResponse> getMyPayments(UUID userId, org.springframework.data.domain.Pageable pageable);
 
     /**
-     * Thay cho GET /payments?branchId=... (hoãn theo quyết định Phi — payment_transactions
-     * không có branch_id). Lễ tân/Admin tra cứu theo khoảng ngày [from, to).
+     * Thay cho GET /payments?branchId=... (hoãn theo quyết định Phi — payment_transactions không có branch_id).
+     * Lễ tân/Admin tra cứu giao dịch, có thể lọc thêm theo trạng thái và người mua (H3, frontend đợt 1).
+     *
+     * Quy tắc ngày: truyền {@code from} hoặc {@code to} thì lọc theo khoảng ngày (thiếu vế nào mặc định hôm nay).
+     * Không truyền cả hai: nếu cũng không có {@code status}/{@code userId} thì lấy hôm nay (như trước);
+     * nếu có {@code status} hoặc {@code userId} thì lấy MỌI ngày — để lễ tân tìm giao dịch chờ xác nhận cũ.
+     * {@code status} không hợp lệ (ngoài PENDING, SUCCESS, FAILED, REFUNDED) → VALIDATION_ERROR.
      */
     com.gym.management.dto.response.PageResponse<PaymentTransactionResponse> getAllPayments(
-            java.time.LocalDate from, java.time.LocalDate to, org.springframework.data.domain.Pageable pageable);
+            java.time.LocalDate from, java.time.LocalDate to, String status, UUID userId,
+            org.springframework.data.domain.Pageable pageable);
+
+    /** Bản không lọc trạng thái/người mua: giữ để code cũ gọi 3 tham số vẫn chạy. */
+    default com.gym.management.dto.response.PageResponse<PaymentTransactionResponse> getAllPayments(
+            java.time.LocalDate from, java.time.LocalDate to, org.springframework.data.domain.Pageable pageable) {
+        return getAllPayments(from, to, null, null, pageable);
+    }
 }

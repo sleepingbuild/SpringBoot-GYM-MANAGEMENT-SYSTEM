@@ -27,6 +27,8 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     List<Booking> findByBranchIdAndBookingDate(UUID branchId, LocalDate bookingDate);
 
+    List<Booking> findByBookingDateOrderByStartTimeAsc(LocalDate bookingDate);
+
     /**
      * Booking của PT đang chiếm chỗ và CHỒNG KHOẢNG GIỜ với [startTime, endTime) — "1 người/khung
      * giờ/PT". Chồng khoảng: b.start < endTime và b.end > startTime (10:00-11:00 và 10:30-11:30

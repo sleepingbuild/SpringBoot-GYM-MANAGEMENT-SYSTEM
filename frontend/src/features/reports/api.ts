@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api/client";
-import type { DateRange, RenewalReport, RevenueGroupBy, RevenueReport, TopPackagesReport, TrafficReport } from "./types";
+import type { CommissionsReport, DateRange, MonthRange, RenewalReport, RevenueGroupBy, RevenueReport, TopPackagesReport, TrafficReport } from "./types";
 
 export const getRevenue = (r: DateRange, groupBy: RevenueGroupBy, signal?: AbortSignal) =>
   apiFetch<RevenueReport>("/api/v1/reports/revenue", { query: { from: r.from, to: r.to, groupBy }, signal });
@@ -12,3 +12,6 @@ export const getCheckinTraffic = (r: DateRange, signal?: AbortSignal) =>
 
 export const getTopPackages = (r: DateRange, limit: number, signal?: AbortSignal) =>
   apiFetch<TopPackagesReport>("/api/v1/reports/top-packages", { query: { from: r.from, to: r.to, limit }, signal });
+
+export const getCommissionsSummary = (r: MonthRange, signal?: AbortSignal) =>
+  apiFetch<CommissionsReport>("/api/v1/reports/commissions-summary", { query: { fromMonth: r.from, toMonth: r.to }, signal });

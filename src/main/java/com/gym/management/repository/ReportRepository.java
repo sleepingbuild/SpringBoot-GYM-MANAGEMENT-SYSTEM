@@ -39,13 +39,14 @@ public class ReportRepository {
     public List<RevenueRow> revenueByDay(LocalDateTime from, LocalDateTime toExclusive) {
         String sql = """
                 SELECT CAST(COALESCE(updated_at, created_at) AS DATE) AS day_value,
-                       related_type,
+                       CASE WHEN member_package_id IS NOT NULL THEN 'MEMBERSHIP' ELSE 'POS' END AS related_type,
                        SUM(amount) AS total
                 FROM payment_transactions
                 WHERE status = 'SUCCESS'
                   AND COALESCE(updated_at, created_at) >= :from
                   AND COALESCE(updated_at, created_at) < :to
-                GROUP BY CAST(COALESCE(updated_at, created_at) AS DATE), related_type
+                GROUP BY CAST(COALESCE(updated_at, created_at) AS DATE),
+                         CASE WHEN member_package_id IS NOT NULL THEN 'MEMBERSHIP' ELSE 'POS' END
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("from", Timestamp.valueOf(from))
@@ -90,17 +91,27 @@ public class ReportRepository {
                 new RenewalCounts(rs.getLong("expired_count"), rs.getLong("renewed_count")));
     }
 
-    /** Lượt học viên quét mặt vào buổi PT, theo ngày và giờ. */
+    /**
+     * Lượt hội viên quét mặt vào phòng tập, theo ngày và giờ. Hợp của hai nguồn không giao nhau
+     * (xem V8): lượt có buổi PT phù hợp chỉ cập nhật bookings, lượt còn lại ghi gym_check_ins.
+     * Quét ra chỉ cập nhật chính dòng đó nên mỗi dòng là một lượt vào.
+     */
     public List<TrafficRow> checkinTraffic(LocalDateTime from, LocalDateTime toExclusive) {
         String sql = """
-                SELECT CAST(check_in_time AS DATE) AS day_value,
-                       DATEPART(HOUR, check_in_time) AS hour_value,
+                SELECT CAST(t.check_in_time AS DATE) AS day_value,
+                       DATEPART(HOUR, t.check_in_time) AS hour_value,
                        COUNT(*) AS cnt
-                FROM bookings
-                WHERE check_in_time IS NOT NULL
-                  AND check_in_time >= :from
-                  AND check_in_time < :to
-                GROUP BY CAST(check_in_time AS DATE), DATEPART(HOUR, check_in_time)
+                FROM (
+                    SELECT check_in_time FROM bookings
+                    WHERE check_in_time IS NOT NULL
+                      AND check_in_time >= :from
+                      AND check_in_time < :to
+                    UNION ALL
+                    SELECT check_in_time FROM gym_check_ins
+                    WHERE check_in_time >= :from
+                      AND check_in_time < :to
+                ) t
+                GROUP BY CAST(t.check_in_time AS DATE), DATEPART(HOUR, t.check_in_time)
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("from", Timestamp.valueOf(from))
@@ -120,10 +131,9 @@ public class ReportRepository {
                        COUNT(*) AS registrations,
                        SUM(pt.amount) AS revenue
                 FROM payment_transactions pt
-                JOIN member_packages mp ON mp.id = pt.related_id
+                JOIN member_packages mp ON mp.id = pt.member_package_id
                 JOIN packages p ON p.id = mp.package_id
-                WHERE pt.related_type = 'MEMBERSHIP'
-                  AND pt.status = 'SUCCESS'
+                WHERE pt.status = 'SUCCESS'
                   AND COALESCE(pt.updated_at, pt.created_at) >= :from
                   AND COALESCE(pt.updated_at, pt.created_at) < :to
                 GROUP BY p.id, p.name

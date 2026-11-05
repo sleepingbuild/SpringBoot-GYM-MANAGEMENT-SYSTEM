@@ -1,6 +1,7 @@
 package com.gym.management.controller;
 
 import com.gym.management.dto.response.CheckinTrafficResponse;
+import com.gym.management.dto.response.CommissionsSummaryResponse;
 import com.gym.management.dto.response.RenewalRateResponse;
 import com.gym.management.dto.response.RevenueReportResponse;
 import com.gym.management.dto.response.TopPackagesResponse;
@@ -65,12 +66,12 @@ public class ReportController {
     }
 
     @GetMapping("/checkin-traffic")
-    @Operation(summary = "Lưu lượng lượt vào buổi PT theo ngày và giờ",
-            description = "Đếm lượt học viên quét mặt vào buổi tập có PT (bookings.check_in_time). Hiện hệ thống chỉ "
-                    + "ghi nhận check-in ở buổi PT, không có dữ liệu lượt vào phòng tập chung. Mỗi booking tính một lượt "
-                    + "(học viên có hai booking trong ngày được đếm hai lần), kể cả booking đã huỷ sau khi đã quét mặt; "
-                    + "lượt quét của PT không tính. Ngày và giờ là thời điểm quét, không phải giờ bắt đầu của buổi. "
-                    + "Trả đủ 24 khung giờ.")
+    @Operation(summary = "Lưu lượng lượt vào phòng tập theo ngày và giờ",
+            description = "Đếm lượt hội viên quét mặt vào phòng tập, gộp hai nguồn không giao nhau: bookings.check_in_time "
+                    + "(lượt có buổi PT phù hợp) và gym_check_ins (lượt không gắn buổi PT). Mỗi dòng là một lượt vào; "
+                    + "lượt quét ra không tính thêm. Mỗi booking tính một lượt (học viên có hai booking trong ngày được "
+                    + "đếm hai lần), kể cả booking đã huỷ sau khi đã quét mặt; lượt quét của PT không tính. Ngày và giờ "
+                    + "là thời điểm quét, không phải giờ bắt đầu của buổi. Trả đủ 24 khung giờ.")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lưu lượng")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Tham số không hợp lệ")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Chỉ Super Admin")
@@ -92,5 +93,21 @@ public class ReportController {
             @Parameter(description = TO_DESC) @RequestParam(required = false) String to,
             @Parameter(description = "Số gói tối đa, 1 đến 50, mặc định 10") @RequestParam(required = false) String limit) {
         return ApiResponse.success(reportService.topPackages(from, to, limit));
+    }
+
+    @GetMapping("/commissions-summary")
+    @Operation(summary = "Tổng lương theo buổi của PT, theo tháng",
+            description = "Gộp từ CommissionService của Agent 5, lọc theo tháng ghi nhận lương (commissions.created_at). "
+                    + "Mỗi tháng gồm số buổi, tổng tiền, và tách chờ trả (PENDING) với đã trả (PAID). Luôn trả đủ mọi "
+                    + "tháng trong khoảng; tháng không có dữ liệu trả 0. Mặc định chỉ tháng hiện tại; tối đa 12 tháng.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tổng lương theo tháng")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Tham số không hợp lệ")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Chỉ Super Admin")
+    public ApiResponse<CommissionsSummaryResponse> commissionsSummary(
+            @Parameter(description = "Tháng bắt đầu (yyyy-MM), mặc định bằng toMonth")
+            @RequestParam(required = false) String fromMonth,
+            @Parameter(description = "Tháng kết thúc (yyyy-MM), gồm cả tháng này, mặc định tháng hiện tại")
+            @RequestParam(required = false) String toMonth) {
+        return ApiResponse.success(reportService.commissionsSummary(fromMonth, toMonth));
     }
 }

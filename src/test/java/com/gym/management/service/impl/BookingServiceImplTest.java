@@ -1114,4 +1114,60 @@ class BookingServiceImplTest {
 
         verify(eventPublisher, never()).publishEvent(any(BookingSettledEvent.class));
     }
+
+    @Test
+    void findByBranchAndDateWithoutBranchListsAllBranchesForThatDate() {
+        Booking b = bookingAt(BookingStatus.CONFIRMED, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        when(bookingRepository.findByBookingDateOrderByStartTimeAsc(today)).thenReturn(List.of(b));
+
+        List<BookingResponse> result = service.findByBranchAndDate(null, today);
+
+        assertThat(result).hasSize(1);
+        verify(bookingRepository, never()).findByBranchIdAndBookingDate(any(), any());
+    }
+
+    @Test
+    void getBookingForUserAllowsOwnersAndStaff() {
+        Booking b = bookingAt(BookingStatus.CONFIRMED, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        when(bookingRepository.findById(b.getId())).thenReturn(Optional.of(b));
+
+        assertThat(service.getBookingForUser(memberId, "MEMBER", b.getId()).getId()).isEqualTo(b.getId());
+        assertThat(service.getBookingForUser(trainerId, "TRAINER", b.getId()).getId()).isEqualTo(b.getId());
+        assertThat(service.getBookingForUser(UUID.randomUUID(), "RECEPTIONIST", b.getId()).getId()).isEqualTo(b.getId());
+    }
+
+    @Test
+    void getBookingForUserRejectsAnotherMember() {
+        Booking b = bookingAt(BookingStatus.CONFIRMED, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        when(bookingRepository.findById(b.getId())).thenReturn(Optional.of(b));
+
+        assertThatThrownBy(() -> service.getBookingForUser(UUID.randomUUID(), "MEMBER", b.getId()))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void getBookingForUserNotFound() {
+        UUID missing = UUID.randomUUID();
+        when(bookingRepository.findById(missing)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getBookingForUser(memberId, "MEMBER", missing))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void findMyBookingsFiltersByStatusAndDateRange() {
+        Booking old = bookingAt(BookingStatus.COMPLETED, LocalTime.of(8, 0), LocalTime.of(9, 0));
+        old.setBookingDate(LocalDate.of(2026, 10, 1));
+        Booking cancelled = bookingAt(BookingStatus.CANCELLED, LocalTime.of(8, 0), LocalTime.of(9, 0));
+        cancelled.setBookingDate(LocalDate.of(2026, 10, 10));
+        Booking confirmed = bookingAt(BookingStatus.CONFIRMED, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        when(bookingRepository.findByMemberIdOrderByBookingDateDescStartTimeDesc(memberId))
+                .thenReturn(List.of(cancelled, confirmed, old));
+
+        assertThat(service.findMyBookings(memberId, "MEMBER")).hasSize(3);
+        assertThat(service.findMyBookings(memberId, "MEMBER", BookingStatus.COMPLETED, null, null)).hasSize(1);
+        assertThat(service.findMyBookings(memberId, "MEMBER", null, LocalDate.of(2026, 10, 5), null)).hasSize(2);
+        assertThat(service.findMyBookings(memberId, "MEMBER", null, null, LocalDate.of(2026, 10, 5))).hasSize(2);
+        assertThat(service.findMyBookings(memberId, "MEMBER", null, LocalDate.of(2026, 10, 2), LocalDate.of(2026, 10, 9))).hasSize(1);
+    }
 }

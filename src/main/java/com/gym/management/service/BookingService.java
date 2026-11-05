@@ -36,7 +36,14 @@ public interface BookingService {
 
     BookingResponse getById(UUID bookingId);
 
+    /** Chi tiet mot buoi cho chu buoi (hoc vien hoac PT) va nhan vien (le tan, admin). */
+    BookingResponse getBookingForUser(UUID currentUserId, String currentUserRole, UUID bookingId);
+
     List<BookingResponse> findMyBookings(UUID currentUserId, String currentUserRole);
+
+    /** Nhu findMyBookings(userId, role) nhung loc them theo trang thai va khoang ngay (tham so null thi bo qua). */
+    List<BookingResponse> findMyBookings(UUID currentUserId, String currentUserRole,
+                                         com.gym.management.entity.BookingStatus status, LocalDate from, LocalDate to);
 
     List<BookingResponse> findByBranchAndDate(UUID branchId, LocalDate date);
 

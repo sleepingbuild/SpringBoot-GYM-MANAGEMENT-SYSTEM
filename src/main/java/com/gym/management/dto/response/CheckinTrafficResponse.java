@@ -3,7 +3,7 @@ package com.gym.management.dto.response;
 import java.time.LocalDate;
 import java.util.List;
 
-/** Agent 6 - Lưu lượng lượt học viên quét mặt vào buổi PT (bookings.check_in_time). */
+/** Agent 6 - Lưu lượng lượt hội viên quét mặt vào phòng tập: bookings.check_in_time (có buổi PT) và gym_check_ins (không có buổi PT). */
 public record CheckinTrafficResponse(
         LocalDate from,
         LocalDate to,

@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/api/client";
 import type { PageResponse } from "@/lib/types";
-import type { ConvertInput, Lead, LeadInput, LeadStatus } from "./types";
+import type { ConvertInput, ExpiringMember, Lead, LeadInput, LeadStatus } from "./types";
 
 export interface ListParams {
   status: LeadStatus | "";
@@ -39,3 +39,6 @@ export const convertLead = (id: string, v: ConvertInput) =>
     method: "POST",
     body: { email: v.email.trim(), ...(v.password ? { password: v.password } : {}) },
   });
+
+export const listExpiringMembers = (days: number, signal?: AbortSignal) =>
+  apiFetch<ExpiringMember[]>("/api/v1/leads/expiring-soon", { query: { days }, signal });

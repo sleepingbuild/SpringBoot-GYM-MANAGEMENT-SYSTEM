@@ -17,6 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
+import java.time.Clock;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -48,6 +49,7 @@ class MembershipPaymentWiringTest {
         c.registerBean(UserRepository.class, () -> mock(UserRepository.class));
         c.registerBean(BranchRepository.class, () -> mock(BranchRepository.class));
         c.registerBean(PaymentTransactionRepository.class, () -> mock(PaymentTransactionRepository.class));
+        c.registerBean(Clock.class, Clock::systemDefaultZone); // production: BookingClockConfig
         c.register(MembershipServiceImpl.class, PaymentServiceImpl.class, MembershipPaymentListener.class);
         return c;
     }
@@ -83,8 +85,7 @@ class MembershipPaymentWiringTest {
         UUID memberPackageId = UUID.randomUUID();
 
         PaymentTransaction tx = new PaymentTransaction();
-        tx.setRelatedType(RelatedType.MEMBERSHIP);
-        tx.setRelatedId(memberPackageId);
+        tx.setRelated(RelatedType.MEMBERSHIP, memberPackageId);
         tx.setStatus(PaymentStatus.PENDING);
 
         when(txRepo.findById(txId)).thenReturn(Optional.of(tx));

@@ -80,15 +80,27 @@ public class BookingController {
     @GetMapping("/me")
     @PreAuthorize("hasAnyRole('MEMBER', 'TRAINER')")
     @Operation(summary = "Lịch của tôi (member hoặc PT)")
-    public ApiResponse<List<BookingResponse>> myBookings() {
-        return ApiResponse.success(bookingService.findMyBookings(CurrentUserId.get(), CurrentUserRole.get()));
+    public ApiResponse<List<BookingResponse>> myBookings(
+            @RequestParam(required = false) com.gym.management.entity.BookingStatus status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ApiResponse.success(bookingService.findMyBookings(
+                CurrentUserId.get(), CurrentUserRole.get(), status, from, to));
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('MEMBER', 'TRAINER', 'RECEPTIONIST', 'SUPER_ADMIN')")
+    @Operation(summary = "Chi tiet mot buoi tap (chu buoi hoac nhan vien)")
+    public ApiResponse<BookingResponse> getById(@PathVariable UUID id) {
+        return ApiResponse.success(
+                bookingService.getBookingForUser(CurrentUserId.get(), CurrentUserRole.get(), id));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'SUPER_ADMIN')")
     @Operation(summary = "Lịch theo chi nhánh và ngày (lễ tân/admin)")
     public ApiResponse<List<BookingResponse>> byBranchAndDate(
-            @RequestParam UUID branchId,
+            @RequestParam(required = false) UUID branchId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ApiResponse.success(bookingService.findByBranchAndDate(branchId, date));
     }

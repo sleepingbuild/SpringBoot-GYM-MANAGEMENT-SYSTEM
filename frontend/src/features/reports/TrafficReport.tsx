@@ -23,9 +23,9 @@ export function TrafficReport() {
       <ReportBody state={state} onRetry={state.reload} label="báo cáo lưu lượng">
         {(data) => (
           <div className="space-y-4">
-            <StatCard label="Tổng lượt vào buổi tập có PT" value={formatNumber(data.total)} />
+            <StatCard label="Tổng lượt vào phòng tập" value={formatNumber(data.total)} />
             <p className="text-xs text-steel">
-              Chỉ tính lượt học viên quét mặt vào buổi tập có huấn luyện viên; mỗi lịch đặt tính một lượt. Hiện hệ thống chưa ghi nhận lượt vào phòng tập chung.
+              Tính lượt hội viên quét mặt vào phòng tập, gồm cả lượt có buổi tập với huấn luyện viên (mỗi lịch đặt tính một lượt) và lượt không gắn buổi tập nào. Lượt quét ra không tính thêm.
             </p>
             {data.total === 0 ? (
               <div className="panel px-6 py-10 text-center text-sm text-steel">Không có lượt check-in nào trong khoảng ngày này.</div>

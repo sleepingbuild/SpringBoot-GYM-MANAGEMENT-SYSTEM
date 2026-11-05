@@ -25,7 +25,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -65,30 +71,41 @@ public class PosOrderServiceImpl implements PosOrderService {
         order.setPaymentMethod(request.getPaymentMethod());
         order.setStatus(PosOrderStatus.PENDING);
 
+        // Gộp các dòng trùng sản phẩm (giữ thứ tự khách chọn để hiển thị).
+        Map<UUID, Integer> wanted = new LinkedHashMap<>();
         for (PosOrderCreateRequest.Item line : request.getItems()) {
-            // Khoá bi quan trên đúng dòng sản phẩm — giữ khoá tới hết transaction này để
-            // 2 đơn trừ cùng 1 sản phẩm gần như đồng thời không thể cùng đọc tồn kho cũ.
-            Product product = productRepository.findByIdForUpdate(line.getProductId())
+            wanted.merge(line.getProductId(), line.getQuantity(), Integer::sum);
+        }
+
+        // Khoá bi quan từng dòng sản phẩm, luôn theo thứ tự id TĂNG DẦN: nếu 2 đơn cùng bán sản phẩm A và B
+        // mà khoá theo thứ tự khách chọn (A,B và B,A) thì sẽ khoá chéo nhau và SQL Server giết 1 đơn (deadlock).
+        // Khoá được giữ tới hết transaction nên 2 đơn trừ cùng 1 sản phẩm không thể cùng đọc tồn kho cũ.
+        Map<UUID, Product> locked = new HashMap<>();
+        for (UUID productId : new TreeSet<>(wanted.keySet())) {
+            Product product = productRepository.findByIdForUpdate(productId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+            int quantity = wanted.get(productId);
 
             if (!product.isActive()) {
                 throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm đã ngừng bán: " + product.getName());
             }
-            if (product.getStockQuantity() < line.getQuantity()) {
+            if (product.getStockQuantity() < quantity) {
                 throw new BusinessException(ErrorCode.PRODUCT_OUT_OF_STOCK,
                         "Sản phẩm \"" + product.getName() + "\" không đủ tồn kho (còn " + product.getStockQuantity() + ")");
             }
 
-            product.setStockQuantity(product.getStockQuantity() - line.getQuantity());
+            product.setStockQuantity(product.getStockQuantity() - quantity);
             productRepository.save(product);
+            locked.put(productId, product);
+        }
 
-            // Giá chụp từ DB tại thời điểm bán — không tin bất kỳ giá nào client có thể gửi lên.
-            BigDecimal unitPrice = product.getPrice();
-
+        for (Map.Entry<UUID, Integer> line : wanted.entrySet()) {
+            Product product = locked.get(line.getKey());
             PosOrderItem item = new PosOrderItem();
             item.setProduct(product);
-            item.setQuantity(line.getQuantity());
-            item.setUnitPrice(unitPrice);
+            item.setQuantity(line.getValue());
+            // Giá chụp từ DB tại thời điểm bán — không tin bất kỳ giá nào client có thể gửi lên.
+            item.setUnitPrice(product.getPrice());
             order.addItem(item);
         }
 
@@ -123,7 +140,10 @@ public class PosOrderServiceImpl implements PosOrderService {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Chỉ huỷ được đơn đã hoàn thành");
         }
 
-        for (PosOrderItem item : order.getItems()) {
+        // Cùng thứ tự khoá (id tăng dần) với createOrder để huỷ đơn không khoá chéo với đơn đang tạo.
+        List<PosOrderItem> byProduct = new ArrayList<>(order.getItems());
+        byProduct.sort(Comparator.comparing(i -> i.getProduct().getId()));
+        for (PosOrderItem item : byProduct) {
             Product product = productRepository.findByIdForUpdate(item.getProduct().getId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
             product.setStockQuantity(product.getStockQuantity() + item.getQuantity());

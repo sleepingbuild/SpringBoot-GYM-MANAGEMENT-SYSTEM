@@ -31,3 +31,17 @@ export interface ConvertInput {
   /** Để trống = hệ thống tự sinh mật khẩu ngẫu nhiên. */
   password: string;
 }
+
+/** ExpiringMemberResponse.java. phone và remainingSessions bị bỏ khỏi JSON khi rỗng. */
+export interface ExpiringMember {
+  userId: string;
+  fullName: string;
+  phone?: string | null;
+  email: string;
+  packageName: string;
+  /** yyyy-MM-dd. */
+  endDate: string;
+  /** 0 nghĩa là hết hạn hôm nay. */
+  daysLeft: number;
+  remainingSessions?: number | null;
+}
