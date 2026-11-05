@@ -86,6 +86,15 @@
 
 > **Hồ sơ cá nhân:** `PUT /api/v1/profile/me` nhận `dateOfBirth` (`yyyy-MM-dd`), `weightKg`, `heightCm`, `goal`. Ngày sinh phải cho tuổi từ 18 trở lên tính đến ngày đăng ký của tài khoản và không quá 120 tuổi; vi phạm trả 400 `PROFILE_INVALID_AGE`. Response trả `dateOfBirth` và `age` (tính sẵn từ ngày sinh, `null` nếu chưa có). Ảnh đại diện chỉ lưu ở hồ sơ (`avatarUrl`), không còn ở tài khoản.
 
+### Danh mục dùng chung (Agent 1)
+| Method | Endpoint | Role |
+|---|---|---|
+| GET | `/api/v1/users?role=MEMBER&q=&page=&size=` | Receptionist/Super Admin — tìm hội viên đang hoạt động theo tên, số điện thoại hoặc email. Chỉ trả `id`, `fullName`, `phone`, `email`. `role` chỉ nhận `MEMBER` (giá trị khác trả 400 `VALIDATION_ERROR`). Sắp theo tên, `size` tối đa 50 |
+| GET | `/api/v1/trainers` | Mọi người dùng đã đăng nhập — huấn luyện viên đang hoạt động: `id`, `fullName`, `avatarUrl` |
+| GET | `/api/v1/branches` | Mọi người dùng đã đăng nhập — chi nhánh đang hoạt động: `id`, `name` |
+
+> **Xác thực:** người chưa đăng nhập (không có token, token sai hoặc hết hạn) nhận **401** với `errorCode = AUTH_TOKEN_INVALID`. Đã đăng nhập nhưng không đủ quyền nhận **403** với `errorCode = AUTH_FORBIDDEN_ROLE`. Cả hai đều có body JSON `ApiResponse`.
+
 ### Membership, Package & Payment (Agent 2)
 | Method | Endpoint | Role |
 |---|---|---|
