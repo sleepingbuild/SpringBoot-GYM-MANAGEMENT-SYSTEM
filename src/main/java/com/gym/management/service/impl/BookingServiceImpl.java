@@ -275,19 +275,48 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional // KHONG readOnly: applyLazyStatus co the ghi DB va phat su kien
+    public BookingResponse getBookingForUser(UUID currentUserId, String currentUserRole, UUID bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+        boolean isOwner = booking.getMember().getId().equals(currentUserId)
+                || booking.getTrainer().getId().equals(currentUserId);
+        if (!isOwner && !STAFF_ROLES_CAN_BOOK_FOR_OTHERS.contains(currentUserRole)) {
+            throw new BusinessException(ErrorCode.AUTH_FORBIDDEN_ROLE);
+        }
+        applyLazyStatus(booking);
+        return toResponse(booking);
+    }
+
+    @Override
     @Transactional
     public List<BookingResponse> findMyBookings(UUID currentUserId, String currentUserRole) {
+        return findMyBookings(currentUserId, currentUserRole, null, null, null);
+    }
+
+    @Override
+    @Transactional
+    public List<BookingResponse> findMyBookings(UUID currentUserId, String currentUserRole,
+                                                BookingStatus status, LocalDate from, LocalDate to) {
         List<Booking> bookings = ROLE_TRAINER.equals(currentUserRole)
                 ? bookingRepository.findByTrainerIdOrderByBookingDateDescStartTimeDesc(currentUserId)
                 : bookingRepository.findByMemberIdOrderByBookingDateDescStartTimeDesc(currentUserId);
+        // Ap lazy-status TRUOC khi loc theo trang thai de buoi vua bi lat sang NO_SHOW/PT_NO_SHOW hien dung.
         bookings.forEach(this::applyLazyStatus);
-        return bookings.stream().map(this::toResponse).toList();
+        return bookings.stream()
+                .filter(b -> status == null || b.getStatus() == status)
+                .filter(b -> from == null || !b.getBookingDate().isBefore(from))
+                .filter(b -> to == null || !b.getBookingDate().isAfter(to))
+                .map(this::toResponse)
+                .toList();
     }
 
     @Override
     @Transactional
     public List<BookingResponse> findByBranchAndDate(UUID branchId, LocalDate date) {
-        List<Booking> bookings = bookingRepository.findByBranchIdAndBookingDate(branchId, date);
+        List<Booking> bookings = branchId != null
+                ? bookingRepository.findByBranchIdAndBookingDate(branchId, date)
+                : bookingRepository.findByBookingDateOrderByStartTimeAsc(date);
         bookings.forEach(this::applyLazyStatus);
         return bookings.stream().map(this::toResponse).toList();
     }

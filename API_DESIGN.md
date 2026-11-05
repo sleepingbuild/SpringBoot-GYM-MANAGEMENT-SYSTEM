@@ -120,14 +120,16 @@
 |---|---|---|
 | GET/POST/PUT/DELETE | `/api/v1/trainer-schedules` | Trainer (của chính mình) / Admin |
 | GET | `/api/v1/trainer-schedules/available?trainerId=...&date=...` | Member / Lễ tân / Admin — xem slot trống |
+| GET | `/api/v1/trainer-schedules/trainers?date=...` | Member / Lễ tân / Admin — các PT đang hoạt động còn ít nhất một slot trống trong ngày: `trainerId`, `trainerName`, `availableSlotCount`, xếp theo tên |
 | POST | `/api/v1/bookings` | Member (tự đặt) / Receptionist (đặt hộ) |
 | PUT | `/api/v1/bookings/{id}` | Member/Receptionist (sửa lịch, áp lại đủ rule) |
 | POST | `/api/v1/bookings/{id}/confirm` | Trainer |
 | POST | `/api/v1/bookings/{id}/cancel` | Member/Trainer/Receptionist — huỷ muộn (dưới 2 giờ, booking `CONFIRMED`) → `LATE_CANCELLED`, mất 1 buổi, PT vẫn có lương |
 | POST | `/api/v1/bookings/{id}/complete` | Trainer — chỉ khi `CONFIRMED`, học viên đã check-in, PT đã quét vào và ra |
 | PUT | `/api/v1/bookings/{id}/early-leave-reason` | Trainer — nộp lý do ra sớm (`{ "reason": "..." }`), trước khi hoàn thành |
-| GET | `/api/v1/bookings/me` | Member/Trainer |
-| GET | `/api/v1/bookings?branchId=...&date=...` | Receptionist/Admin |
+| GET | `/api/v1/bookings/me` | Member/Trainer — lọc tuỳ chọn `status`, `from`, `to` (`yyyy-MM-dd`); lọc theo trạng thái sau khi áp lazy-status |
+| GET | `/api/v1/bookings/{id}` | Member/Trainer/Receptionist/Admin — chi tiết một buổi; chỉ chủ buổi (học viên hoặc PT) hoặc nhân viên, người khác bị `AUTH_FORBIDDEN_ROLE` |
+| GET | `/api/v1/bookings?date=...&branchId=...` | Receptionist/Admin — `branchId` không bắt buộc; bỏ trống thì liệt kê mọi chi nhánh (kể cả buổi chưa gắn chi nhánh) |
 
 ### Face Attendance & Chấm công (Agent 4)
 | Method | Endpoint | Role |

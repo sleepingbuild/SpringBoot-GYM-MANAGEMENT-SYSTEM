@@ -60,6 +60,13 @@ public class ScheduleController {
         return ApiResponse.success(scheduleService.listByTrainer(targetTrainer, from, to));
     }
 
+    @GetMapping("/trainers")
+    @PreAuthorize("hasAnyRole('MEMBER', 'RECEPTIONIST', 'SUPER_ADMIN')")
+    @Operation(summary = "Danh sach PT con slot trong trong 1 ngay")
+    public ApiResponse<?> trainersWithSlots(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ApiResponse.success(scheduleService.listAvailableTrainers(date));
+    }
     @GetMapping("/available")
     @PreAuthorize("hasAnyRole('MEMBER', 'RECEPTIONIST', 'SUPER_ADMIN')")
     @Operation(summary = "Slot trống của PT trong 1 ngày")
