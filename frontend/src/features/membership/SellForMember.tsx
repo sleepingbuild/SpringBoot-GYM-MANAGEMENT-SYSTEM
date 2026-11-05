@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/lib/toast";
 import { confirmPayment, listPackages, registerPackage } from "./api";
+import { BranchSelect } from "./BranchSelect";
+import { branchIdOrUndefined } from "./branchOptions";
 import { ErrorBlock, LoadingBlock } from "./Feedback";
 import { SelectField } from "./FormControls";
 import { formatVnd } from "./format";
@@ -21,6 +23,7 @@ export function SellForMember() {
   const packages = useLoad((signal) => listPackages(0, 50, { signal }), []);
   const [member, setMember] = useState<MemberSummary | null>(null);
   const [packageId, setPackageId] = useState("");
+  const [branchId, setBranchId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [purchase, setPurchase] = useState<PackagePurchase | null>(null);
@@ -39,6 +42,7 @@ export function SellForMember() {
   function reset() {
     setMember(null);
     setPackageId("");
+    setBranchId("");
     setPurchase(null);
     setPaid(false);
     setError(null);
@@ -49,7 +53,7 @@ export function SellForMember() {
     setBusy(true);
     setError(null);
     try {
-      setPurchase(await registerPackage({ packageId: chosen.id, userId: member.id }));
+      setPurchase(await registerPackage({ packageId: chosen.id, userId: member.id, branchId: branchIdOrUndefined(branchId) }));
       toast.success("Đã tạo đăng ký cho hội viên.");
     } catch (e) {
       setError(e);
@@ -120,6 +124,7 @@ export function SellForMember() {
         onChange={(e) => setPackageId(e.target.value)}
         options={[{ value: "", label: "Chọn gói…" }, ...list.map((p) => ({ value: p.id, label: `${p.name} · ${formatVnd(p.price)}` }))]}
       />
+      <BranchSelect value={branchId} onChange={setBranchId} emptyLabel="Không chọn chi nhánh" />
       {error != null && (
         <Alert tone="error" title="Chưa tạo được đăng ký">
           {membershipErrorMessage(error)}
