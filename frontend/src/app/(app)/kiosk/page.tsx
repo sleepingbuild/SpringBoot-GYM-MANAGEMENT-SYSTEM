@@ -1,13 +1,17 @@
-import { ModulePlaceholder } from "@/components/ui/ModulePlaceholder";
+import { RequireRole } from "@/components/layout/RequireRole";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { KioskScanner } from "@/features/face/KioskScanner";
 
 export default function Page() {
   return (
-    <ModulePlaceholder
-      title="Kiosk điểm danh"
-      owner="Agent 4"
-      screens={[
-        "Màn hình quét khuôn mặt cho nhiều người (lễ tân)",
-      ]}
-    />
+    <div>
+      <PageHeader
+        title="Kiosk điểm danh"
+        description="Đặt camera hướng về cửa. Hệ thống tự nhận diện hội viên, huấn luyện viên và nhân viên."
+      />
+      <RequireRole roles={["RECEPTIONIST", "SUPER_ADMIN"]}>
+        <KioskScanner />
+      </RequireRole>
+    </div>
   );
 }

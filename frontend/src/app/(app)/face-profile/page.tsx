@@ -1,14 +1,17 @@
-import { ModulePlaceholder } from "@/components/ui/ModulePlaceholder";
+import { RequireRole } from "@/components/layout/RequireRole";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { FaceProfileManager } from "@/features/face/FaceProfileManager";
 
 export default function Page() {
   return (
-    <ModulePlaceholder
-      title="Đăng ký khuôn mặt"
-      owner="Agent 4"
-      screens={[
-        "Đăng ký khuôn mặt của tôi",
-        "Đăng ký hộ (lễ tân, quản trị viên)",
-      ]}
-    />
+    <div>
+      <PageHeader
+        title="Đăng ký khuôn mặt"
+        description="Đăng ký khuôn mặt một lần để điểm danh nhanh bằng camera."
+      />
+      <RequireRole roles={["MEMBER", "TRAINER", "RECEPTIONIST", "SALES"]}>
+        <FaceProfileManager />
+      </RequireRole>
+    </div>
   );
 }
