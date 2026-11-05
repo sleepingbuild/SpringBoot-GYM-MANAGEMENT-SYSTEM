@@ -30,6 +30,12 @@ export interface PackageRequestBody {
   active: boolean;
 }
 
+/** BranchResponse.java (Agent 1, GET /api/v1/branches). */
+export interface Branch {
+  id: string;
+  name: string;
+}
+
 /** MemberPackageResponse.java. status: PENDING, ACTIVE, EXPIRED, CANCELLED, SCHEDULED. */
 export interface MemberPackage {
   id: string;
