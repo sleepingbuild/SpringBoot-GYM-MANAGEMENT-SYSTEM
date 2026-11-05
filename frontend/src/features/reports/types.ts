@@ -48,3 +48,33 @@ export interface DateRange {
   from: string;
   to: string;
 }
+
+/** Khoảng tháng, dạng yyyy-MM, gồm cả hai đầu. */
+export interface MonthRange {
+  from: string;
+  to: string;
+}
+
+export interface CommissionMonth {
+  /** yyyy-MM. */
+  month: string;
+  totalSessions: number;
+  totalAmount: number;
+  pendingCount: number;
+  pendingAmount: number;
+  paidCount: number;
+  paidAmount: number;
+}
+
+export interface CommissionsReport {
+  fromMonth: string;
+  toMonth: string;
+  totalSessions: number;
+  totalAmount: number;
+  pendingCount: number;
+  pendingAmount: number;
+  paidCount: number;
+  paidAmount: number;
+  /** Luôn đủ mọi tháng trong khoảng. */
+  months: CommissionMonth[];
+}

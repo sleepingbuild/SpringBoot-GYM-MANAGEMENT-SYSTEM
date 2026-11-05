@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Alert } from "@/components/ui/Alert";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { CommissionsReport } from "./CommissionsReport";
 import { RenewalReport } from "./RenewalReport";
 import { RevenueReport } from "./RevenueReport";
 import { TopPackagesReport } from "./TopPackagesReport";
@@ -13,6 +13,7 @@ const TABS = [
   { id: "renewal", label: "Tỷ lệ gia hạn" },
   { id: "traffic", label: "Lưu lượng buổi tập" },
   { id: "packages", label: "Gói bán chạy" },
+  { id: "commissions", label: "Lương PT" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -22,7 +23,7 @@ export function ReportsPage() {
 
   return (
     <div>
-      <PageHeader title="Báo cáo" description="Số liệu kinh doanh cho quản trị viên. Chọn khoảng ngày rồi bấm Xem báo cáo." />
+      <PageHeader title="Báo cáo" description="Số liệu kinh doanh cho quản trị viên. Chọn khoảng thời gian rồi bấm Xem báo cáo." />
 
       <div role="tablist" aria-label="Loại báo cáo" className="mb-4 flex flex-wrap gap-1 border-b border-line">
         {TABS.map((t) => (
@@ -46,12 +47,7 @@ export function ReportsPage() {
         {tab === "renewal" && <RenewalReport />}
         {tab === "traffic" && <TrafficReport />}
         {tab === "packages" && <TopPackagesReport />}
-      </div>
-
-      <div className="mt-6">
-        <Alert tone="info" title="Sắp có">
-          Báo cáo lương huấn luyện viên theo tháng sẽ được thêm khi phần lương theo buổi hoàn thiện.
-        </Alert>
+        {tab === "commissions" && <CommissionsReport />}
       </div>
     </div>
   );
