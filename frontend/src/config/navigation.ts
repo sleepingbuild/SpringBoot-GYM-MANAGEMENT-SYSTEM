@@ -57,8 +57,8 @@ export const NAVIGATION: NavGroup[] = [
   {
     title: "Bán hàng",
     items: [
-      { href: "/pos", label: "Bán lẻ (POS)", roles: ["RECEPTIONIST", "SUPER_ADMIN"], status: "planned", owner: "Agent 5" },
-      { href: "/commissions", label: "Lương theo buổi", roles: ["TRAINER", "SUPER_ADMIN"], status: "planned", owner: "Agent 5" },
+      { href: "/pos", label: "Bán lẻ (POS)", roles: ["RECEPTIONIST", "SUPER_ADMIN"], status: "ready", owner: "Agent 5" },
+      { href: "/commissions", label: "Lương theo buổi", roles: ["TRAINER", "SUPER_ADMIN"], status: "ready", owner: "Agent 5" },
     ],
   },
   {

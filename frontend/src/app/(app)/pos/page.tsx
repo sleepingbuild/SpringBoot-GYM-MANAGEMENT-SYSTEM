@@ -1,15 +1,10 @@
-import { ModulePlaceholder } from "@/components/ui/ModulePlaceholder";
+import { RequireRole } from "@/components/layout/RequireRole";
+import { PosWorkspace } from "@/features/pos/PosWorkspace";
 
-export default function Page() {
+export default function PosPage() {
   return (
-    <ModulePlaceholder
-      title="Bán lẻ (POS)"
-      owner="Agent 5"
-      screens={[
-        "Bán sản phẩm tại quầy",
-        "Quản lý sản phẩm",
-        "Đơn hàng",
-      ]}
-    />
+    <RequireRole roles={["RECEPTIONIST", "SUPER_ADMIN"]}>
+      <PosWorkspace />
+    </RequireRole>
   );
 }

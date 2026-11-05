@@ -1,13 +1,10 @@
-import { ModulePlaceholder } from "@/components/ui/ModulePlaceholder";
+import { RequireRole } from "@/components/layout/RequireRole";
+import { CommissionsWorkspace } from "@/features/commissions/CommissionsWorkspace";
 
-export default function Page() {
+export default function CommissionsPage() {
   return (
-    <ModulePlaceholder
-      title="Lương theo buổi"
-      owner="Agent 5"
-      screens={[
-        "Lương theo buổi dạy của huấn luyện viên",
-      ]}
-    />
+    <RequireRole roles={["TRAINER", "SUPER_ADMIN"]}>
+      <CommissionsWorkspace />
+    </RequireRole>
   );
 }
