@@ -6,6 +6,8 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/lib/toast";
 import { downgradePackage, listPackages, upgradePackage } from "./api";
+import { BranchSelect } from "./BranchSelect";
+import { branchIdOrUndefined } from "./branchOptions";
 import { splitChangeOptions, type ChangeKind } from "./changeOptions";
 import { ErrorBlock, LoadingBlock } from "./Feedback";
 import { formatDate, formatVnd, packageSummary } from "./format";
@@ -55,6 +57,7 @@ export function ChangePlan({
   const toast = useToast();
   const packages = useLoad((signal) => listPackages(0, 50, { signal }), []);
   const [choice, setChoice] = useState<Choice | null>(null);
+  const [branchId, setBranchId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [result, setResult] = useState<{ kind: ChangeKind; purchase: PackagePurchase } | null>(null);
@@ -78,7 +81,7 @@ export function ChangePlan({
     setBusy(true);
     setError(null);
     try {
-      const input = { newPackageId: choice.pkg.id };
+      const input = { newPackageId: choice.pkg.id, branchId: branchIdOrUndefined(branchId) };
       const purchase = choice.kind === "upgrade" ? await upgradePackage(current.id, input) : await downgradePackage(current.id, input);
       setResult({ kind: choice.kind, purchase });
       toast.success(choice.kind === "upgrade" ? "Đã tạo gói mới, chờ thanh toán." : "Đã đặt lịch đổi gói.");
@@ -121,6 +124,8 @@ export function ChangePlan({
 
       <OptionList title="Nâng cấp" hint="Giá gói mới từ bằng đến cao hơn gói hiện tại." kind="upgrade" items={upgrades} selected={choice} onSelect={setChoice} />
       <OptionList title="Hạ cấp" hint="Giá gói mới thấp hơn gói hiện tại." kind="downgrade" items={downgrades} selected={choice} onSelect={setChoice} />
+
+      {choice && <BranchSelect value={branchId} onChange={setBranchId} emptyLabel="Giữ chi nhánh hiện tại" />}
 
       {choice && (
         <Alert tone="warning" title={choice.kind === "upgrade" ? `Nâng cấp lên ${choice.pkg.name}?` : `Hạ cấp xuống ${choice.pkg.name}?`}>
