@@ -29,6 +29,9 @@ public class OpenApiConfig {
     public static final List<String> TAG_ORDER = List.of(
             "Auth",
             "Profile",
+            "Users",
+            "Trainers",
+            "Branches",
             "Packages",
             "Membership",
             "Payments",
