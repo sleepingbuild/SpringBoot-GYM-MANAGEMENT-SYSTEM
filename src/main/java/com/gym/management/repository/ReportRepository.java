@@ -39,13 +39,14 @@ public class ReportRepository {
     public List<RevenueRow> revenueByDay(LocalDateTime from, LocalDateTime toExclusive) {
         String sql = """
                 SELECT CAST(COALESCE(updated_at, created_at) AS DATE) AS day_value,
-                       related_type,
+                       CASE WHEN member_package_id IS NOT NULL THEN 'MEMBERSHIP' ELSE 'POS' END AS related_type,
                        SUM(amount) AS total
                 FROM payment_transactions
                 WHERE status = 'SUCCESS'
                   AND COALESCE(updated_at, created_at) >= :from
                   AND COALESCE(updated_at, created_at) < :to
-                GROUP BY CAST(COALESCE(updated_at, created_at) AS DATE), related_type
+                GROUP BY CAST(COALESCE(updated_at, created_at) AS DATE),
+                         CASE WHEN member_package_id IS NOT NULL THEN 'MEMBERSHIP' ELSE 'POS' END
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("from", Timestamp.valueOf(from))
@@ -120,10 +121,9 @@ public class ReportRepository {
                        COUNT(*) AS registrations,
                        SUM(pt.amount) AS revenue
                 FROM payment_transactions pt
-                JOIN member_packages mp ON mp.id = pt.related_id
+                JOIN member_packages mp ON mp.id = pt.member_package_id
                 JOIN packages p ON p.id = mp.package_id
-                WHERE pt.related_type = 'MEMBERSHIP'
-                  AND pt.status = 'SUCCESS'
+                WHERE pt.status = 'SUCCESS'
                   AND COALESCE(pt.updated_at, pt.created_at) >= :from
                   AND COALESCE(pt.updated_at, pt.created_at) < :to
                 GROUP BY p.id, p.name

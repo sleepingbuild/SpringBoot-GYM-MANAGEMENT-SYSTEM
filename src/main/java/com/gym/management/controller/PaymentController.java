@@ -61,13 +61,15 @@ public class PaymentController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('RECEPTIONIST','SUPER_ADMIN')")
-    @Operation(summary = "Toàn bộ giao dịch theo khoảng ngày [from, to] — mặc định hôm nay nếu không truyền (Lễ tân/Admin)")
+    @Operation(summary = "Tra cứu giao dịch (Lễ tân/Admin): lọc theo ngày [from, to], trạng thái và người mua. Không truyền ngày: hôm nay nếu không có bộ lọc, mọi ngày nếu có status hoặc userId")
     public ApiResponse<PageResponse<PaymentTransactionResponse>> getAll(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) UUID userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdAt,desc") String sort) {
-        return ApiResponse.success(paymentService.getAllPayments(from, to, PageableUtils.of(page, size, sort)));
+        return ApiResponse.success(paymentService.getAllPayments(from, to, status, userId, PageableUtils.of(page, size, sort)));
     }
 }
