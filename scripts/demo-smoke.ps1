@@ -142,7 +142,8 @@ if ($tok['member']) {
   Check $w $t '/api/v1/bookings/me' 200
   Check $w $t '/api/v1/check-ins/me' 200
   Check $w $t '/api/v1/payments/me' 200
-  Check $w $t '/api/v1/trainer-schedules/trainers' 200
+  Check $w $t "/api/v1/trainer-schedules/trainers?date=$today" 200
+  Check $w $t '/api/v1/trainer-schedules/trainers' 400
   Check $w $t '/api/v1/packages' 200
   Check $w $t '/api/v1/users' 403
   Check $w $t '/api/v1/reports/revenue' 403

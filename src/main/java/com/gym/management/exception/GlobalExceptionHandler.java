@@ -10,6 +10,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -102,6 +103,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ErrorCode.AUTH_FORBIDDEN_ROLE.getHttpStatus())
                 .body(ApiResponse.error("Bạn không có quyền thực hiện thao tác này", ErrorCode.AUTH_FORBIDDEN_ROLE));
+    }
+
+    /** Thiếu tham số bắt buộc trên query string (vd: thiếu ?date=). Trả 400 thay vì để rơi xuống 500. */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingParameter(MissingServletRequestParameterException ex) {
+        log.warn("Thiếu tham số bắt buộc '{}'", ex.getParameterName());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("Thiếu tham số bắt buộc '" + ex.getParameterName() + "'", ErrorCode.VALIDATION_ERROR));
     }
 
     @ExceptionHandler(Exception.class)
