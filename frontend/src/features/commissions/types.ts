@@ -28,3 +28,10 @@ export interface TrainerPayRate {
   trainerId: string;
   amountPerSession: number;
 }
+
+/** TrainerResponse.java (Agent 1). */
+export interface Trainer {
+  id: string;
+  fullName: string;
+  avatarUrl: string | null;
+}

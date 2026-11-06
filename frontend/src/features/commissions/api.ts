@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/api/client";
 import type { PageResponse } from "@/lib/types";
-import type { Commission, TrainerPayRate } from "./types";
+import type { Commission, Trainer, TrainerPayRate } from "./types";
 
 const COMMISSIONS = "/api/v1/commissions";
 const RATES = "/api/v1/trainer-pay-rates";
@@ -19,3 +19,6 @@ export const getPayRate = (trainerId: string) => apiFetch<TrainerPayRate>(`${RAT
 
 export const setPayRate = (trainerId: string, amountPerSession: number) =>
   apiFetch<TrainerPayRate>(`${RATES}/${trainerId}`, { method: "PUT", body: { amountPerSession } });
+
+/** Danh sách PT đang hoạt động (Agent 1): id, tên, ảnh. Mọi người đã đăng nhập xem được. */
+export const listTrainers = () => apiFetch<Trainer[]>("/api/v1/trainers");

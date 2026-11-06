@@ -87,14 +87,13 @@ Hai màn hình: `/pos` (Lễ tân, Quản trị viên) và `/commissions` (PT xe
 
 **Cách thử** (cần backend đã có V5 trở lên và dữ liệu mẫu):
 
-1. Nạp dữ liệu mẫu: `scripts/dev-seed/00_users.sql` (Agent 1) rồi `scripts/dev-seed/30_pos.sql`. Chưa có tài khoản mẫu thì đăng ký ở `/register` rồi cấp vai trò bằng SQL.
+1. Nạp dữ liệu mẫu (chọn hội viên theo tên cần có tài khoản hội viên; chọn PT theo tên cần tài khoản có vai trò TRAINER): `scripts/dev-seed/00_users.sql` (Agent 1) rồi `scripts/dev-seed/30_pos.sql`. Chưa có tài khoản mẫu thì đăng ký ở `/register` rồi cấp vai trò bằng SQL.
 2. `/pos` > thẻ **Bán hàng**: chọn sản phẩm, thêm vào đơn, bấm Thu tiền. Tồn kho giảm ngay; thêm quá tồn kho bị chặn ở giao diện và backend vẫn kiểm tra lại (`PRODUCT_OUT_OF_STOCK`).
 3. Thẻ **Sản phẩm**: thêm, sửa, ngừng bán. Thẻ **Đơn hàng**: lọc theo ngày, xem chi tiết, huỷ đơn (hoàn tiền giao dịch và hoàn lại tồn kho; không hoàn được tiền thì đơn không bị huỷ).
 4. `/commissions` bằng tài khoản Quản trị viên: thẻ **Mức lương mỗi buổi** để đặt mức cho PT, thẻ **Tra cứu lương** để đánh dấu đã chi trả.
 
 **Giới hạn hiện tại:**
 
-- Chưa có màn chọn hội viên hay PT theo tên: ô **Mã hội viên** và **Mã PT** nhận UUID dán vào. Khi backend có `/users?role=MEMBER&q=` và `/trainers` thì đổi sang ô chọn.
 - Dòng lương chỉ có sau khi PT được đặt mức lương mỗi buổi **và** buổi dạy được chốt. Các tổng tiền trên màn hình là tổng của trang đang xem, không phải tổng cả kỳ khi còn nhiều trang.
 - Màn hình chưa thử trên trình duyệt với backend thật khi viết phần này (chỉ qua `npm run build`, `npm run lint`, `npm run typecheck` và `npm test`).
 
