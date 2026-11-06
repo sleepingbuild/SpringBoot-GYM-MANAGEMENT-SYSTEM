@@ -1,6 +1,7 @@
 package com.gym.management.controller;
 
 import com.gym.management.dto.response.FaceProfileResponse;
+import com.gym.management.dto.response.FaceProfileStatusResponse;
 import com.gym.management.dto.request.FaceDescriptorRequest;
 import com.gym.management.exception.ApiResponse;
 import com.gym.management.security.CurrentUserId;
@@ -35,7 +36,7 @@ public class FaceProfileController {
             description = "Chỉ trả registered và updatedAt, KHÔNG trả descriptor. Chưa đăng ký thì registered = false, updatedAt = null.")
     @GetMapping("/me")
     @PreAuthorize("hasAnyRole('MEMBER', 'TRAINER', 'RECEPTIONIST', 'SALES')")
-    public ApiResponse<?> myStatus() {
+    public ApiResponse<FaceProfileStatusResponse> myStatus() {
         return ApiResponse.success(faceProfileService.getMyStatus(CurrentUserId.get()));
     }
 
