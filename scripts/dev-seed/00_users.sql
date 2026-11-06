@@ -6,6 +6,7 @@
 -- Thu tu chay: 00_users.sql roi cac file khac trong scripts/dev-seed/ theo thu tu ten.
 
 SET NOCOUNT ON;
+SET QUOTED_IDENTIFIER ON; -- bang users co filtered index (V9); sqlcmd mac dinh tat tuy chon nay
 
 DECLARE @hash VARCHAR(255) = '$2a$10$sypVy5i6QbvQjcD3FaEU3O.Q.L1JkYeV3C/PFWEUQGjueE2.lTwem';
 
@@ -17,14 +18,14 @@ DECLARE @seed TABLE (
 );
 
 INSERT INTO @seed (email, full_name, phone, role_name) VALUES
-    ('admin@gym.test',            N'Quản trị viên Demo',     '0900000001', 'SUPER_ADMIN'),
-    ('reception@gym.test',        N'Lễ tân Demo',            '0900000002', 'RECEPTIONIST'),
-    ('sales@gym.test',            N'Nhân viên Sales Demo',   '0900000003', 'SALES'),
-    ('trainer1@gym.test',         N'Huấn luyện viên Một',    '0900000004', 'TRAINER'),
-    ('trainer2@gym.test',         N'Huấn luyện viên Hai',    '0900000005', 'TRAINER'),
-    ('member.active@gym.test',    N'Hội viên Đang tập',      '0900000006', 'MEMBER'),
-    ('member.nopackage@gym.test', N'Hội viên Chưa có gói',   '0900000007', 'MEMBER'),
-    ('member.expired@gym.test',   N'Hội viên Hết hạn',       '0900000008', 'MEMBER');
+    ('admin@gym.test',            N'Quản trị viên Demo',     '0911000001', 'SUPER_ADMIN'),
+    ('reception@gym.test',        N'Lễ tân Demo',            '0911000002', 'RECEPTIONIST'),
+    ('sales@gym.test',            N'Nhân viên Sales Demo',   '0911000003', 'SALES'),
+    ('trainer1@gym.test',         N'Huấn luyện viên Một',    '0911000004', 'TRAINER'),
+    ('trainer2@gym.test',         N'Huấn luyện viên Hai',    '0911000005', 'TRAINER'),
+    ('member.active@gym.test',    N'Hội viên Đang tập',      '0911000006', 'MEMBER'),
+    ('member.nopackage@gym.test', N'Hội viên Chưa có gói',   '0911000007', 'MEMBER'),
+    ('member.expired@gym.test',   N'Hội viên Hết hạn',       '0911000008', 'MEMBER');
 
 -- 1. Tao user chua co (theo email)
 INSERT INTO users (full_name, email, phone, password_hash, status)
