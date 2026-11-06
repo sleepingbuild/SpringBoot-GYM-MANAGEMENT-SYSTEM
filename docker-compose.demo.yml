@@ -1,0 +1,118 @@
+# docker-compose.demo.yml (Agent 1). Chay TOAN BO he thong de test va demo: SQL Server + Redis + Backend + Frontend + du lieu mau.
+#   docker compose -f docker-compose.demo.yml up -d --build
+# Doc docs/DOCKER_DEMO.md. File nay tach rieng khoi docker-compose.yml (chi co SQL Server + Redis cho dev) va dung
+# cong khac (web 3000, API 8082, SQL Server 11433) de khong va cham voi Jenkins (8081) hay container dev dang chay.
+name: gms-demo
+
+x-sql-image: &sql-image mcr.microsoft.com/mssql/server:2022-latest
+
+services:
+  sqlserver:
+    image: *sql-image
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      MSSQL_SA_PASSWORD: "${GMS_DB_PASSWORD:-GmsStrongP@ss123}"
+    ports:
+      - "${GMS_SQL_PORT:-11433}:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -b -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  # Chay 1 lan: tao database gms_demo. Cac bang do Flyway cua backend tao.
+  db-init:
+    image: *sql-image
+    restart: "no"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: "${GMS_DB_PASSWORD:-GmsStrongP@ss123}"
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - >
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -b -Q
+        "IF DB_ID('gms_demo') IS NULL CREATE DATABASE gms_demo;"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+    environment:
+      DB_URL: "jdbc:sqlserver://sqlserver:1433;databaseName=gms_demo;encrypt=true;trustServerCertificate=true"
+      DB_USERNAME: "sa"
+      DB_PASSWORD: "${GMS_DB_PASSWORD:-GmsStrongP@ss123}"
+      REDIS_HOST: "redis"
+      # Chi dung cho demo. Dat GMS_JWT_SECRET (>= 32 ky tu) neu muon khac.
+      GMS_JWT_SECRET: "${GMS_JWT_SECRET:-demo-only-secret-change-me-0123456789abcdef}"
+    ports:
+      - "${GMS_API_PORT:-8082}:8080"
+    volumes:
+      - uploads:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health | grep -q UP || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  # Chay 1 lan sau khi backend len (Flyway da tao bang): nap du lieu mau scripts/dev-seed/*.sql theo thu tu ten.
+  # Chay lai khi can: docker compose -f docker-compose.demo.yml run --rm seed
+  seed:
+    image: *sql-image
+    restart: "no"
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: "${GMS_DB_PASSWORD:-GmsStrongP@ss123}"
+    volumes:
+      - ./scripts/dev-seed:/seed:ro
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -e
+        for f in $$(ls /seed/*.sql | sort); do
+          echo "== nap $$f"
+          /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -d gms_demo -b -r1 -I -f 65001 -i "$$f" > /dev/null
+        done
+        echo "SEED XONG"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: "http://localhost:${GMS_API_PORT:-8082}"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${GMS_WEB_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+volumes:
+  sqlserver-data:
+  uploads:

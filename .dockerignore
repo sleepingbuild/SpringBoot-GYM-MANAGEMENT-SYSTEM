@@ -1,0 +1,13 @@
+.git
+.github
+.idea
+.vscode
+target
+frontend
+docs
+scripts
+uploads
+*.md
+**/*.log
+# Khong dua file cau hinh bi mat cua may ca nhan vao image
+src/main/resources/application-local.yml
