@@ -139,6 +139,7 @@
 |---|---|---|
 | POST | `/api/v1/face-profiles/{userId}` (JSON descriptor, client chọn ảnh và trích bằng face-api.js) | Receptionist/Admin — đăng ký hộ |
 | POST | `/api/v1/face-profiles/me` (descriptor JSON, client tự trích) | Member/Trainer/Receptionist/Sales — tự đăng ký |
+| GET | `/api/v1/face-profiles/me` | Member/Trainer/Receptionist/Sales — trạng thái đăng ký của chính mình, trả `registered` và `updatedAt`, không trả descriptor |
 | GET/DELETE | `/api/v1/face-profiles/{userId}` | Receptionist/Admin |
 | POST | `/api/v1/face-attendance/kiosk` (descriptor JSON) | Receptionist/Admin — 1:N. Kết quả ghi theo role người được nhận diện (Member/Trainer → booking, Receptionist/Sales → `staff_attendances`) |
 | POST | `/api/v1/face-attendance/self` (descriptor JSON) | Member/Trainer/Receptionist/Sales đã đăng nhập — 1:1. Trainer: lượt quét gắn vào booking đang diễn ra; response có `bookingId`, `earlyLeave`, `reasonRequired`, `message` |

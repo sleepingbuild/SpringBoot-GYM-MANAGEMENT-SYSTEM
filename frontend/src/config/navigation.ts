@@ -52,6 +52,7 @@ export const NAVIGATION: NavGroup[] = [
       { href: "/kiosk", label: "Kiosk điểm danh", roles: ["RECEPTIONIST", "SUPER_ADMIN"], status: "ready", owner: "Agent 4" },
       { href: "/attendance", label: "Chấm công", roles: ["RECEPTIONIST", "SALES", "SUPER_ADMIN"], status: "ready", owner: "Agent 4" },
       { href: "/check-ins", label: "Lịch sử check-in", roles: ["MEMBER"], status: "ready", owner: "Agent 4" },
+      { href: "/face-enroll", label: "Đăng ký khuôn mặt hộ", roles: ["RECEPTIONIST", "SUPER_ADMIN"], status: "ready", owner: "Agent 4" },
     ],
   },
   {
