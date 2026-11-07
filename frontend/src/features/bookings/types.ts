@@ -13,11 +13,39 @@ export interface AvailableSlot {
   endTime: string;
 }
 
-/** Khop voi BookingRequest. Hoc vien tu dat thi khong gui memberId. */
+/**
+ * Khop voi BookingRequest.
+ * Hoi vien tu dat: khong gui memberId. Le tan, admin dat ho: bat buoc gui memberId.
+ */
 export interface CreateBookingInput {
+  memberId?: string;
   trainerId: string;
+  branchId?: string;
   bookingDate: string;
   startTime: string;
   endTime: string;
   notes?: string;
+}
+
+/** Khop voi BranchResponse (GET /api/v1/branches). */
+export interface BranchOption {
+  id: string;
+  name: string;
+}
+
+/** Khop voi UserSummaryResponse (GET /api/v1/users?role=MEMBER&q=). Chi le tan va admin goi duoc. */
+export interface MemberOption {
+  id: string;
+  fullName: string | null;
+  phone: string | null;
+  email: string | null;
+}
+
+/** Khop voi PageResponse<T> cua backend. */
+export interface PageResult<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
 }
