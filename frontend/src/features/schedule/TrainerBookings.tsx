@@ -9,6 +9,7 @@ import { errorMessage } from "@/lib/api/errors";
 import { useToast } from "@/lib/toast";
 import { cancelBooking, completeBooking, confirmBooking, listMyBookings, submitEarlyLeaveReason } from "./bookingsApi";
 import type { Booking } from "./bookingTypes";
+import { completeWarning, needsEarlyLeaveReason } from "./trainerBookingRules";
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "Chờ xác nhận",
@@ -53,7 +54,7 @@ function BookingCard({ booking: b, busy, draft, onDraft, onConfirm, onComplete, 
   const ptIn = timeOf(b.ptCheckInTime);
   const ptOut = timeOf(b.ptCheckOutTime);
   const readyToComplete = Boolean(b.checkInTime && b.ptCheckInTime && b.ptCheckOutTime);
-  const needsReason = b.status === "CONFIRMED" && Boolean(b.ptCheckOutTime) && b.fullDuration === false;
+  const needsReason = needsEarlyLeaveReason(b);
 
   return (
     <li className="panel p-4">
@@ -176,6 +177,12 @@ export function TrainerBookings() {
     if (ok) void run(b, () => cancelBooking(b.id), "Đã huỷ buổi.");
   }
 
+  function onComplete(b: Booking) {
+    const warning = completeWarning(b);
+    if (warning && !window.confirm(warning)) return;
+    void run(b, () => completeBooking(b.id), "Đã hoàn thành buổi tập.");
+  }
+
   function onSubmitReason(b: Booking) {
     const reason = (drafts[b.id] ?? "").trim();
     if (reason.length < MIN_REASON) {
@@ -193,7 +200,7 @@ export function TrainerBookings() {
       draft={drafts[b.id] ?? ""}
       onDraft={(v) => setDrafts((d) => ({ ...d, [b.id]: v }))}
       onConfirm={() => void run(b, () => confirmBooking(b.id), "Đã xác nhận buổi tập.")}
-      onComplete={() => void run(b, () => completeBooking(b.id), "Đã hoàn thành buổi tập.")}
+      onComplete={() => onComplete(b)}
       onCancel={() => onCancel(b)}
       onSubmitReason={() => onSubmitReason(b)}
     />

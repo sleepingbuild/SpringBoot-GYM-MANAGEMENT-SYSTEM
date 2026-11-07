@@ -28,7 +28,10 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -300,15 +303,19 @@ class MembershipServiceImplTest {
     }
 
     @Test
-    void tryConsumeSession_shouldDecrementRemainingSessions() {
+    void tryConsumeSession_shouldUseAtomicUpdate_andNotSaveEntity() {
         LocalDate today = LocalDate.now(VN_ZONE);
         MemberPackage active = membership(MembershipStatus.ACTIVE, today.minusDays(5), today.plusDays(25), 3);
         stubCurrentMembership(active);
+        when(memberPackageRepository.consumeOneSession(active.getId(), MembershipStatus.ACTIVE)).thenReturn(1);
 
         MembershipService.ConsumeResult result = membershipService.tryConsumeSession(userId);
 
         assertThat(result).isEqualTo(MembershipService.ConsumeResult.CONSUMED);
-        assertThat(active.getRemainingSessions()).isEqualTo(2);
+        verify(memberPackageRepository).consumeOneSession(active.getId(), MembershipStatus.ACTIVE);
+        // Bài học lỗi tranh chấp: KHÔNG được trừ trong bộ nhớ rồi save (mất cập nhật khi chạy đồng thời).
+        verify(memberPackageRepository, never()).save(any(MemberPackage.class));
+        assertThat(active.getRemainingSessions()).isEqualTo(3); // bộ nhớ không bị đụng; DB mới là nguồn chân lý
     }
 
     @Test
@@ -319,16 +326,31 @@ class MembershipServiceImplTest {
 
         assertThat(membershipService.tryConsumeSession(userId)).isEqualTo(MembershipService.ConsumeResult.UNLIMITED);
         assertThat(active.getRemainingSessions()).isNull();
+        verify(memberPackageRepository, never()).consumeOneSession(any(), any());
     }
 
     @Test
-    void tryConsumeSession_shouldNotGoNegative_whenNoSessionLeft() {
+    void tryConsumeSession_shouldReturnNoSessionLeft_whenDbUpdatesZeroRows() {
         LocalDate today = LocalDate.now(VN_ZONE);
-        MemberPackage active = membership(MembershipStatus.ACTIVE, today.minusDays(5), today.plusDays(25), 0);
+        // Bộ nhớ còn 3 nhưng DB đã bị giao dịch khác trừ hết -> câu UPDATE không khớp dòng nào.
+        MemberPackage active = membership(MembershipStatus.ACTIVE, today.minusDays(5), today.plusDays(25), 3);
         stubCurrentMembership(active);
+        when(memberPackageRepository.consumeOneSession(active.getId(), MembershipStatus.ACTIVE)).thenReturn(0);
 
         assertThat(membershipService.tryConsumeSession(userId)).isEqualTo(MembershipService.ConsumeResult.NO_SESSION_LEFT);
-        assertThat(active.getRemainingSessions()).isEqualTo(0); // không trừ âm
+        verify(memberPackageRepository, never()).save(any(MemberPackage.class));
+    }
+
+    @Test
+    void tryConsumeSession_lastSession_shouldConsumeOnce_thenReportNoSessionLeft() {
+        LocalDate today = LocalDate.now(VN_ZONE);
+        MemberPackage active = membership(MembershipStatus.ACTIVE, today.minusDays(5), today.plusDays(25), 1);
+        stubCurrentMembership(active);
+        when(memberPackageRepository.consumeOneSession(eq(active.getId()), eq(MembershipStatus.ACTIVE)))
+                .thenReturn(1, 0);
+
+        assertThat(membershipService.tryConsumeSession(userId)).isEqualTo(MembershipService.ConsumeResult.CONSUMED);
+        assertThat(membershipService.tryConsumeSession(userId)).isEqualTo(MembershipService.ConsumeResult.NO_SESSION_LEFT);
     }
 
     @Test

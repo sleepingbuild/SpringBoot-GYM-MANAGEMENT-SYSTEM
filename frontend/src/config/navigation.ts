@@ -31,10 +31,10 @@ export const NAVIGATION: NavGroup[] = [
   {
     title: "Gói tập",
     items: [
-      { href: "/packages", label: "Gói tập", roles: ["MEMBER", "RECEPTIONIST", "SUPER_ADMIN"], status: "planned", owner: "Agent 2" },
-      { href: "/my-membership", label: "Gói của tôi", roles: ["MEMBER"], status: "planned", owner: "Agent 2" },
-      { href: "/payments", label: "Thanh toán", roles: ["RECEPTIONIST", "SUPER_ADMIN"], status: "planned", owner: "Agent 2" },
-      { href: "/admin/packages", label: "Quản trị gói", roles: ["SUPER_ADMIN"], status: "planned", owner: "Agent 2" },
+      { href: "/packages", label: "Gói tập", roles: ["MEMBER", "RECEPTIONIST", "SUPER_ADMIN"], status: "ready", owner: "Agent 2" },
+      { href: "/my-membership", label: "Gói của tôi", roles: ["MEMBER"], status: "ready", owner: "Agent 2" },
+      { href: "/payments", label: "Thanh toán", roles: ["RECEPTIONIST", "SUPER_ADMIN"], status: "ready", owner: "Agent 2" },
+      { href: "/admin/packages", label: "Quản trị gói", roles: ["SUPER_ADMIN"], status: "ready", owner: "Agent 2" },
     ],
   },
   {
@@ -47,18 +47,18 @@ export const NAVIGATION: NavGroup[] = [
   {
     title: "Điểm danh",
     items: [
-      { href: "/check-in", label: "Tự điểm danh", roles: ["MEMBER", "TRAINER", "RECEPTIONIST", "SALES"], status: "planned", owner: "Agent 4" },
-      { href: "/face-profile", label: "Đăng ký khuôn mặt", roles: ["MEMBER", "TRAINER", "RECEPTIONIST", "SALES"], status: "planned", owner: "Agent 4" },
-      { href: "/kiosk", label: "Kiosk điểm danh", roles: ["RECEPTIONIST", "SUPER_ADMIN"], status: "planned", owner: "Agent 4" },
-      { href: "/attendance", label: "Chấm công", roles: ["RECEPTIONIST", "SALES", "SUPER_ADMIN"], status: "planned", owner: "Agent 4" },
-      { href: "/check-ins", label: "Lịch sử check-in", roles: ["MEMBER"], status: "planned", owner: "Agent 4" },
+      { href: "/check-in", label: "Tự điểm danh", roles: ["MEMBER", "TRAINER", "RECEPTIONIST", "SALES"], status: "ready", owner: "Agent 4" },
+      { href: "/face-profile", label: "Đăng ký khuôn mặt", roles: ["MEMBER", "TRAINER", "RECEPTIONIST", "SALES"], status: "ready", owner: "Agent 4" },
+      { href: "/kiosk", label: "Kiosk điểm danh", roles: ["RECEPTIONIST", "SUPER_ADMIN"], status: "ready", owner: "Agent 4" },
+      { href: "/attendance", label: "Chấm công", roles: ["RECEPTIONIST", "SALES", "SUPER_ADMIN"], status: "ready", owner: "Agent 4" },
+      { href: "/check-ins", label: "Lịch sử check-in", roles: ["MEMBER"], status: "ready", owner: "Agent 4" },
     ],
   },
   {
     title: "Bán hàng",
     items: [
-      { href: "/pos", label: "Bán lẻ (POS)", roles: ["RECEPTIONIST", "SUPER_ADMIN"], status: "planned", owner: "Agent 5" },
-      { href: "/commissions", label: "Lương theo buổi", roles: ["TRAINER", "SUPER_ADMIN"], status: "planned", owner: "Agent 5" },
+      { href: "/pos", label: "Bán lẻ (POS)", roles: ["RECEPTIONIST", "SUPER_ADMIN"], status: "ready", owner: "Agent 5" },
+      { href: "/commissions", label: "Lương theo buổi", roles: ["TRAINER", "SUPER_ADMIN"], status: "ready", owner: "Agent 5" },
     ],
   },
   {

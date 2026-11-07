@@ -1,6 +1,7 @@
 package com.gym.management.service;
 
 import com.gym.management.dto.response.CheckinTrafficResponse;
+import com.gym.management.dto.response.CommissionsSummaryResponse;
 import com.gym.management.dto.response.RenewalRateResponse;
 import com.gym.management.dto.response.RevenueReportResponse;
 import com.gym.management.dto.response.TopPackagesResponse;
@@ -21,4 +22,7 @@ public interface ReportService {
 
     /** limit: 1 đến 50, mặc định 10. */
     TopPackagesResponse topPackages(String from, String to, String limit);
+
+    /** fromMonth, toMonth: yyyy-MM, mặc định cả hai là tháng hiện tại; tối đa 12 tháng. */
+    CommissionsSummaryResponse commissionsSummary(String fromMonth, String toMonth);
 }

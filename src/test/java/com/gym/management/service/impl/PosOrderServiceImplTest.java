@@ -74,8 +74,12 @@ class PosOrderServiceImplTest {
     }
 
     private Product product(String name, String price, int stock, boolean active) {
+        return productWithId(UUID.randomUUID(), name, price, stock, active);
+    }
+
+    private Product productWithId(UUID id, String name, String price, int stock, boolean active) {
         Product p = new Product();
-        ReflectionTestUtils.setField(p, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(p, "id", id);
         p.setName(name);
         p.setPrice(new BigDecimal(price));
         p.setStockQuantity(stock);
@@ -147,6 +151,37 @@ class PosOrderServiceImplTest {
         service.createOrder(staffId, request(whey, 2));
 
         assertThat(whey.getStockQuantity()).isZero();
+    }
+
+    @Test
+    void createOrder_locksProductsInAscendingIdOrder_whateverOrderTheCustomerPicked() {
+        Product low = productWithId(UUID.fromString("00000000-0000-0000-0000-00000000000a"), "A", "1000.00", 5, true);
+        Product high = productWithId(UUID.fromString("00000000-0000-0000-0000-00000000000f"), "F", "2000.00", 5, true);
+
+        PosOrderResponse res = service.createOrder(staffId, request(high, 1, low, 1)); // khách chọn F trước A
+
+        org.mockito.InOrder inOrder = org.mockito.Mockito.inOrder(productRepository);
+        inOrder.verify(productRepository).findByIdForUpdate(low.getId());
+        inOrder.verify(productRepository).findByIdForUpdate(high.getId());
+        // hiển thị vẫn theo thứ tự khách chọn
+        assertThat(res.getItems()).extracting(PosOrderResponse.Item::getProductName).containsExactly("F", "A");
+    }
+
+    @Test
+    void createOrder_sameProductTwice_isMergedAndStockCheckedOnTheSum() {
+        Product whey = product("Whey", "500000.00", 5, true);
+
+        PosOrderResponse ok = service.createOrder(staffId, request(whey, 2, whey, 2));
+        assertThat(ok.getItems()).hasSize(1);
+        assertThat(ok.getItems().get(0).getQuantity()).isEqualTo(4);
+        assertThat(whey.getStockQuantity()).isEqualTo(1);
+
+        Product other = product("Whey 2", "500000.00", 5, true);
+        assertThatThrownBy(() -> service.createOrder(staffId, request(other, 3, other, 3))) // 3 + 3 > 5
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.PRODUCT_OUT_OF_STOCK);
+        assertThat(other.getStockQuantity()).isEqualTo(5); // không trừ dở dang
     }
 
     @Test

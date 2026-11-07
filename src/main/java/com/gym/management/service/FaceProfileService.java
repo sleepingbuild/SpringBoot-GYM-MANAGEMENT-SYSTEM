@@ -2,6 +2,7 @@ package com.gym.management.service;
 
 import com.gym.management.dto.request.FaceDescriptorRequest;
 import com.gym.management.dto.response.FaceProfileResponse;
+import com.gym.management.dto.response.FaceProfileStatusResponse;
 
 import java.util.UUID;
 
@@ -18,6 +19,9 @@ public interface FaceProfileService {
     FaceProfileResponse registerFor(UUID targetUserId, UUID registeredBy, FaceDescriptorRequest request);
 
     FaceProfileResponse getByUserId(UUID userId);
+
+    /** Trạng thái đăng ký của chính mình (không trả descriptor, không ném lỗi khi chưa đăng ký). */
+    FaceProfileStatusResponse getMyStatus(UUID currentUserId);
 
     void deleteByUserId(UUID userId);
 }

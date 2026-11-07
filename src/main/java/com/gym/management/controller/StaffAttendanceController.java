@@ -1,5 +1,6 @@
 package com.gym.management.controller;
 
+import com.gym.management.dto.response.StaffAttendanceResponse;
 import com.gym.management.exception.ApiResponse;
 import com.gym.management.security.CurrentUserId;
 import com.gym.management.service.StaffAttendanceService;
@@ -11,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Tag(name = "Staff Attendance", description = "Chấm công nhân sự (Lễ tân, Sales). PT điểm danh theo buổi ở Booking, không ở đây")
 @RestController
@@ -25,14 +27,14 @@ public class StaffAttendanceController {
     @Operation(summary = "Xem lịch sử chấm công của chính mình (kèm trạng thái đúng giờ/đi muộn/về sớm)")
     @GetMapping("/me")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'SALES')")
-    public ApiResponse<?> myAttendance() {
+    public ApiResponse<List<StaffAttendanceResponse>> myAttendance() {
         return ApiResponse.success(staffAttendanceService.findMyAttendance(CurrentUserId.get()));
     }
 
     @Operation(summary = "Báo cáo chấm công toàn bộ nhân sự theo ngày")
     @GetMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ApiResponse<?> byDate(
+    public ApiResponse<List<StaffAttendanceResponse>> byDate(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ApiResponse.success(staffAttendanceService.findByDate(date));
     }

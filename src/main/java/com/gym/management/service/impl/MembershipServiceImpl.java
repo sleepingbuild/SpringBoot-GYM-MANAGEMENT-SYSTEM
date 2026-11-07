@@ -271,12 +271,12 @@ public class MembershipServiceImpl implements MembershipService {
         if (mp.getRemainingSessions() == null) {
             return ConsumeResult.UNLIMITED; // gói không giới hạn buổi (vd TIME_BASED không kèm session_count)
         }
-        if (mp.getRemainingSessions() <= 0) {
-            return ConsumeResult.NO_SESSION_LEFT; // không trừ âm
-        }
-        mp.setRemainingSessions(mp.getRemainingSessions() - 1);
-        memberPackageRepository.save(mp);
-        return ConsumeResult.CONSUMED;
+        // Trừ NGUYÊN TỬ trong DB — KHÔNG đọc/trừ/save trong bộ nhớ (mất cập nhật khi 2 booking
+        // của cùng hội viên chốt đồng thời). 0 dòng = hết buổi (hoặc gói vừa đổi trạng thái):
+        // không trừ âm, không ném lỗi nghiệp vụ. Giá trị remainingSessions trong bộ nhớ sau đó
+        // là CŨ — vô hại vì quyết định nằm ở DB; không dùng lại giá trị này để quyết định gì.
+        int updated = memberPackageRepository.consumeOneSession(mp.getId(), MembershipStatus.ACTIVE);
+        return updated == 1 ? ConsumeResult.CONSUMED : ConsumeResult.NO_SESSION_LEFT;
     }
 
     @Override

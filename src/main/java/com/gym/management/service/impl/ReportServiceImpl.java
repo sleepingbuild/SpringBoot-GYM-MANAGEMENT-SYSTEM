@@ -1,6 +1,8 @@
 package com.gym.management.service.impl;
 
 import com.gym.management.dto.response.CheckinTrafficResponse;
+import com.gym.management.dto.response.CommissionSummaryResponse;
+import com.gym.management.dto.response.CommissionsSummaryResponse;
 import com.gym.management.dto.response.RenewalRateResponse;
 import com.gym.management.dto.response.RevenueReportResponse;
 import com.gym.management.dto.response.TopPackagesResponse;
@@ -11,6 +13,7 @@ import com.gym.management.repository.ReportRepository.RenewalCounts;
 import com.gym.management.repository.ReportRepository.RevenueRow;
 import com.gym.management.repository.ReportRepository.TopPackageRow;
 import com.gym.management.repository.ReportRepository.TrafficRow;
+import com.gym.management.service.CommissionService;
 import com.gym.management.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,11 +42,15 @@ public class ReportServiceImpl implements ReportService {
 
     static final ZoneId VN_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final int MAX_RANGE_DAYS = 366;
+    private static final int MAX_COMMISSION_MONTHS = 12;
 
     private final ReportRepository reportRepository;
 
     /** Bean Clock dùng chung của dự án (múi giờ Asia/Ho_Chi_Minh), để "hôm nay" khớp mọi module. */
     private final Clock clock;
+
+    /** Nguồn chân lý duy nhất về lương PT theo buổi (Agent 5); báo cáo không tự query bảng commissions. */
+    private final CommissionService commissionService;
 
     private record Range(LocalDate from, LocalDate to) {
     }
@@ -164,7 +171,70 @@ public class ReportServiceImpl implements ReportService {
         return new TopPackagesResponse(range.from(), range.to(), items);
     }
 
+    // ---------- commissions-summary ----------
+
+    @Override
+    @Transactional(readOnly = true)
+    public CommissionsSummaryResponse commissionsSummary(String fromRaw, String toRaw) {
+        YearMonth to = parseMonth(toRaw, "toMonth");
+        if (to == null) {
+            to = YearMonth.now(clock);
+        }
+        YearMonth from = parseMonth(fromRaw, "fromMonth");
+        if (from == null) {
+            from = to;
+        }
+        if (from.isAfter(to)) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "fromMonth phải nhỏ hơn hoặc bằng toMonth");
+        }
+        if (ChronoUnit.MONTHS.between(from, to) + 1 > MAX_COMMISSION_MONTHS) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "Khoảng thời gian tối đa " + MAX_COMMISSION_MONTHS + " tháng");
+        }
+
+        List<CommissionsSummaryResponse.MonthItem> months = new ArrayList<>();
+        int totalSessions = 0;
+        int pendingCount = 0;
+        int paidCount = 0;
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        BigDecimal pendingAmount = BigDecimal.ZERO;
+        BigDecimal paidAmount = BigDecimal.ZERO;
+        for (YearMonth ym = from; !ym.isAfter(to); ym = ym.plusMonths(1)) {
+            // Luôn truyền tháng cụ thể: summarize(null) của Agent 5 nghĩa là "không lọc theo tháng".
+            CommissionSummaryResponse s = commissionService.summarize(ym);
+            BigDecimal total = orZero(s.getTotalAmount());
+            BigDecimal pending = orZero(s.getPendingAmount());
+            BigDecimal paid = orZero(s.getPaidAmount());
+            months.add(new CommissionsSummaryResponse.MonthItem(ym.toString(), s.getTotalSessions(),
+                    total, s.getPendingCount(), pending, s.getPaidCount(), paid));
+            totalSessions += s.getTotalSessions();
+            pendingCount += s.getPendingCount();
+            paidCount += s.getPaidCount();
+            totalAmount = totalAmount.add(total);
+            pendingAmount = pendingAmount.add(pending);
+            paidAmount = paidAmount.add(paid);
+        }
+        return new CommissionsSummaryResponse(from.toString(), to.toString(), totalSessions, totalAmount,
+                pendingCount, pendingAmount, paidCount, paidAmount, months);
+    }
+
     // ---------- helpers ----------
+
+    private static BigDecimal orZero(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private YearMonth parseMonth(String raw, String name) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return YearMonth.parse(raw.trim());
+        } catch (DateTimeException ex) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "Tham số " + name + " phải có dạng yyyy-MM");
+        }
+    }
 
     private Range resolveRange(String fromRaw, String toRaw) {
         LocalDate today = LocalDate.now(clock);
