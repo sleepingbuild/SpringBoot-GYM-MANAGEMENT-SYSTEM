@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allowedStatusChanges, canConvert, canEdit } from "./status";
+import { allowedStatusChanges, canAssign, canConvert, canEdit } from "./status";
 import { LEAD_STATUSES } from "./types";
 
 describe("quy tắc trạng thái lead (khớp backend)", () => {
@@ -30,5 +30,14 @@ describe("quy tắc trạng thái lead (khớp backend)", () => {
     expect(canEdit("CONVERTED")).toBe(false);
     expect(canEdit("LOST")).toBe(true);
     expect(canEdit("NEW")).toBe(true);
+  });
+});
+
+describe("quy tắc giao lead", () => {
+  it("chỉ giao lại được lead NEW và CONTACTED", () => {
+    expect(canAssign("NEW")).toBe(true);
+    expect(canAssign("CONTACTED")).toBe(true);
+    expect(canAssign("LOST")).toBe(false);
+    expect(canAssign("CONVERTED")).toBe(false);
   });
 });

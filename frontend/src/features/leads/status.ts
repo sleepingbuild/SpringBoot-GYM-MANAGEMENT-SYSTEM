@@ -28,3 +28,8 @@ export function canConvert(status: LeadStatus): boolean {
 export function canEdit(status: LeadStatus): boolean {
   return status !== "CONVERTED";
 }
+
+/** Super Admin chỉ giao lại được lead còn đang chăm sóc (NEW, CONTACTED), khớp backend. */
+export function canAssign(status: LeadStatus): boolean {
+  return status === "NEW" || status === "CONTACTED";
+}
