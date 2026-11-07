@@ -1,0 +1,2 @@
+# Script shell phải giữ LF, nếu bị đổi thành CRLF trên Windows thì bash báo lỗi.
+scripts/**/*.sh text eol=lf
