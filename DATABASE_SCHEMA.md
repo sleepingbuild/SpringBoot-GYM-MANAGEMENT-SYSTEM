@@ -31,7 +31,7 @@
 | `V3__schedule_booking.sql` | 3 | `trainer_schedules`, `bookings` | ⚠️ Có migration thật trên nhánh `feature/agent3-schedule-booking`, chưa merge `master` |
 | `V4__face_attendance.sql` | 4 | `face_profiles`, `staff_attendances` | ⚠️ Có migration thật trên nhánh `feature/agent4-face-attendance`, chưa merge `master` |
 | `V5__pos_commission.sql` | 5 | `products`, `pos_orders`, `pos_order_items`, `trainer_pay_rates`, `commissions` | 📐 Chưa có migration — thiết kế để Agent 5 bám theo (đã bỏ `total_amount`, `subtotal` theo CH5) |
-| `V6__leads.sql` | 6 | `leads` | 📐 Chưa có migration — thiết kế để Agent 6 bám theo |
+| `V6__leads.sql` | 6 | `leads` | ✅ Đã triển khai |
 | `V8__gym_check_ins.sql` | 4 | `gym_check_ins` | 📐 Thiết kế v2 (CH2), triển khai sau khi PR #43 của Agent 4 merge |
 
 ---
@@ -318,7 +318,7 @@
 
 ### `V6__leads.sql` — Agent 6
 
-📐 Chưa có migration — thiết kế để Agent 6 bám theo
+✅ Đã triển khai
 
 #### `leads`
 
@@ -335,7 +335,7 @@
 | `created_at` | DATETIME2 | NO | SYSUTCDATETIME() |  |
 | `updated_at` | DATETIME2 | YES |  |  |
 
-**Ràng buộc/chỉ mục thêm:** INDEX `idx_leads_status` trên `(status)`; INDEX `idx_leads_phone` trên `(phone)`.
+**Ràng buộc/chỉ mục thêm:** INDEX `idx_leads_status` trên `(status)`; INDEX `idx_leads_phone` trên `(phone)`; INDEX `idx_leads_assigned_sales` trên `(assigned_sales_id)`.
 
 ### `V8__gym_check_ins.sql` — Agent 4
 
