@@ -1,0 +1,48 @@
+# docker-compose.sonar.yml (Agent 1). SonarQube Community + PostgreSQL de phan tich chat luong ma nguon.
+# Chay rieng, doc lap voi ban demo (docker-compose.demo.yml):
+#   docker compose -f docker-compose.sonar.yml up -d
+# Can khoang 3 GB RAM cho Docker. Neu may yeu, tat ban demo truoc: docker compose -f docker-compose.demo.yml down
+# Doc docs/SONARQUBE.md.
+name: gms-sonar
+
+services:
+  sonar-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "sonar"
+      POSTGRES_PASSWORD: "${GMS_SONAR_DB_PASSWORD:-sonar-demo-pass}"
+      POSTGRES_DB: "sonar"
+    volumes:
+      - sonar-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sonar -d sonar"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  sonarqube:
+    image: sonarqube:10.6-community
+    restart: unless-stopped
+    depends_on:
+      sonar-db:
+        condition: service_healthy
+    environment:
+      SONAR_JDBC_URL: "jdbc:postgresql://sonar-db:5432/sonar"
+      SONAR_JDBC_USERNAME: "sonar"
+      SONAR_JDBC_PASSWORD: "${GMS_SONAR_DB_PASSWORD:-sonar-demo-pass}"
+      # Docker Desktop (WSL2) thuong khong dat duoc vm.max_map_count=262144 ma Elasticsearch cua SonarQube yeu cau.
+      # Tat mmap cho Elasticsearch de chay duoc (chi nen dung cho dev/demo, khong dung production).
+      SONAR_SEARCH_JAVAADDITIONALOPTS: "-Dnode.store.allow_mmap=false"
+    ports:
+      - "${GMS_SONAR_PORT:-9000}:9000"
+    volumes:
+      - sonar-data:/opt/sonarqube/data
+      - sonar-extensions:/opt/sonarqube/extensions
+      - sonar-logs:/opt/sonarqube/logs
+
+volumes:
+  sonar-db-data:
+  sonar-data:
+  sonar-extensions:
+  sonar-logs:
