@@ -41,5 +41,6 @@ Script chạy toàn bộ test, đo độ phủ, rồi gửi kết quả lên Son
 ## Xử lý sự cố
 - Không vào được http://localhost:9000: xem log `docker compose -f docker-compose.sonar.yml logs sonarqube`; lỗi liên quan `max virtual memory` hoặc `vm.max_map_count` nghĩa là cấu hình bỏ qua mmap chưa có hiệu lực, báo lại để đổi cách.
 - Script báo "Khong ket noi duoc SonarQube": chờ thêm, hoặc kiểm tra `http://localhost:9000/api/system/status` có `"status":"UP"`.
+- Lỗi `Unable to open Git repository: repository not found ... \.git\worktrees\...`: thư mục đang dùng là git worktree, thư viện Git của SonarQube không đọc được. Script đã tắt việc đọc Git (`-Dsonar.scm.disabled=true`), nên không có thông tin tác giả từng dòng và việc xác định mã mới không dựa trên Git; kết quả quét lỗi, lỗ hổng, độ phủ và trùng lặp không đổi.
 - Lỗi xác thực (`Not authorized`): token sai hoặc hết hạn, tạo lại ở Bước 2.
 - Dừng: `docker compose -f docker-compose.sonar.yml down` (giữ dữ liệu), thêm `-v` để xoá hết.
