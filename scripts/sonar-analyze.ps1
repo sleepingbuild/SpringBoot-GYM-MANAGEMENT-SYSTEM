@@ -35,7 +35,7 @@ $env:JAVA_HOME = $JavaHome
 $env:PATH = "$JavaHome\bin;$MavenHome\bin;" + $env:PATH
 
 & "$MavenHome\bin\mvn.cmd" -B -ntp clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar `
-  "-Dsonar.host.url=$HostUrl" "-Dsonar.token=$Token"
+  "-Dsonar.host.url=$HostUrl" "-Dsonar.token=$Token" "-Dsonar.scm.disabled=true"
 if ($LASTEXITCODE -ne 0) {
   Write-Host 'Phan tich that bai. Xem log Maven o tren.' -ForegroundColor Red
   exit 1
