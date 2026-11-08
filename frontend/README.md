@@ -78,14 +78,16 @@ Token: access token chỉ giữ trong bộ nhớ; refresh token lưu `localStora
 Thời gian từ backend là `LocalDateTime` giờ Việt Nam, không có múi giờ trong chuỗi. Hiển thị nguyên, không cộng trừ múi giờ ở trình duyệt.
 
 ## Camera và HTTPS (Agent 4)
-Các màn hình: /face-profile (tự đăng ký khuôn mặt), /check-in (tự điểm danh), /kiosk (điểm danh tại quầy), /face-enroll (Lễ tân, Quản trị viên đăng ký hộ cho hội viên), /attendance (chấm công), /check-ins (lịch sử vào phòng tập của hội viên).
 
-Thư viện nhận diện: @vladmandic/face-api 1.7.15, chạy hoàn toàn trong trình duyệt và được nạp bằng import() động để không chạy khi dựng phía máy chủ.
-Mô hình: sáu file trong frontend/public/models/ (phát hiện khuôn mặt, 68 điểm mốc, nhận diện). Thiếu thư mục này thì màn hình báo "Không tải được mô hình nhận diện khuôn mặt".
-Dữ liệu gửi lên backend chỉ là descriptor 128 số của khuôn mặt, không gửi và không lưu ảnh. Ảnh chọn ở /face-enroll cũng chỉ được xử lý trong trình duyệt.
-Ngưỡng so khớp đặt ở backend: gms.face-attendance.match-threshold (mặc định 0.45). Frontend không giữ ngưỡng.
-npm run build có hai cảnh báo Critical dependency: require function từ face-api.esm.js. Build vẫn thành công.
+**Điểm danh khuôn mặt.** Các màn hình: `/face-profile` (tự đăng ký khuôn mặt), `/check-in` (tự điểm danh), `/kiosk` (điểm danh tại quầy), `/face-enroll` (Lễ tân, Quản trị viên đăng ký hộ cho hội viên), `/attendance` (chấm công), `/check-ins` (lịch sử vào phòng tập của hội viên).
 
+- Thư viện nhận diện: `@vladmandic/face-api` 1.7.15, chạy hoàn toàn trong trình duyệt và được nạp bằng `import()` động để không chạy khi dựng phía máy chủ.
+- Mô hình: sáu file trong `frontend/public/models/` (phát hiện khuôn mặt, 68 điểm mốc, nhận diện). Thiếu thư mục này thì màn hình báo "Không tải được mô hình nhận diện khuôn mặt".
+- Dữ liệu gửi lên backend chỉ là descriptor 128 số của khuôn mặt, **không gửi và không lưu ảnh**. Ảnh chọn ở `/face-enroll` cũng chỉ được xử lý trong trình duyệt.
+- Ngưỡng so khớp đặt ở backend: `gms.face-attendance.match-threshold` (mặc định `0.45`). Frontend không giữ ngưỡng.
+- `npm run build` có hai cảnh báo `Critical dependency: require function` từ `face-api.esm.js`. Build vẫn thành công.
+
+**Camera.** `getUserMedia` chỉ chạy ở `localhost` hoặc HTTPS.
 `getUserMedia` chỉ chạy ở `localhost` hoặc HTTPS. Thử kiosk trên chính máy chạy frontend thì dùng `http://localhost:3000`. Thiết bị khác (điện thoại) cần HTTPS: ưu tiên `next dev --experimental-https` trong mạng nội bộ. Chỉ dùng đường hầm công khai (ngrok) khi thật cần và tắt ngay sau khi thử, vì phiên bản Next.js hiện tại có cảnh báo bảo mật (xem mục dưới).
 
 ## Bán lẻ (POS) và lương PT (Agent 5)
