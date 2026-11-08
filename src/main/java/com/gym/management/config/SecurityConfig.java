@@ -48,7 +48,10 @@ public class SecurityConfig {
             "/uploads/**",
             "/swagger-ui/**", "/swagger-ui.html",
             "/v3/api-docs/**",
-            "/actuator/health"
+            "/actuator/health",
+            // Số liệu cho Prometheus. Mặc định endpoint này KHÔNG được mở (trả 404); chỉ có khi đặt
+            // management.endpoints.web.exposure.include có "prometheus" (xem docker-compose.monitoring.yml).
+            "/actuator/prometheus"
     };
 
     @Bean

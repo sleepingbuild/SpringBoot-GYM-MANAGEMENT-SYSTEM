@@ -1,0 +1,46 @@
+# docker-compose.monitoring.yml (Agent 1). Giam sat backend bang Prometheus + Grafana. GHEP THEM vao ban demo, khong thay the:
+#   docker compose -f docker-compose.demo.yml -f docker-compose.monitoring.yml up -d --build
+# Backend chi lo so lieu /actuator/prometheus khi duoc bat o day (SPRING_APPLICATION_JSON); mac dinh (Jenkins, chay tay) KHONG lo.
+services:
+  backend:
+    environment:
+      SPRING_APPLICATION_JSON: '{"management":{"endpoints":{"web":{"exposure":{"include":"health,info,prometheus"}}},"metrics":{"tags":{"application":"gym-management-system"},"distribution":{"percentiles-histogram":{"http.server.requests":true}}}}}'
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "${GMS_PROMETHEUS_PORT:-9090}:9090"
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: "admin"
+      GF_SECURITY_ADMIN_PASSWORD: "${GMS_GRAFANA_PASSWORD:-admin12345}"
+      # Demo: ai mo cung xem duoc dashboard (chi doc). Muon sua phai dang nhap admin.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: "/var/lib/grafana/dashboards/gms-overview.json"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "${GMS_GRAFANA_PORT:-3001}:3000"
+
+volumes:
+  prometheus-data:
+  grafana-data:
