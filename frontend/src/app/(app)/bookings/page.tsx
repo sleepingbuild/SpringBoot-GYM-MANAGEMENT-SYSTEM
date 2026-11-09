@@ -1,10 +1,10 @@
 ﻿import { RequireRole } from "@/components/layout/RequireRole";
-import { MemberBookings } from "@/features/bookings/MemberBookings";
+import { BookingsWorkspace } from "@/features/bookings/BookingsWorkspace";
 
 export default function BookingsPage() {
   return (
-    <RequireRole roles={["MEMBER"]}>
-      <MemberBookings />
+    <RequireRole roles={["MEMBER", "RECEPTIONIST", "SUPER_ADMIN"]}>
+      <BookingsWorkspace />
     </RequireRole>
   );
 }
