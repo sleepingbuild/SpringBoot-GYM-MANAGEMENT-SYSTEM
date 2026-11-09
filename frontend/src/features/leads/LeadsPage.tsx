@@ -5,15 +5,18 @@ import { Alert } from "@/components/ui/Alert";
 import { Button, Spinner } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { useToast } from "@/lib/toast";
 import type { PageResponse } from "@/lib/types";
 import { changeLeadStatus, listLeads } from "./api";
+import { listSalesUsers, type SalesUser } from "./assign";
+import { AssignDialog } from "./AssignDialog";
 import { ConvertDialog } from "./ConvertDialog";
 import { ConfirmDialog } from "./Dialog";
 import { isAbort, leadErrorMessage } from "./errors";
 import { formatDateTime } from "./format";
 import { LeadFormDialog } from "./LeadFormDialog";
-import { STATUS_LABELS, allowedStatusChanges, canConvert, canEdit } from "./status";
+import { STATUS_LABELS, allowedStatusChanges, canAssign, canConvert, canEdit } from "./status";
 import { StatusBadge } from "./StatusBadge";
 import { LEAD_STATUSES, type Lead, type LeadStatus } from "./types";
 
@@ -30,11 +33,14 @@ type Modal =
   | { kind: "create" }
   | { kind: "edit"; lead: Lead }
   | { kind: "convert"; lead: Lead }
+  | { kind: "assign"; lead: Lead }
   | { kind: "lost"; lead: Lead }
   | null;
 
 export function LeadsPage() {
   const toast = useToast();
+  const { user } = useAuth();
+  const isAdmin = !!user?.roles.includes("SUPER_ADMIN");
   const [status, setStatus] = useState<LeadStatus | "">("");
   const [keywordInput, setKeywordInput] = useState("");
   const [keyword, setKeyword] = useState("");
@@ -48,6 +54,26 @@ export function LeadsPage() {
 
   const [modal, setModal] = useState<Modal>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Chỉ Super Admin cần danh sách Sales (để giao lead và hiện tên người phụ trách).
+  const [salesUsers, setSalesUsers] = useState<SalesUser[] | null>(null);
+  useEffect(() => {
+    if (!isAdmin) return;
+    const ctrl = new AbortController();
+    listSalesUsers(ctrl.signal)
+      .then(setSalesUsers)
+      .catch((e) => {
+        if (!isAbort(e)) toast.error(leadErrorMessage(e));
+      });
+    return () => ctrl.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
+
+  function assigneeLabel(lead: Lead): string {
+    if (!lead.assignedSalesId) return "Chưa giao";
+    const found = salesUsers?.find((s) => s.id === lead.assignedSalesId);
+    return found ? found.fullName : salesUsers ? "Nhân viên không còn hoạt động" : "…";
+  }
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
   const closeModal = useCallback(() => setModal(null), []);
@@ -208,6 +234,7 @@ export function LeadsPage() {
                 <th className="px-4 py-3 font-medium">Khách</th>
                 <th className="px-4 py-3 font-medium">Nguồn</th>
                 <th className="px-4 py-3 font-medium">Trạng thái</th>
+                {isAdmin && <th className="px-4 py-3 font-medium">Phụ trách</th>}
                 <th className="px-4 py-3 font-medium">Tạo lúc</th>
                 <th className="px-4 py-3 font-medium">Thao tác</th>
               </tr>
@@ -224,6 +251,7 @@ export function LeadsPage() {
                   <td className="px-4 py-3">
                     <StatusBadge status={lead.status} />
                   </td>
+                  {isAdmin && <td className="px-4 py-3">{assigneeLabel(lead)}</td>}
                   <td className="whitespace-nowrap px-4 py-3">{formatDateTime(lead.createdAt)}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
@@ -235,6 +263,11 @@ export function LeadsPage() {
                       {canConvert(lead.status) && (
                         <Button disabled={busyId === lead.id} onClick={() => setModal({ kind: "convert", lead })}>
                           Chuyển hội viên
+                        </Button>
+                      )}
+                      {isAdmin && canAssign(lead.status) && (
+                        <Button variant="secondary" disabled={busyId === lead.id || salesUsers === null} onClick={() => setModal({ kind: "assign", lead })}>
+                          Giao cho
                         </Button>
                       )}
                       {canEdit(lead.status) && (
@@ -275,6 +308,7 @@ export function LeadsPage() {
       {modal?.kind === "create" && <LeadFormDialog lead={null} onClose={closeModal} onSaved={reload} />}
       {modal?.kind === "edit" && <LeadFormDialog lead={modal.lead} onClose={closeModal} onSaved={reload} />}
       {modal?.kind === "convert" && <ConvertDialog lead={modal.lead} onClose={closeModal} onConverted={reload} />}
+      {modal?.kind === "assign" && salesUsers && <AssignDialog lead={modal.lead} salesUsers={salesUsers} onClose={closeModal} onAssigned={reload} />}
       {modal?.kind === "lost" && (
         <ConfirmDialog
           title="Đánh dấu khách đã mất?"
