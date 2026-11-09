@@ -27,11 +27,15 @@ export const searchMembers = (q: string) =>
   apiFetch<PageResult<MemberOption>>("/api/v1/users", { query: { role: "MEMBER", q } });
 
 /**
- * Cac buoi trong mot ngay, moi chi nhanh (le tan, admin). Khong gui branchId.
+ * Cac buoi trong mot ngay (le tan, admin). date bat buoc.
+ * branchId bo trong = moi chi nhanh. Khi co branchId, server chi tra buoi cua chi nhanh do
+ * (buoi khong gan chi nhanh khong xuat hien) va khong sap theo gio, nen giao dien tu sap.
  * Backend tra danh sach; neu sau nay doi sang dang phan trang (content[]) thi van doc duoc.
  */
-export async function listBookingsByDate(date: string): Promise<Booking[]> {
-  const data = await apiFetch<unknown>("/api/v1/bookings", { query: { date } });
+export async function listBookingsByDate(date: string, branchId?: string): Promise<Booking[]> {
+  const query: Record<string, string> = { date };
+  if (branchId) query.branchId = branchId;
+  const data = await apiFetch<unknown>("/api/v1/bookings", { query });
   if (Array.isArray(data)) return data as Booking[];
   const content = (data as { content?: unknown } | null)?.content;
   return Array.isArray(content) ? (content as Booking[]) : [];
