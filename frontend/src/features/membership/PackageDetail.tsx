@@ -11,6 +11,8 @@ import { ApiError } from "@/lib/api/errors";
 import { hasAnyRole } from "@/lib/roles";
 import { useToast } from "@/lib/toast";
 import { getPackage, registerPackage } from "./api";
+import { BranchSelect } from "./BranchSelect";
+import { branchIdOrUndefined } from "./branchOptions";
 import { ErrorBlock, LoadingBlock } from "./Feedback";
 import { PACKAGE_TYPE_LABELS, PEAK_TYPE_LABELS, labelOf } from "./labels";
 import { formatVnd, packageSummary, weeklyLimitText } from "./format";
@@ -21,6 +23,7 @@ import { useLoad } from "./useLoad";
 function RegisterPanel({ pkg }: { pkg: PackageItem }) {
   const toast = useToast();
   const [confirming, setConfirming] = useState(false);
+  const [branchId, setBranchId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [result, setResult] = useState<PackagePurchase | null>(null);
@@ -29,7 +32,7 @@ function RegisterPanel({ pkg }: { pkg: PackageItem }) {
     setBusy(true);
     setError(null);
     try {
-      const purchase = await registerPackage({ packageId: pkg.id });
+      const purchase = await registerPackage({ packageId: pkg.id, branchId: branchIdOrUndefined(branchId) });
       setResult(purchase);
       toast.success("Đã gửi đăng ký gói.");
     } catch (e) {
@@ -80,6 +83,7 @@ function RegisterPanel({ pkg }: { pkg: PackageItem }) {
           <Alert tone="info" title={`Đăng ký ${pkg.name}?`}>
             Bạn sẽ thanh toán {formatVnd(pkg.price)} tại quầy. Gói chỉ bắt đầu tính từ ngày lễ tân xác nhận thanh toán.
           </Alert>
+          <BranchSelect value={branchId} onChange={setBranchId} />
           <div className="flex gap-2">
             <Button loading={busy} onClick={submit}>
               Xác nhận đăng ký

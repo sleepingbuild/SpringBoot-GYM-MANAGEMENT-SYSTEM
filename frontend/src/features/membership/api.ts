@@ -2,6 +2,7 @@ import { apiFetch } from "@/lib/api/client";
 import { ApiError } from "@/lib/api/errors";
 import type { PageResponse } from "@/lib/types";
 import type {
+  Branch,
   MemberPackage,
   MemberSummary,
   PackageItem,
@@ -72,6 +73,11 @@ export async function getMemberCurrentMembership(userId: string, opts: Opts = {}
 /** Lễ tân, Admin xem lịch sử gói (mọi trạng thái) của một hội viên (H2), phân trang. */
 export function listMemberMemberships(userId: string, page = 0, size = 10, opts: Opts = {}) {
   return apiFetch<PageResponse<MemberPackage>>("/api/v1/member-packages", { query: { userId, page, size }, ...opts });
+}
+
+/** Danh sách chi nhánh đang hoạt động (Agent 1), mọi người đã đăng nhập đều xem được. */
+export function listBranches(opts: Opts = {}) {
+  return apiFetch<Branch[]>("/api/v1/branches", opts);
 }
 
 /** Hội viên tự mua (bỏ `userId`) hoặc Lễ tân, Admin bán hộ (truyền `userId` của hội viên). */
