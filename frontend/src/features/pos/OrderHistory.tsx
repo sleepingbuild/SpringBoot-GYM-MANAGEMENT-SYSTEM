@@ -42,11 +42,11 @@ export function OrderHistory() {
   }, [load]);
 
   async function cancel(order: PosOrder) {
-    if (!window.confirm(`Huỷ đơn ${shortId(order.id)} (${formatVnd(order.totalAmount)})? Tồn kho sẽ được hoàn lại.`)) return;
+    if (!window.confirm(`Huỷ đơn ${shortId(order.id)} (${formatVnd(order.totalAmount)})? Giao dịch thanh toán sẽ được hoàn tiền và tồn kho được hoàn lại.`)) return;
     setBusyId(order.id);
     try {
       await cancelOrder(order.id);
-      toast.success("Đã huỷ đơn và hoàn lại tồn kho.");
+      toast.success("Đã huỷ đơn, hoàn tiền và hoàn lại tồn kho.");
       await load();
     } catch (e) {
       toast.error(errorMessage(e));

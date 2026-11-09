@@ -24,7 +24,11 @@ public interface PosOrderService {
      */
     PosOrderResponse createOrder(UUID staffId, PosOrderCreateRequest request);
 
-    /** Huỷ đơn COMPLETED, hoàn lại tồn kho cho mọi dòng sản phẩm trong đơn. Idempotent-safe. */
+    /**
+     * Huỷ đơn COMPLETED: hoàn tiền giao dịch của đơn qua {@code PaymentService#refundByRelated} (Agent 2),
+     * rồi hoàn lại tồn kho cho mọi dòng sản phẩm. Hoàn tiền thất bại thì cả thao tác rollback.
+     * Huỷ lại đơn đã CANCELLED không lỗi và không hoàn thêm lần nữa.
+     */
     PosOrderResponse cancelOrder(UUID id);
 
     PosOrderResponse getById(UUID id);

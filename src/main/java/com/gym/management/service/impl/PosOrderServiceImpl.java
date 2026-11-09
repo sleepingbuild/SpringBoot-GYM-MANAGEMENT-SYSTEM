@@ -110,7 +110,9 @@ public class PosOrderServiceImpl implements PosOrderService {
         }
 
         BigDecimal total = order.getTotalAmount(); // suy ra từ các dòng, không lưu cột (CH5)
-        order = posOrderRepository.save(order);
+        // saveAndFlush: dòng pos_orders phải thật sự được ghi TRƯỚC dòng payment_transactions, vì từ V7 giao dịch có
+        // khoá ngoại pos_order_id -> pos_orders(id). Không dựa vào thứ tự hàng đợi INSERT mặc định của Hibernate.
+        order = posOrderRepository.saveAndFlush(order);
 
         // Bán tại quầy = thu tiền ngay, không có bước "chờ xác nhận" như Membership —
         // tạo transaction PENDING rồi confirm luôn trong cùng request/transaction.
@@ -139,6 +141,11 @@ public class PosOrderServiceImpl implements PosOrderService {
         if (order.getStatus() != PosOrderStatus.COMPLETED) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Chỉ huỷ được đơn đã hoàn thành");
         }
+
+        // Hoàn tiền TRƯỚC khi hoàn kho: nếu không hoàn được (PAYMENT_NOT_REFUNDABLE) thì cả thao tác huỷ
+        // rollback — đơn vẫn COMPLETED, tồn kho không đổi. Agent 2 tự tìm giao dịch theo đơn (cột pos_order_id
+        // của V7); Agent 5 không giữ transactionId. Huỷ lại đơn đã CANCELLED thoát sớm ở trên nên không hoàn lần hai.
+        paymentService.refundByRelated(RelatedType.POS, order.getId());
 
         // Cùng thứ tự khoá (id tăng dần) với createOrder để huỷ đơn không khoá chéo với đơn đang tạo.
         List<PosOrderItem> byProduct = new ArrayList<>(order.getItems());

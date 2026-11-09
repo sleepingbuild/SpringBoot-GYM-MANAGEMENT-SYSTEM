@@ -9,7 +9,9 @@ import { ApiError, errorMessage } from "@/lib/api/errors";
 import { useToast } from "@/lib/toast";
 import { createOrder, listActiveProducts } from "./api";
 import { type CartLine, addToCart, cartCount, cartTotal, removeLine, setQuantity, toOrderItems } from "./cart";
-import { formatVnd, isUuid } from "./format";
+import { MemberPicker } from "@/features/membership/MemberPicker";
+import type { MemberSummary } from "@/features/membership/types";
+import { formatVnd } from "./format";
 import { CATEGORY_LABEL, PAYMENT_LABEL, type PaymentMethod, type PosOrder, type Product, type ProductCategory } from "./types";
 
 type Filter = "ALL" | ProductCategory;
@@ -21,7 +23,7 @@ export function SalesCounter() {
   const [filter, setFilter] = useState<Filter>("ALL");
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
-  const [memberId, setMemberId] = useState("");
+  const [member, setMember] = useState<MemberSummary | null>(null);
   const [method, setMethod] = useState<PaymentMethod>("CASH");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -49,22 +51,21 @@ export function SalesCounter() {
     );
   }, [products, filter, search]);
 
-  const memberError = memberId.trim() !== "" && !isUuid(memberId) ? "Mã hội viên phải là UUID hợp lệ." : null;
   const total = cartTotal(cart);
 
   async function checkout() {
-    if (cart.length === 0 || memberError) return;
+    if (cart.length === 0) return;
     setSubmitting(true);
     setFormError(null);
     try {
       const order = await createOrder({
-        memberId: memberId.trim() === "" ? null : memberId.trim(),
+        memberId: member ? member.id : null,
         paymentMethod: method,
         items: toOrderItems(cart),
       });
       setLastOrder(order);
       setCart([]);
-      setMemberId("");
+      setMember(null);
       toast.success("Đã tạo đơn và thu tiền.");
       await load(); // tồn kho đã đổi
     } catch (e) {
@@ -173,13 +174,11 @@ export function SalesCounter() {
         )}
 
         <div className="mt-4 space-y-3 border-t border-line pt-4">
-          <Field
-            label="Mã hội viên (không bắt buộc)"
-            value={memberId}
-            onChange={(e) => setMemberId(e.target.value)}
-            error={memberError}
-            hint="Dán mã (UUID) của hội viên. Khách vãng lai chỉ bán được khi backend đã hỗ trợ giao dịch không gắn hội viên; nếu chưa, hệ thống sẽ báo lỗi."
-          />
+          <div>
+            <p className="mb-1 text-sm font-medium">Hội viên (không bắt buộc)</p>
+            <MemberPicker value={member} onChange={setMember} changeLabel="Bỏ chọn" />
+            {!member && <p className="mt-1 text-xs text-steel">Không chọn hội viên thì đơn tính cho khách vãng lai.</p>}
+          </div>
           <div>
             <label htmlFor="pos-method" className="mb-1 block text-sm font-medium">
               Hình thức thanh toán
@@ -197,7 +196,7 @@ export function SalesCounter() {
             <span className="text-xl font-semibold">{formatVnd(total)}</span>
           </div>
           {formError && <Alert tone="error">{formError}</Alert>}
-          <Button className="w-full" loading={submitting} disabled={cart.length === 0 || Boolean(memberError)} onClick={checkout}>
+          <Button className="w-full" loading={submitting} disabled={cart.length === 0} onClick={checkout}>
             Thu tiền và tạo đơn
           </Button>
         </div>
