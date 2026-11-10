@@ -6,6 +6,7 @@ import com.gym.management.dto.response.AvailableTrainerResponse;
 import com.gym.management.dto.response.TrainerScheduleResponse;
 import com.gym.management.entity.Booking;
 import com.gym.management.entity.BookingStatus;
+import com.gym.management.entity.RoleName;
 import com.gym.management.entity.TrainerSchedule;
 import com.gym.management.entity.User;
 import com.gym.management.exception.BusinessException;
@@ -13,6 +14,8 @@ import com.gym.management.exception.ErrorCode;
 import com.gym.management.repository.BookingRepository;
 import com.gym.management.repository.TrainerScheduleRepository;
 import com.gym.management.repository.UserRepository;
+import com.gym.management.security.CurrentUserId;
+import com.gym.management.security.CurrentUserRole;
 import com.gym.management.service.TrainerScheduleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,6 +33,8 @@ import java.util.UUID;
 /**
  * Timezone cố định Asia/Ho_Chi_Minh qua bean Clock (xem BookingClockConfig), không gọi trực tiếp
  * LocalDate.now() để test giả lập được thời gian.
+ *
+ * Quyền trên dữ liệu: PT chỉ tạo, sửa, xoá, xem ca của chính mình; SUPER_ADMIN thao tác hộ được mọi PT.
  */
 @Service
 @RequiredArgsConstructor
@@ -51,6 +56,7 @@ public class TrainerScheduleServiceImpl implements TrainerScheduleService {
     @Transactional
     public TrainerScheduleResponse createSchedule(UUID currentUserId, TrainerScheduleRequest request) {
         UUID trainerId = request.getTrainerId() != null ? request.getTrainerId() : currentUserId;
+        requireOwnerOrAdmin(currentUserId, trainerId, "Chỉ Super Admin được tạo ca làm việc thay huấn luyện viên khác");
         User trainer = userRepository.findById(trainerId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy PT"));
 
@@ -72,6 +78,7 @@ public class TrainerScheduleServiceImpl implements TrainerScheduleService {
     public TrainerScheduleResponse updateSchedule(UUID currentUserId, UUID scheduleId, TrainerScheduleRequest request) {
         TrainerSchedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy ca làm việc"));
+        requireOwnerOrAdmin(currentUserId, schedule.getTrainer().getId(), "Bạn chỉ được sửa ca làm việc của chính mình");
 
         // Gán đủ trường TRƯỚC khi validate (REQUIREMENTS.md mục 7 / mục 3 — bug "fail âm thầm" ở .NET)
         schedule.setWorkDate(request.getWorkDate());
@@ -91,12 +98,14 @@ public class TrainerScheduleServiceImpl implements TrainerScheduleService {
     public void deleteSchedule(UUID currentUserId, UUID scheduleId) {
         TrainerSchedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy ca làm việc"));
+        requireOwnerOrAdmin(currentUserId, schedule.getTrainer().getId(), "Bạn chỉ được xoá ca làm việc của chính mình");
         scheduleRepository.delete(schedule);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<TrainerScheduleResponse> listByTrainer(UUID trainerId, LocalDate from, LocalDate to) {
+        requireOwnerOrAdmin(CurrentUserId.get(), trainerId, "Bạn chỉ được xem lịch làm việc của chính mình");
         List<TrainerSchedule> schedules = (from != null && to != null)
                 ? scheduleRepository.findByTrainerIdAndWorkDateBetween(trainerId, from, to)
                 : scheduleRepository.findByTrainerIdAndWorkDate(trainerId, LocalDate.now(clock));
@@ -176,6 +185,17 @@ public class TrainerScheduleServiceImpl implements TrainerScheduleService {
     public boolean isWithinWorkingHours(UUID trainerId, LocalDate date, LocalTime start, LocalTime end) {
         return scheduleRepository.findByTrainerIdAndWorkDateAndActiveTrue(trainerId, date).stream()
                 .anyMatch(s -> !start.isBefore(s.getStartTime()) && !end.isAfter(s.getEndTime()));
+    }
+
+    /** PT chỉ thao tác trên ca của chính mình; SUPER_ADMIN thao tác hộ được mọi PT. */
+    private void requireOwnerOrAdmin(UUID currentUserId, UUID ownerTrainerId, String message) {
+        if (ownerTrainerId != null && ownerTrainerId.equals(currentUserId)) {
+            return;
+        }
+        if (CurrentUserRole.has(RoleName.SUPER_ADMIN.name())) {
+            return;
+        }
+        throw new BusinessException(ErrorCode.AUTH_FORBIDDEN_ROLE, message);
     }
 
     private void validateScheduleTime(LocalDate workDate, LocalTime startTime, LocalTime endTime) {
