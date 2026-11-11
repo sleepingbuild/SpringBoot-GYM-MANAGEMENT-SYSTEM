@@ -14,7 +14,9 @@ Nạp bằng `scripts/dev-seed/00_users.sql` (chạy thủ công trong SSMS trê
 | `member.active@gym.test` | Hội viên (MEMBER) | Có gói ACTIVE còn buổi (cần `10_packages_memberships.sql` của Agent 2) |
 | `member.nopackage@gym.test` | Hội viên (MEMBER) | Chưa có gói: thử bị chặn đặt lịch, `MEMBERSHIP_NOT_FOUND` khi vào phòng tập |
 | `member.expired@gym.test` | Hội viên (MEMBER) | Gói đã hết hạn: thử `MEMBERSHIP_EXPIRED` (cần `10_packages_memberships.sql`) |
-
+| `reception2@gym.test`, `reception3@gym.test` | Lễ tân (RECEPTIONIST) | Thử nhiều nhân sự ở màn Chấm công |
+| `sales2@gym.test` | Sales (SALES) | Thử nhiều nhân sự ở màn Chấm công |
+| `member01@gym.test` đến `member12@gym.test` | Hội viên (MEMBER) | Nhiều hội viên cho tìm kiếm, đăng ký khuôn mặt hộ, lịch sử check-in (không có gói tập) |
 ## Thứ tự nạp dữ liệu mẫu
 
 Chạy từng file trong `scripts/dev-seed/` theo thứ tự tên:
@@ -22,7 +24,7 @@ Chạy từng file trong `scripts/dev-seed/` theo thứ tự tên:
 1. `00_users.sql` (Agent 1): tài khoản ở bảng trên.
 2. `10_packages_memberships.sql` (Agent 2): gói mẫu, gói ACTIVE cho `member.active`, gói hết hạn cho `member.expired`.
 3. `20_bookings.sql` (Agent 3): lịch làm việc PT và booking mẫu.
-4. `40_attendance.sql` (Agent 4, nếu có).
+4. `40_attendance.sql` (Agent 4): chấm công 30 ngày, lượt vào phòng tập, thêm 3 nhân sự (`reception2`, `reception3`, `sales2`) và 12 hội viên (`member01` đến `member12`).
 5. `50_pos.sql` (Agent 5).
 6. `60_leads_reports.sql` (Agent 6).
 
