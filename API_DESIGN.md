@@ -63,6 +63,9 @@
 | `FACE_PROFILE_NOT_FOUND` | Chưa đăng ký hồ sơ khuôn mặt | 404 |
 | `FACE_DESCRIPTOR_INVALID` | Descriptor gửi lên sai định dạng/độ dài | 400 |
 | `PRODUCT_OUT_OF_STOCK` | Sản phẩm hết hàng | 400 |
+| `POS_ORDER_NOT_FOUND` | Không tìm thấy đơn bán lẻ (POS) | 404 |
+| `COMMISSION_NOT_FOUND` | Không tìm thấy bản ghi lương theo buổi | 404 |
+| `TRAINER_PAY_RATE_NOT_FOUND` | PT chưa được đặt mức lương mỗi buổi | 404 |
 | `LEAD_NOT_FOUND` | Không tìm thấy lead | 404 |
 | `LEAD_ALREADY_CONVERTED` | Lead đã chuyển đổi trước đó | 409 |
 | `LEAD_INVALID_STATUS_TRANSITION` | Chuyển trạng thái lead không hợp lệ (ví dụ từ `CONVERTED` về lại, hoặc `LOST` sang `CONTACTED`) | 400 |

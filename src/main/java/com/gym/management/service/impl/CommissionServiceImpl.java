@@ -77,7 +77,7 @@ public class CommissionServiceImpl implements CommissionService {
     @Transactional
     public CommissionResponse markPaid(UUID commissionId) {
         Commission commission = commissionRepository.findById(commissionId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy bản ghi lương"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.COMMISSION_NOT_FOUND, "Không tìm thấy bản ghi lương"));
         if (commission.getStatus() != CommissionStatus.PAID) {
             commission.setStatus(CommissionStatus.PAID);
             commission.setPaidAt(LocalDateTime.now());

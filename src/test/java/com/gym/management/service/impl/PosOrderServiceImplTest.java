@@ -305,6 +305,20 @@ class PosOrderServiceImplTest {
     }
 
     @Test
+    void getByIdAndCancel_unknownOrder_throwPosOrderNotFound() {
+        UUID id = UUID.randomUUID();
+        when(posOrderRepository.findById(id)).thenReturn(Optional.empty());
+
+        for (org.assertj.core.api.ThrowableAssert.ThrowingCallable call : List.<org.assertj.core.api.ThrowableAssert.ThrowingCallable>of(
+                () -> service.getById(id), () -> service.cancelOrder(id))) {
+            assertThatThrownBy(call)
+                    .isInstanceOf(BusinessException.class)
+                    .extracting(e -> ((BusinessException) e).getErrorCode())
+                    .isEqualTo(ErrorCode.POS_ORDER_NOT_FOUND);
+        }
+    }
+
+    @Test
     void cancelOrder_pendingOrder_isRejected() {
         PosOrder order = new PosOrder();
         UUID orderId = UUID.randomUUID();

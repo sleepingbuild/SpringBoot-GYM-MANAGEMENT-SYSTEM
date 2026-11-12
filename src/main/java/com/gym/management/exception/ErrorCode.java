@@ -57,6 +57,9 @@ public enum ErrorCode {
     // ==== POS & Commission (Agent 5) ====
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND),
     PRODUCT_OUT_OF_STOCK(HttpStatus.BAD_REQUEST),
+    POS_ORDER_NOT_FOUND(HttpStatus.NOT_FOUND),
+    COMMISSION_NOT_FOUND(HttpStatus.NOT_FOUND),
+    TRAINER_PAY_RATE_NOT_FOUND(HttpStatus.NOT_FOUND), // PT chưa được đặt mức lương mỗi buổi
     CLASS_NOT_FOUND(HttpStatus.NOT_FOUND),   // tuỳ chọn — chỉ dùng nếu làm thêm Group X
     CLASS_FULL(HttpStatus.CONFLICT),          // tuỳ chọn — chỉ dùng nếu làm thêm Group X
 

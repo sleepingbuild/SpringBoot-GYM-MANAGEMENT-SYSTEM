@@ -2,6 +2,7 @@ package com.gym.management.service.impl;
 
 import com.gym.management.dto.request.TrainerPayRateRequest;
 import com.gym.management.dto.response.TrainerPayRateResponse;
+import com.gym.management.entity.RoleName;
 import com.gym.management.entity.TrainerPayRate;
 import com.gym.management.entity.User;
 import com.gym.management.exception.BusinessException;
@@ -26,7 +27,7 @@ public class TrainerPayRateServiceImpl implements TrainerPayRateService {
     @Transactional(readOnly = true)
     public TrainerPayRateResponse getByTrainerId(UUID trainerId) {
         return toResponse(trainerPayRateRepository.findByTrainerId(trainerId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
+                .orElseThrow(() -> new BusinessException(ErrorCode.TRAINER_PAY_RATE_NOT_FOUND,
                         "PT này chưa được cấu hình lương theo buổi")));
     }
 
@@ -37,6 +38,10 @@ public class TrainerPayRateServiceImpl implements TrainerPayRateService {
                 .orElseGet(() -> {
                     User trainer = userRepository.findById(trainerId)
                             .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy PT"));
+                    // Chỉ huấn luyện viên mới có mức lương mỗi buổi; chặn đặt nhầm cho hội viên/lễ tân qua API.
+                    if (trainer.getRoles().stream().noneMatch(r -> RoleName.TRAINER.name().equals(r.getName()))) {
+                        throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Người dùng này không phải huấn luyện viên");
+                    }
                     TrainerPayRate fresh = new TrainerPayRate();
                     fresh.setTrainer(trainer);
                     return fresh;
