@@ -3,7 +3,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "GMS - Quản lý phòng tập",
+  title: "Quản lý phòng tập",
   description: "Hệ thống quản lý phòng tập Gym Management System",
 };
 
