@@ -32,6 +32,9 @@ import java.util.UUID;
 @Tag(name = "Membership", description = "Đăng ký / nâng cấp / hạ cấp gói tập (Agent 2)")
 public class MembershipController {
 
+    private static final String ROLE_RECEPTIONIST = "RECEPTIONIST";
+    private static final String ROLE_SUPER_ADMIN = "SUPER_ADMIN";
+
     private final MembershipService membershipService;
 
     @PostMapping
@@ -50,7 +53,7 @@ public class MembershipController {
     public ApiResponse<PackagePurchaseResponse> upgrade(@PathVariable UUID id,
                                                         @Valid @RequestBody UpgradeDowngradeRequest request,
                                                         Authentication authentication) {
-        boolean isStaff = isStaffRole(authentication, "RECEPTIONIST", "SUPER_ADMIN");
+        boolean isStaff = isStaffRole(authentication, ROLE_RECEPTIONIST, ROLE_SUPER_ADMIN);
         return ApiResponse.success("Nâng cấp gói tập thành công, chờ xác nhận thanh toán",
                 membershipService.upgradePackage(id, request.getNewPackageId(), request.getBranchId(),
                         CurrentUserId.get(), isStaff));
@@ -62,7 +65,7 @@ public class MembershipController {
     public ApiResponse<PackagePurchaseResponse> downgrade(@PathVariable UUID id,
                                                           @Valid @RequestBody UpgradeDowngradeRequest request,
                                                           Authentication authentication) {
-        boolean isStaff = isStaffRole(authentication, "RECEPTIONIST", "SUPER_ADMIN");
+        boolean isStaff = isStaffRole(authentication, ROLE_RECEPTIONIST, ROLE_SUPER_ADMIN);
         return ApiResponse.success("Đã lên lịch hạ cấp gói tập",
                 membershipService.downgradePackage(id, request.getNewPackageId(), request.getBranchId(),
                         CurrentUserId.get(), isStaff));
@@ -113,7 +116,7 @@ public class MembershipController {
         if (requestedUserId == null || requestedUserId.equals(callerId)) {
             return callerId;
         }
-        if (!isStaffRole(authentication, "RECEPTIONIST", "SUPER_ADMIN")) {
+        if (!isStaffRole(authentication, ROLE_RECEPTIONIST, ROLE_SUPER_ADMIN)) {
             throw new AccessDeniedException("Chỉ Lễ tân/Admin mới được đăng ký gói hộ người khác");
         }
         return requestedUserId;

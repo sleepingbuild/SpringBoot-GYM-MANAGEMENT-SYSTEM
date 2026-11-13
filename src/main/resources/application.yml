@@ -55,6 +55,10 @@ springdoc:
 
 # ==== Cấu hình riêng GMS ====
 gms:
+  cors:
+    # Các origin được gọi API, cách nhau bằng dấu phẩy. Khi triển khai (Render + Vercel) đặt GMS_CORS_ALLOWED_ORIGINS
+    # thành địa chỉ web, ví dụ https://gms.vercel.app. Mặc định * chỉ để chạy máy cá nhân.
+    allowed-origins: "${GMS_CORS_ALLOWED_ORIGINS:*}"
   jwt:
     # Bắt buộc phải cung cấp (application-local.yml hoặc biến môi trường GMS_JWT_SECRET). Cố ý KHÔNG có giá trị mặc định.
     secret: "${GMS_JWT_SECRET}"
