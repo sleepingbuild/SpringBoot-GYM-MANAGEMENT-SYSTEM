@@ -18,4 +18,6 @@ public interface PosOrderRepository extends JpaRepository<PosOrder, UUID> {
                            @Param("from") LocalDateTime from,
                            @Param("to") LocalDateTime to,
                            Pageable pageable);
+
+    Page<PosOrder> findByMemberId(UUID memberId, Pageable pageable);
 }

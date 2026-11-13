@@ -171,6 +171,9 @@ Quét tự phục vụ (`/face-attendance/self`) dùng chung quy tắc với kio
 | GET | `/api/v1/pos/orders/{id}` | Receptionist/Admin |
 | GET | `/api/v1/pos/orders?branchId=...&from=...&to=...` | Receptionist/Admin — phân trang, mặc định hôm nay |
 | POST | `/api/v1/pos/orders/{id}/cancel` | Receptionist/Admin — huỷ đơn `COMPLETED`: hoàn tiền giao dịch của đơn (`PaymentService.refundByRelated`), rồi hoàn tồn kho; không hoàn được tiền thì không huỷ (`PAYMENT_NOT_REFUNDABLE`); huỷ lại không hoàn thêm |
+| POST | `/api/v1/pos/my-orders` | Member — tự mua hàng. Body chỉ gồm `branchId?` và `items[]` (không có `memberId`, `paymentMethod`): người mua luôn là người đăng nhập, thanh toán mô phỏng `LOCAL_CONFIRM` thành công ngay, trừ kho và thu tiền trong 1 transaction. Đơn có `staffId = null` (migration `V5_1` cho phép `pos_orders.staff_id` NULL) |
+| GET | `/api/v1/pos/my-orders` | Member — đơn của chính mình, phân trang, mới nhất trước |
+| GET | `/api/v1/pos/my-orders/{id}` | Member — đơn của người khác trả 404 `POS_ORDER_NOT_FOUND` (không lộ việc đơn có tồn tại). Member không tự huỷ đơn; huỷ vẫn do Receptionist/Admin qua `/pos/orders/{id}/cancel` |
 | GET | `/api/v1/commissions/me` | Trainer — lương theo buổi của chính mình, phân trang |
 | GET | `/api/v1/commissions?staffId=...&month=yyyy-MM` | Admin — phân trang |
 | POST | `/api/v1/commissions/{id}/mark-paid` | Admin — `PENDING` → `PAID`, ghi `paid_at` |
