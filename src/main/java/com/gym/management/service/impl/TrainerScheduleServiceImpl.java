@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +52,13 @@ public class TrainerScheduleServiceImpl implements TrainerScheduleService {
 
     @Value("${gms.booking.slot-duration-minutes:60}")
     private int slotDurationMinutes;
+
+    /** Khung ngoài giờ toàn hệ thống (HH:mm). Cuối khung 23:59 hiển thị là 24:00 vì cột time không lưu được 24:00. */
+    @Value("${gms.booking.off-hours-start:21:00}")
+    private String offHoursStart = "21:00";
+
+    @Value("${gms.booking.off-hours-end:23:59}")
+    private String offHoursEnd = "23:59";
 
     @Override
     @Transactional
@@ -185,6 +193,60 @@ public class TrainerScheduleServiceImpl implements TrainerScheduleService {
     public boolean isWithinWorkingHours(UUID trainerId, LocalDate date, LocalTime start, LocalTime end) {
         return scheduleRepository.findByTrainerIdAndWorkDateAndActiveTrue(trainerId, date).stream()
                 .anyMatch(s -> !start.isBefore(s.getStartTime()) && !end.isAfter(s.getEndTime()));
+    }
+
+    @Override
+    public boolean isWithinOffHours(LocalTime start, LocalTime end) {
+        return !start.isBefore(offStart()) && !end.isAfter(offEnd());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AvailableSlotResponse> findOffHoursSlots(UUID trainerId, LocalDate date) {
+        LocalTime windowStart = offStart();
+        LocalTime windowEnd = offEnd();
+
+        List<Booking> taken = bookingRepository
+                .findByTrainerIdOrderByBookingDateDescStartTimeDesc(trainerId).stream()
+                .filter(b -> b.getBookingDate().equals(date) && !SLOT_RELEASED_STATUSES.contains(b.getStatus()))
+                .toList();
+
+        LocalDateTime earliest = LocalDateTime.now(clock).plusMinutes(30);
+
+        List<AvailableSlotResponse> result = new ArrayList<>();
+        LocalTime cursor = windowStart;
+        while (cursor.isBefore(windowEnd)) {
+            LocalTime next = cursor.plusMinutes(slotDurationMinutes);
+            // Cộng quá nửa đêm (quay về 00:xx) hoặc vượt cuối khung thì cắt ở cuối khung.
+            LocalTime slotEnd = (next.isAfter(cursor) && !next.isAfter(windowEnd)) ? next : windowEnd;
+            final LocalTime slotStart = cursor;
+            final LocalTime end = slotEnd;
+
+            boolean occupied = taken.stream()
+                    .anyMatch(b -> b.getStartTime().isBefore(end) && b.getEndTime().isAfter(slotStart));
+            boolean tooSoon = LocalDateTime.of(date, slotStart).isBefore(earliest);
+            // Slot nằm trong ca của PT đã có ở danh sách slot trong ca (tự xác nhận), không lặp lại ở đây.
+            boolean inShift = isWithinWorkingHours(trainerId, date, slotStart, end);
+
+            if (!occupied && !tooSoon && !inShift) {
+                result.add(AvailableSlotResponse.builder()
+                        .trainerId(trainerId)
+                        .date(date)
+                        .startTime(slotStart)
+                        .endTime(end)
+                        .build());
+            }
+            cursor = slotEnd;
+        }
+        return result;
+    }
+
+    private LocalTime offStart() {
+        return LocalTime.parse(offHoursStart);
+    }
+
+    private LocalTime offEnd() {
+        return LocalTime.parse(offHoursEnd);
     }
 
     /** PT chỉ thao tác trên ca của chính mình; SUPER_ADMIN thao tác hộ được mọi PT. */

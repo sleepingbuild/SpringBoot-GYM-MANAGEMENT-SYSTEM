@@ -134,6 +134,7 @@
 | GET/POST/PUT/DELETE | `/api/v1/trainer-schedules` | Trainer (của chính mình) / Admin |
 | GET | `/api/v1/trainer-schedules/available?trainerId=...&date=...` | Member / Lễ tân / Admin — xem slot trống |
 | GET | `/api/v1/trainer-schedules/trainers?date=...` | Member / Lễ tân / Admin — các PT đang hoạt động còn ít nhất một slot trống trong ngày: `trainerId`, `trainerName`, `availableSlotCount`, xếp theo tên |
+| GET | `/api/v1/trainer-schedules/off-hours?trainerId=...&date=...` | Member / Lễ tân / Admin — khung giờ ngoài giờ còn trống của PT (mặc định 21:00 đến 23:59, cấu hình `gms.booking.off-hours-start` / `off-hours-end`; trừ slot nằm trong ca của PT, slot đã có người đặt và slot quá sát giờ). Đặt trong ca làm việc của PT: booking `CONFIRMED` ngay. Đặt trong khung ngoài giờ: booking `PENDING`, chờ PT xác nhận. Giờ khác: `BOOKING_OUT_OF_WORKING_HOURS`. Cuối khung 23:59 hiển thị là 24:00 |
 | POST | `/api/v1/bookings` | Member (tự đặt) / Receptionist (đặt hộ) |
 | PUT | `/api/v1/bookings/{id}` | Member/Receptionist (sửa lịch, áp lại đủ rule) |
 | POST | `/api/v1/bookings/{id}/confirm` | Trainer |

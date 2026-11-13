@@ -99,7 +99,8 @@ public class BookingServiceImpl implements BookingService {
                 .build();
 
         // BƯỚC 2: validate sau khi đã gán đủ.
-        validateBookingRules(booking, null);
+        boolean offHours = validateBookingRules(booking, null);
+        booking.setStatus(offHours ? BookingStatus.PENDING : BookingStatus.CONFIRMED);
 
         return toResponse(bookingRepository.save(booking));
     }
@@ -134,7 +135,8 @@ public class BookingServiceImpl implements BookingService {
         booking.setEndTime(request.getEndTime());
         booking.setNotes(request.getNotes());
 
-        validateBookingRules(booking, bookingId);
+        boolean offHours = validateBookingRules(booking, bookingId);
+        booking.setStatus(offHours ? BookingStatus.PENDING : BookingStatus.CONFIRMED);
 
         return toResponse(bookingRepository.save(booking));
     }
@@ -407,7 +409,7 @@ public class BookingServiceImpl implements BookingService {
     // Validate rules (Issue 3.2)
     // ------------------------------------------------------------------
 
-    private void validateBookingRules(Booking booking, UUID excludeBookingId) {
+    private boolean validateBookingRules(Booking booking, UUID excludeBookingId) {
         LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime bookingStart = LocalDateTime.of(booking.getBookingDate(), booking.getStartTime());
         UUID exclude = excludeBookingId != null ? excludeBookingId : BookingRepository.NO_EXCLUDE;
@@ -425,8 +427,13 @@ public class BookingServiceImpl implements BookingService {
         // 2. Không đặt được ngoài ca làm việc thật của PT
         boolean withinWorkingHours = trainerScheduleService.isWithinWorkingHours(
                 booking.getTrainer().getId(), booking.getBookingDate(), booking.getStartTime(), booking.getEndTime());
+        boolean offHours = false;
         if (!withinWorkingHours) {
-            throw new BusinessException(ErrorCode.BOOKING_OUT_OF_WORKING_HOURS, "Ngoài ca làm việc thật của PT");
+            // Ngoài ca: chỉ cho đặt trong khung ngoài giờ (booking chờ PT xác nhận), còn lại từ chối.
+            offHours = trainerScheduleService.isWithinOffHours(booking.getStartTime(), booking.getEndTime());
+            if (!offHours) {
+                throw new BusinessException(ErrorCode.BOOKING_OUT_OF_WORKING_HOURS, "Ngoài ca làm việc thật của PT");
+            }
         }
 
         // 3. Tối đa 1 người/khung giờ/PT — chồng khoảng giờ là trùng (10:00-11:00 vs 10:30-11:30)
@@ -485,6 +492,9 @@ public class BookingServiceImpl implements BookingService {
                                 + " buổi chờ thực hiện, không thể đặt thêm");
             }
         }
+
+        // true = đặt ngoài ca (khung ngoài giờ), cần PT xác nhận; false = trong ca, tự xác nhận.
+        return offHours;
     }
 
     /**
