@@ -4,6 +4,7 @@ import com.gym.management.security.JwtAuthenticationFilter;
 import com.gym.management.security.RestAccessDeniedHandler;
 import com.gym.management.security.RestAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -23,6 +24,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -42,6 +44,13 @@ public class SecurityConfig {
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
 
+    /**
+     * Các origin được gọi API, cách nhau bằng dấu phẩy (biến môi trường GMS_CORS_ALLOWED_ORIGINS).
+     * Mặc định * để chạy máy cá nhân và Docker demo. Khi triển khai thật phải đặt đúng địa chỉ web, ví dụ https://gms.vercel.app.
+     */
+    @Value("${gms.cors.allowed-origins:*}")
+    private String allowedOrigins;
+
     private static final String[] PUBLIC_ENDPOINTS = {
             "/api/v1/auth/**",
             "/api/v1/payments/webhook",
@@ -49,8 +58,8 @@ public class SecurityConfig {
             "/swagger-ui/**", "/swagger-ui.html",
             "/v3/api-docs/**",
             "/actuator/health",
-            // Số liệu cho Prometheus. Mặc định endpoint này KHÔNG được mở (trả 404); chỉ có khi đặt
-            // management.endpoints.web.exposure.include có "prometheus" (xem docker-compose.monitoring.yml).
+            // Số liệu cho Prometheus: mặc định endpoint này không được mở và trả 404. Chỉ có khi cấu hình
+            // exposure của management bật prometheus, xem docker-compose.monitoring.yml.
             "/actuator/prometheus"
     };
 
@@ -66,8 +75,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         // Story G3 (Agent 2): khách chưa đăng nhập xem được gói tập đang mở bán.
-                        // Rule "/admin" PHẢI đứng trước vì "/{id}" cũng khớp chữ "admin";
-                        // phần phân quyền Super Admin vẫn do @PreAuthorize ở PackageController đảm nhiệm.
+                        // Quy tắc cho đường dẫn admin phải đứng trước, vì mẫu theo id cũng khớp chữ admin.
+                        // Phân quyền Super Admin vẫn do PreAuthorize ở PackageController đảm nhiệm.
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/packages/admin",
                                 "/api/v1/packages/admin/**").authenticated()
@@ -84,7 +93,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*")); // TODO: siết lại domain thật khi có frontend
+        config.setAllowedOriginPatterns(parseOrigins(allowedOrigins));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -92,6 +101,15 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
+    }
+
+    /** Tách danh sách origin theo dấu phẩy, bỏ khoảng trắng và mục rỗng. Rỗng hoặc thiếu thì coi như * (cho phép mọi origin). */
+    static List<String> parseOrigins(String raw) {
+        List<String> origins = Arrays.stream((raw == null ? "" : raw).split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList();
+        return origins.isEmpty() ? List.of("*") : origins;
     }
 
     @Bean
