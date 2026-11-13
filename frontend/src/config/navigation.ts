@@ -34,6 +34,7 @@ export const NAVIGATION: NavGroup[] = [
       { href: "/my-membership", label: "Gói của tôi", roles: ["MEMBER"], status: "ready", owner: "Agent 2" },
       { href: "/payments", label: "Thanh toán", roles: ["RECEPTIONIST"], status: "ready", owner: "Agent 2" },
       { href: "/admin/packages", label: "Quản trị gói", roles: ["SUPER_ADMIN"], status: "ready", owner: "Agent 2" },
+      { href: "/admin/users", label: "Người dùng", roles: ["SUPER_ADMIN"], status: "ready", owner: "Agent 1" },
     ],
   },
   {
