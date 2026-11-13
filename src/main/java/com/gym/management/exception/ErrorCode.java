@@ -20,6 +20,10 @@ public enum ErrorCode {
     AUTH_EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT),
     AUTH_PHONE_ALREADY_EXISTS(HttpStatus.CONFLICT),
 
+    // ==== Quản trị tài khoản (Agent 1) ====
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND),
+    USER_SELF_CHANGE_FORBIDDEN(HttpStatus.CONFLICT), // Super Admin không tự đổi vai trò / tự khoá chính mình
+
     // ==== Profile (Agent 1) ====
     PROFILE_INVALID_AGE(HttpStatus.BAD_REQUEST),
     PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND),

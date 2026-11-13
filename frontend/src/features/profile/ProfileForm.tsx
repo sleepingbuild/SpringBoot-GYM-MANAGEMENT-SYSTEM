@@ -6,6 +6,7 @@ import { Button, Spinner } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { errorMessage } from "@/lib/api/errors";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { useToast } from "@/lib/toast";
 import type { Profile } from "@/lib/types";
 import { getMyProfile, updateMyProfile } from "./api";
@@ -22,6 +23,8 @@ function toForm(p: Profile): ProfileFormValues {
 
 export function ProfileForm() {
   const toast = useToast();
+  const { user } = useAuth();
+  const isMember = user?.roles.includes("MEMBER") ?? false;
   const [profile, setProfile] = useState<Profile | null>(null);
   const [values, setValues] = useState<ProfileFormValues>({ dateOfBirth: "", weightKg: "", heightCm: "", goal: "" });
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -72,7 +75,10 @@ export function ProfileForm() {
 
   return (
     <div>
-      <PageHeader title="Hồ sơ cá nhân" description="Thông tin này giúp huấn luyện viên theo dõi tiến độ tập của bạn." />
+      <PageHeader
+        title="Hồ sơ cá nhân"
+        description={isMember ? "Thông tin này giúp huấn luyện viên theo dõi tiến độ tập của bạn." : "Thông tin tài khoản của bạn."}
+      />
       <form onSubmit={onSubmit} className="panel max-w-xl space-y-4 p-5" noValidate>
         {saveError && <Alert tone="error">{saveError}</Alert>}
 
@@ -87,22 +93,26 @@ export function ProfileForm() {
           </div>
         </div>
 
-        <Field
-          label="Ngày sinh"
-          type="date"
-          value={values.dateOfBirth}
-          onChange={set("dateOfBirth")}
-          hint={profile.age !== null ? `Hiện ${profile.age} tuổi. Cần từ 18 tuổi trở lên tính đến ngày đăng ký.` : "Cần từ 18 tuổi trở lên tính đến ngày đăng ký."}
-        />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Cân nặng (kg)" inputMode="decimal" value={values.weightKg} onChange={set("weightKg")} />
-          <Field label="Chiều cao (cm)" inputMode="decimal" value={values.heightCm} onChange={set("heightCm")} />
-        </div>
-        <Field label="Mục tiêu" maxLength={255} value={values.goal} onChange={set("goal")} hint="Ví dụ: tăng cơ, giảm mỡ, tăng sức bền." />
+        {isMember && (
+          <>
+            <Field
+              label="Ngày sinh"
+              type="date"
+              value={values.dateOfBirth}
+              onChange={set("dateOfBirth")}
+              hint={profile.age !== null ? `Hiện ${profile.age} tuổi. Cần từ 18 tuổi trở lên tính đến ngày đăng ký.` : "Cần từ 18 tuổi trở lên tính đến ngày đăng ký."}
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Cân nặng (kg)" inputMode="decimal" value={values.weightKg} onChange={set("weightKg")} />
+              <Field label="Chiều cao (cm)" inputMode="decimal" value={values.heightCm} onChange={set("heightCm")} />
+            </div>
+            <Field label="Mục tiêu" maxLength={255} value={values.goal} onChange={set("goal")} hint="Ví dụ: tăng cơ, giảm mỡ, tăng sức bền." />
 
-        <Button type="submit" loading={saving}>
-          Lưu thay đổi
-        </Button>
+            <Button type="submit" loading={saving}>
+              Lưu thay đổi
+            </Button>
+          </>
+        )}
       </form>
     </div>
   );

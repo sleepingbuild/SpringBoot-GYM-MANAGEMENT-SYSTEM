@@ -40,6 +40,8 @@
 | `AUTH_FORBIDDEN_ROLE` | Không đủ quyền | 403 |
 | `AUTH_EMAIL_ALREADY_EXISTS` | Email đã dùng | 409 |
 | `AUTH_PHONE_ALREADY_EXISTS` | Số điện thoại đã dùng | 409 |
+| `USER_NOT_FOUND` | Không tìm thấy tài khoản (quản trị) | 404 |
+| `USER_SELF_CHANGE_FORBIDDEN` | Super Admin không tự đổi vai trò / tự khoá chính mình | 409 |
 | `PROFILE_INVALID_AGE` | Tuổi < 18 (so với ngày đăng ký) | 400 |
 | `PACKAGE_NOT_FOUND` | Không tìm thấy gói tập | 404 |
 | `MEMBERSHIP_NOT_FOUND` | Không tìm thấy đăng ký gói | 404 |
@@ -96,6 +98,11 @@
 | Method | Endpoint | Role |
 |---|---|---|
 | GET | `/api/v1/users?role=MEMBER&q=&page=&size=` | Receptionist/Super Admin — tìm hội viên đang hoạt động theo tên, số điện thoại hoặc email. Chỉ trả `id`, `fullName`, `phone`, `email`. `role` chỉ nhận `MEMBER` (giá trị khác trả 400 `VALIDATION_ERROR`). Sắp theo tên, `size` tối đa 50 |
+| GET | `/api/v1/admin/users?group=CUSTOMER\|STAFF&q=&status=&page=&size=` | Super Admin — danh sách khách hàng (`CUSTOMER`, vai trò MEMBER) hoặc nhân viên (`STAFF`: SUPER_ADMIN, RECEPTIONIST, TRAINER, SALES); tìm theo tên/email/số điện thoại; `status` rỗng = tất cả, hoặc `ACTIVE`/`INACTIVE`. Trả `id`, `fullName`, `email`, `phone`, `status`, `roles`. `size` tối đa 50 |
+| POST | `/api/v1/admin/users` | Super Admin — tạo tài khoản nhân viên (`fullName`, `email`, `phone?`, `password`, `roles[]`); không nhận vai trò MEMBER. 409 `AUTH_EMAIL_ALREADY_EXISTS` / `AUTH_PHONE_ALREADY_EXISTS` |
+| PUT | `/api/v1/admin/users/{id}` | Super Admin — sửa `fullName`, `phone`. 404 `USER_NOT_FOUND` |
+| PUT | `/api/v1/admin/users/{id}/roles` | Super Admin — gán vai trò (`roles[]`). MEMBER không được kết hợp với vai trò nhân viên (400 `VALIDATION_ERROR`); không tự đổi vai trò của mình (409 `USER_SELF_CHANGE_FORBIDDEN`). Có hiệu lực ngay ở request kế tiếp vì quyền được đọc lại từ CSDL mỗi request |
+| PUT | `/api/v1/admin/users/{id}/status` | Super Admin — `status` = `ACTIVE` (mở) hoặc `INACTIVE` (khoá); không tự khoá mình. Tài khoản bị khoá không đăng nhập được và token còn hạn cũng bị từ chối ngay |
 | GET | `/api/v1/trainers` | Mọi người dùng đã đăng nhập — huấn luyện viên đang hoạt động: `id`, `fullName`, `avatarUrl` |
 | GET | `/api/v1/branches` | Mọi người dùng đã đăng nhập — chi nhánh đang hoạt động: `id`, `name` |
 

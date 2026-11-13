@@ -32,7 +32,7 @@ export function RegisterForm() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (status === "authenticated") router.replace("/dashboard");
+    if (status === "authenticated") router.replace("/");
   }, [status, router]);
 
   function validate(): FieldErrors {
