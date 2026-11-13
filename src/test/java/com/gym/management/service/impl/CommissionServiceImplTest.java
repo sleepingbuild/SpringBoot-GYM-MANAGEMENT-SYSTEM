@@ -130,7 +130,10 @@ class CommissionServiceImplTest {
         UUID id = UUID.randomUUID();
         when(commissionRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.markPaid(id)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> service.markPaid(id))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(com.gym.management.exception.ErrorCode.COMMISSION_NOT_FOUND);
     }
 
     @Test
