@@ -143,6 +143,12 @@
 | GET | `/api/v1/bookings/me` | Member/Trainer — lọc tuỳ chọn `status`, `from`, `to` (`yyyy-MM-dd`); lọc theo trạng thái sau khi áp lazy-status |
 | GET | `/api/v1/bookings/{id}` | Member/Trainer/Receptionist/Admin — chi tiết một buổi; chỉ chủ buổi (học viên hoặc PT) hoặc nhân viên, người khác bị `AUTH_FORBIDDEN_ROLE` |
 | GET | `/api/v1/bookings?date=...&branchId=...` | Receptionist/Admin — `branchId` không bắt buộc; bỏ trống thì liệt kê mọi chi nhánh (kể cả buổi chưa gắn chi nhánh) |
+| `ptCheckInTime` | Giờ PT quét vào buổi. `null` nếu PT chưa quét vào |
+| `ptCheckInMethod` | Cách ghi nhận giờ vào của PT |
+| `ptCheckOutTime` | Giờ PT quét ra. `null` cho tới khi PT quét ra (nghĩa là buổi đang diễn ra hoặc PT chưa quét ra) |
+| `ptCheckOutMethod` | Cách ghi nhận giờ ra của PT |
+| `ptEarlyLeaveReason` | Lý do PT rời sớm, nếu có |
+| `fullDuration` | Tính động, không lưu DB. `null` = PT chưa quét ra; `true` = ra từ giờ kết thúc trở đi, hoặc ra sớm nhưng có lý do; `false` = ra sớm không lý do |
 
 ### Face Attendance & Chấm công (Agent 4)
 | Method | Endpoint | Role |
