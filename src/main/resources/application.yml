@@ -14,6 +14,12 @@ spring:
     # Mật khẩu mặc định chỉ cho môi trường dev, trùng với docker-compose.yml. Triển khai thật phải đặt DB_PASSWORD.
     password: "${DB_PASSWORD:GmsStrongP@ss123}"
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    hikari:
+      data-source-properties:
+        # BẮT BUỘC với SQL Server: mặc định mssql-jdbc gửi tham số giờ (LocalTime) lên dưới dạng datetime,
+        # nên mọi truy vấn so sánh cột TIME (start_time, end_time của bookings và trainer_schedules) với
+        # tham số giờ đều lỗi "The data types time and datetime are incompatible" (đặt lịch PT trả 500).
+        sendTimeAsDatetime: false
 
   jpa:
     hibernate:
