@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { useToast } from "@/lib/toast";
 import type { Profile } from "@/lib/types";
 import { getMyProfile, updateMyProfile } from "./api";
+import { MemberStatsPanel } from "./MemberStatsPanel";
 import { type ProfileFormValues, toRequest } from "./toRequest";
 
 function toForm(p: Profile): ProfileFormValues {
@@ -114,6 +115,8 @@ export function ProfileForm() {
           </>
         )}
       </form>
+
+      {isMember && <MemberStatsPanel />}
     </div>
   );
 }
