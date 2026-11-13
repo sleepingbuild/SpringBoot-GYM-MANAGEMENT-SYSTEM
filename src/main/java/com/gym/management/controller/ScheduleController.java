@@ -79,4 +79,13 @@ public class ScheduleController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ApiResponse.success(scheduleService.findAvailableSlots(trainerId, date));
     }
+
+    @GetMapping("/off-hours")
+    @PreAuthorize("hasAnyRole('MEMBER', 'RECEPTIONIST', 'SUPER_ADMIN')")
+    @Operation(summary = "Khung giờ ngoài giờ còn trống của PT trong 1 ngày (đặt xong phải chờ PT xác nhận)")
+    public ApiResponse<List<AvailableSlotResponse>> offHours(
+            @RequestParam UUID trainerId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ApiResponse.success(scheduleService.findOffHoursSlots(trainerId, date));
+    }
 }
