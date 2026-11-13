@@ -117,7 +117,7 @@
 | GET | `/api/v1/packages/admin/{id}` | Super Admin — chi tiết 1 gói bất kể trạng thái |
 | POST | `/api/v1/packages` | Super Admin |
 | PUT/DELETE | `/api/v1/packages/{id}` | Super Admin (DELETE = ngừng bán, `is_active = false`) |
-| POST | `/api/v1/member-packages` | Receptionist (bán gói) hoặc Member (tự mua) |
+| POST | `/api/v1/member-packages` | Receptionist (bán gói) hoặc Member (đăng ký) — gói ở trạng thái PENDING, chờ xác nhận thanh toán; Member muốn có gói ngay dùng `/purchase` |
 | POST | `/api/v1/member-packages/purchase` | Member — tự mua gói cho chính mình, thanh toán mô phỏng thành công ngay (phương thức `LOCAL_CONFIRM`), gói chuyển ACTIVE luôn. Body `{ "packageId": "...", "branchId": "..." }` (`branchId` tùy chọn; không có `userId`, người mua luôn là người đăng nhập). Lỗi: `PACKAGE_NOT_FOUND`, `MEMBERSHIP_PENDING_EXISTS`. Response: `memberPackage` (ACTIVE, có `remainingSessions`, `endDate`) và `paymentTransaction` (SUCCESS) |
 | GET | `/api/v1/member-packages/me` | Member, Trainer, Receptionist, Super Admin — gói ACTIVE của chính mình (dùng `getCurrentMembership`); không có gói ACTIVE trả `MEMBERSHIP_NOT_FOUND` |
 | GET | `/api/v1/member-packages/me/history` | Như trên — lịch sử toàn bộ gói của chính mình (mọi trạng thái), phân trang |
