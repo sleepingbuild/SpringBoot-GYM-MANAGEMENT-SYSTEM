@@ -136,13 +136,16 @@ pipeline {
             }
             steps {
                 powershell '''
-                    $ErrorActionPreference = "Stop"
-                    docker info *> $null
-                    if ($LASTEXITCODE -ne 0) { throw "Docker khong chay hoac tai khoan Jenkins khong dung duoc Docker (mo Docker Desktop)" }
+                    # PowerShell 5.1: lenh native ghi stderr (tien trinh build cua Docker) se thanh loi neu dung "Stop".
+                    # Nen dung "Continue" va tu kiem tra $LASTEXITCODE sau moi lenh docker.
+                    $ErrorActionPreference = "Continue"
+                    docker version --format "{{.Server.Version}}" | Out-Null
+                    if ($LASTEXITCODE -ne 0) { throw "Docker khong chay hoac tai khoan Jenkins khong dung duoc Docker (mo Docker Desktop, them tai khoan vao nhom docker-users)" }
 
-                    # SQL Server, Redis, db-init duoc giu nguyen (du lieu khong mat); chi dung lai backend va frontend.
+                    # Ten du an co dinh "gms-demo" (khai bao trong file compose) nen Jenkins cap nhat DUNG cac container dang chay.
+                    # SQL Server, Redis, volume du lieu duoc giu nguyen; chi dung lai backend va frontend tu ma nguon vua checkout.
                     docker compose -f $env:DEMO_COMPOSE up -d --build backend frontend
-                    if ($LASTEXITCODE -ne 0) { throw "docker compose up that bai" }
+                    if ($LASTEXITCODE -ne 0) { throw "docker compose up that bai (xem log build o tren)" }
 
                     $targets = @($env:DEMO_API_URL, $env:DEMO_WEB_URL)
                     foreach ($url in $targets) {
