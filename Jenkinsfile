@@ -12,7 +12,7 @@ pipeline {
     options {
         timestamps()
         disableConcurrentBuilds()
-        timeout(time: 25, unit: 'MINUTES')
+        timeout(time: 45, unit: 'MINUTES')
         buildDiscarder(logRotator(numToKeepStr: '20'))
     }
 
@@ -29,6 +29,10 @@ pipeline {
         SERVICE     = 'GymManagementSystem'
         // Đổi cho đúng cổng/đường dẫn của ứng dụng (Swagger/springdoc hoặc actuator).
         APP_URL     = 'http://localhost:8081/v3/api-docs'
+        // Ban Docker demo (docker-compose.demo.yml): web 3000, API 8082. Doi neu dat GMS_WEB_PORT/GMS_API_PORT khac.
+        DEMO_COMPOSE = 'docker-compose.demo.yml'
+        DEMO_WEB_URL = 'http://localhost:3000/'
+        DEMO_API_URL = 'http://localhost:8082/actuator/health'
     }
 
     stages {
@@ -103,8 +107,9 @@ pipeline {
             }
             steps {
                 powershell '''
+                    # Spring Boot + Flyway co the khoi dong cham khi may dang chay nhieu container: cho toi da ~6 phut
                     $ok = $false
-                    for ($i = 1; $i -le 20; $i++) {
+                    for ($i = 1; $i -le 60; $i++) {
                         try {
                             $r = Invoke-WebRequest -Uri $env:APP_URL -UseBasicParsing -TimeoutSec 10
                             if ($r.StatusCode -eq 200) { $ok = $true; break }
@@ -113,8 +118,49 @@ pipeline {
                         }
                         Start-Sleep -Seconds 5
                     }
-                    if (-not $ok) { Write-Host "Verify that bai"; exit 1 }
+                    if (-not $ok) {
+                        $svc = Get-Service -Name $env:SERVICE -ErrorAction SilentlyContinue
+                        Write-Host "Verify that bai. Dich vu $env:SERVICE dang: $($svc.Status). Xem log cua dich vu trong $env:DEPLOY_DIR"
+                        exit 1
+                    }
                     Write-Host "Verify OK: $env:APP_URL tra ve 200"
+                '''
+            }
+        }
+
+        // Sau khi backend (dich vu Windows) da trien khai va Verify xanh: dung lai image web + API trong Docker
+        // tu CHINH ma nguon vua checkout trong workspace nay, roi doi cho den khi hai dich vu tra loi.
+        stage('Docker web') {
+            when {
+                expression { env.GIT_BRANCH in ['origin/main', 'main', 'origin/master', 'master'] }
+            }
+            steps {
+                powershell '''
+                    $ErrorActionPreference = "Stop"
+                    docker info *> $null
+                    if ($LASTEXITCODE -ne 0) { throw "Docker khong chay hoac tai khoan Jenkins khong dung duoc Docker (mo Docker Desktop)" }
+
+                    # SQL Server, Redis, db-init duoc giu nguyen (du lieu khong mat); chi dung lai backend va frontend.
+                    docker compose -f $env:DEMO_COMPOSE up -d --build backend frontend
+                    if ($LASTEXITCODE -ne 0) { throw "docker compose up that bai" }
+
+                    $targets = @($env:DEMO_API_URL, $env:DEMO_WEB_URL)
+                    foreach ($url in $targets) {
+                        $ok = $false
+                        for ($i = 1; $i -le 40; $i++) {
+                            try {
+                                $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 10
+                                if ($r.StatusCode -eq 200) { $ok = $true; break }
+                            } catch {
+                                Write-Host "Lan $i $url chua san sang: $($_.Exception.Message)"
+                            }
+                            Start-Sleep -Seconds 5
+                        }
+                        if (-not $ok) { throw "Docker web that bai: $url khong tra ve 200" }
+                        Write-Host "Docker OK: $url tra ve 200"
+                    }
+
+                    docker image prune -f | Out-Null
                 '''
             }
         }
