@@ -87,7 +87,7 @@ Thời gian từ backend là `LocalDateTime` giờ Việt Nam, không có múi g
 - Ngưỡng so khớp đặt ở backend: `gms.face-attendance.match-threshold` (mặc định `0.45`). Frontend không giữ ngưỡng.
 - `npm run build` có hai cảnh báo `Critical dependency: require function` từ `face-api.esm.js`. Build vẫn thành công.
 
-**Camera.**`getUserMedia` chỉ chạy ở `localhost` hoặc HTTPS. 
+**Camera.** `getUserMedia` chỉ chạy ở `localhost` hoặc HTTPS. 
 Thử kiosk trên chính máy chạy frontend thì dùng `http://localhost:3000`. Thiết bị khác (điện thoại) cần HTTPS: ưu tiên `next dev --experimental-https` trong mạng nội bộ. Chỉ dùng đường hầm công khai (ngrok) khi thật cần và tắt ngay sau khi thử, vì phiên bản Next.js hiện tại có cảnh báo bảo mật (xem mục dưới).
 
 ## Bán lẻ (POS) và lương PT (Agent 5)
