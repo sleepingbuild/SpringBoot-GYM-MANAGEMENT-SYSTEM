@@ -25,7 +25,7 @@ Tài khoản đăng nhập thử: xem `docs/TEST_ACCOUNTS.md` (Agent 1 sẽ thê
 src/
   app/                    Trang (App Router)
     login/, register/     Công khai
-    (app)/                Mọi trang cần đăng nhập (có khung menu): dashboard, profile và các module
+    (app)/                Mọi trang cần đăng nhập (có khung menu): profile và các module
   components/
     ui/                   Thành phần dùng chung (Agent 1): Button, Field, Alert, PageHeader, EmptyState...
     layout/               AppShell (kiểm tra phiên + menu theo vai trò), RequireRole

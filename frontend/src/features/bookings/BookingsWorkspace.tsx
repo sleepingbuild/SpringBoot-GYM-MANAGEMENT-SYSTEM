@@ -5,7 +5,6 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { hasAnyRole } from "@/lib/roles";
 import { BookingCreate } from "./BookingCreate";
 import { MemberBookings } from "./MemberBookings";
-import { StaffBookings } from "./StaffBookings";
 
 type TabKey = "mine" | "create";
 
@@ -14,14 +13,9 @@ const MEMBER_TABS: { key: TabKey; label: string }[] = [
   { key: "create", label: "Đặt lịch" },
 ];
 
-const STAFF_TABS: { key: TabKey; label: string }[] = [
-  { key: "mine", label: "Lịch theo ngày" },
-  { key: "create", label: "Đặt hộ hội viên" },
-];
-
 /**
  * Hoi vien: tab "Buoi cua toi" va "Dat lich".
- * Le tan, admin: tab "Lich theo ngay" va "Dat ho hoi vien".
+ * Le tan, admin: chi con man hinh "Dat ho hoi vien" (khong con lich theo ngay).
  */
 export function BookingsWorkspace() {
   const { user } = useAuth();
@@ -29,7 +23,8 @@ export function BookingsWorkspace() {
 
   if (!user) return null;
   const isMember = hasAnyRole(user.roles, ["MEMBER"]);
-  const tabs = isMember ? MEMBER_TABS : STAFF_TABS;
+  if (!isMember) return <BookingCreate staff onBooked={() => undefined} />;
+  const tabs = MEMBER_TABS;
 
   return (
     <div>
@@ -51,11 +46,7 @@ export function BookingsWorkspace() {
           </button>
         ))}
       </div>
-      {tab === "mine" ? (
-        isMember ? <MemberBookings /> : <StaffBookings />
-      ) : (
-        <BookingCreate staff={!isMember} onBooked={() => setTab("mine")} />
-      )}
+      {tab === "mine" ? <MemberBookings /> : <BookingCreate staff={false} onBooked={() => setTab("mine")} />}
     </div>
   );
 }
