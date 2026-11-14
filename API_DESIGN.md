@@ -144,6 +144,14 @@
 | GET | `/api/v1/bookings/{id}` | Member/Trainer/Receptionist/Admin — chi tiết một buổi; chỉ chủ buổi (học viên hoặc PT) hoặc nhân viên, người khác bị `AUTH_FORBIDDEN_ROLE` |
 | GET | `/api/v1/bookings?date=...&branchId=...` | Receptionist/Admin — `branchId` không bắt buộc; bỏ trống thì liệt kê mọi chi nhánh (kể cả buổi chưa gắn chi nhánh) |
 
+**Giờ PT quét vào/ra (BookingResponse).** 
+`ptCheckInTime` là giờ PT quét vào buổi (null nếu chưa quét). 
+`ptCheckOutTime` là giờ PT quét ra, null cho tới khi PT quét ra, nên buổi đang diễn ra có 
+`ptCheckInTime` khác null và `ptCheckOutTime` null. 
+`ptCheckInMethod`, `ptCheckOutMethod` là cách ghi nhận. 
+`ptEarlyLeaveReason` là lý do PT rời sớm (nếu có). 
+`fullDuration` tính động, không lưu DB: null khi PT chưa quét ra; true khi PT ra từ giờ kết thúc trở đi hoặc ra sớm có lý do; false khi ra sớm không lý do. Giờ là LocalDateTime giờ Việt Nam, không kèm múi giờ. Các trường này do `BookingService.recordTrainerFaceScan` ghi khi PT quét mặt ở `/face-attendance/kiosk` hoặc `/face-attendance/self`.
+
 ### Face Attendance & Chấm công (Agent 4)
 | Method | Endpoint | Role |
 |---|---|---|
