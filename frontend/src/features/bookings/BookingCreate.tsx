@@ -7,28 +7,45 @@ import { Field } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ApiError } from "@/lib/api/errors";
 import { useToast } from "@/lib/toast";
-import { createBooking, listAvailableSlots, listBranches, listTrainersWithSlots } from "./api";
+import {
+  createBooking,
+  listAvailableSlots,
+  listBranches,
+  listOffHoursSlots,
+  listTrainers,
+  listTrainersWithSlots,
+} from "./api";
 import { bookingErrorMessage } from "./bookingErrors";
 import { buildCreateInput, missingMemberHint } from "./createBookingRules";
 import { addDays, toIsoDate } from "./dates";
 import { MemberPicker } from "./MemberPicker";
-import type { AvailableSlot, AvailableTrainer, BranchOption, MemberOption } from "./types";
+import { bookedMessage, slotLabel, toTrainerChoices } from "./offHoursRules";
+import type { AvailableSlot, BranchOption, MemberOption, TrainerChoice } from "./types";
 
-const hhmm = (t: string) => t.slice(0, 5);
 const INPUT_CLASS = "w-full rounded border px-3 py-2 text-sm";
 
 /**
  * Chon ngay, huan luyen vien, khung gio roi dat.
  * staff = true (le tan, admin): phai chon hoi vien truoc va dat ho.
+ * offHours = true: dat khung ngoai gio (cuoi ngay), buoi o trang thai cho PT xac nhan.
+ * offHours = false: dat trong ca lam viec cua PT, buoi duoc xac nhan ngay.
  */
-export function BookingCreate({ staff = false, onBooked }: { staff?: boolean; onBooked: () => void }) {
+export function BookingCreate({
+  staff = false,
+  offHours = false,
+  onBooked,
+}: {
+  staff?: boolean;
+  offHours?: boolean;
+  onBooked: () => void;
+}) {
   const toast = useToast();
   const [member, setMember] = useState<MemberOption | null>(null);
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [branchId, setBranchId] = useState("");
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState(() => toIsoDate(addDays(new Date(), 1)));
-  const [trainers, setTrainers] = useState<AvailableTrainer[] | null>(null);
+  const [trainers, setTrainers] = useState<TrainerChoice[] | null>(null);
   const [trainersError, setTrainersError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [slots, setSlots] = useState<AvailableSlot[] | null>(null);
@@ -53,26 +70,33 @@ export function BookingCreate({ staff = false, onBooked }: { staff?: boolean; on
     let cancelled = false;
     setTrainers(null);
     setTrainersError(null);
-    listTrainersWithSlots(date)
+    // Dat trong ca: chi PT con slot trong trong ngay. Dat ngoai gio: moi PT dang hoat dong.
+    const load: Promise<TrainerChoice[]> = offHours
+      ? listTrainers().then(toTrainerChoices)
+      : listTrainersWithSlots(date);
+    load
       .then((list) => !cancelled && setTrainers(list))
       .catch((e) => !cancelled && setTrainersError(bookingErrorMessage(e)));
     return () => {
       cancelled = true;
     };
-  }, [date, reloadKey]);
+  }, [date, offHours, reloadKey]);
 
   useEffect(() => {
     if (!selectedId || !date) return;
     let cancelled = false;
     setSlots(null);
     setSlotsError(null);
-    listAvailableSlots(selectedId, date)
+    const load: Promise<AvailableSlot[]> = offHours
+      ? listOffHoursSlots(selectedId, date)
+      : listAvailableSlots(selectedId, date);
+    load
       .then((list) => !cancelled && setSlots(list))
       .catch((e) => !cancelled && setSlotsError(bookingErrorMessage(e)));
     return () => {
       cancelled = true;
     };
-  }, [selectedId, date, reloadKey]);
+  }, [selectedId, date, offHours, reloadKey]);
 
   function changeDate(value: string) {
     setDate(value);
@@ -88,18 +112,22 @@ export function BookingCreate({ staff = false, onBooked }: { staff?: boolean; on
     const trainer = trainers?.find((t) => t.trainerId === slot.trainerId);
     const who = trainer?.trainerName ?? "huấn luyện viên";
     const forWhom = staff && member ? ` cho ${member.fullName ?? "hội viên"}` : "";
-    if (!window.confirm(`Đặt buổi ${hhmm(slot.startTime)} - ${hhmm(slot.endTime)} ngày ${slot.date} với ${who}${forWhom}?`)) {
+    const needsApproval = offHours ? " Buổi sẽ chờ huấn luyện viên xác nhận." : "";
+    if (
+      !window.confirm(
+        `Đặt buổi ${slotLabel(slot.startTime, slot.endTime)} ngày ${slot.date} với ${who}${forWhom}?${needsApproval}`,
+      )
+    ) {
       return;
     }
     setError(null);
     setBusyStart(slot.startTime);
     try {
-      await createBooking(buildCreateInput({ slot, staff, memberId: member?.id ?? null, branchId, notes }));
-      toast.success(
-        staff
-          ? "Đã đặt lịch hộ hội viên. Buổi sẽ được xác nhận khi huấn luyện viên đồng ý."
-          : "Đã đặt lịch. Buổi sẽ được xác nhận khi huấn luyện viên đồng ý.",
-      );
+      const created = await createBooking(buildCreateInput({ slot, staff, memberId: member?.id ?? null, branchId, notes }));
+      toast.success(bookedMessage(created.status, staff));
+      setNotes("");
+      // Khung vua dat khong con trong: tai lai danh sach de no bien mat.
+      setReloadKey((k) => k + 1);
       onBooked();
     } catch (err) {
       setError(bookingErrorMessage(err));
@@ -112,16 +140,21 @@ export function BookingCreate({ staff = false, onBooked }: { staff?: boolean; on
     }
   }
 
+  const title = offHours
+    ? staff
+      ? "Đặt ngoài giờ hộ hội viên"
+      : "Đặt lịch ngoài giờ"
+    : staff
+      ? "Đặt lịch hộ hội viên"
+      : "Đặt lịch với huấn luyện viên";
+
+  const description = offHours
+    ? `${staff ? "Chọn hội viên, ngày" : "Chọn ngày"}, huấn luyện viên và khung giờ ngoài giờ làm việc (cuối ngày). Buổi sẽ chờ huấn luyện viên xác nhận.`
+    : `${staff ? "Chọn hội viên, ngày" : "Chọn ngày"} và huấn luyện viên còn chỗ trống rồi chọn khung giờ. Đặt trong ca làm việc của huấn luyện viên thì buổi được xác nhận ngay.`;
+
   return (
     <div>
-      <PageHeader
-        title={staff ? "Đặt lịch hộ hội viên" : "Đặt lịch với huấn luyện viên"}
-        description={
-          staff
-            ? "Chọn hội viên, ngày và huấn luyện viên còn chỗ trống rồi chọn khung giờ. Buổi sẽ ở trạng thái chờ xác nhận."
-            : "Chọn ngày, chọn huấn luyện viên còn chỗ trống rồi chọn khung giờ. Buổi sẽ ở trạng thái chờ xác nhận."
-        }
-      />
+      <PageHeader title={title} description={description} />
 
       {staff && <MemberPicker value={member} onChange={setMember} />}
 
@@ -181,13 +214,19 @@ export function BookingCreate({ staff = false, onBooked }: { staff?: boolean; on
         </div>
       ) : trainers.length === 0 ? (
         <div className="panel p-8 text-center">
-          <p className="text-sm font-medium">Không có huấn luyện viên nào còn chỗ trống trong ngày này.</p>
-          <p className="mt-1 text-sm text-steel">Thử chọn một ngày khác.</p>
+          <p className="text-sm font-medium">
+            {offHours
+              ? "Chưa có huấn luyện viên nào đang hoạt động."
+              : "Không có huấn luyện viên nào còn chỗ trống trong ngày này."}
+          </p>
+          {!offHours && <p className="mt-1 text-sm text-steel">Thử chọn một ngày khác, hoặc đặt ngoài giờ.</p>}
         </div>
       ) : (
         <div className="space-y-6">
           <section>
-            <h2 className="mb-2 text-sm font-semibold">Huấn luyện viên còn chỗ ({trainers.length})</h2>
+            <h2 className="mb-2 text-sm font-semibold">
+              {offHours ? "Huấn luyện viên" : `Huấn luyện viên còn chỗ (${trainers.length})`}
+            </h2>
             <div className="flex flex-wrap gap-3">
               {trainers.map((t) => (
                 <button
@@ -205,7 +244,9 @@ export function BookingCreate({ staff = false, onBooked }: { staff?: boolean; on
                   }
                 >
                   <span className="block">{t.trainerName ?? "Huấn luyện viên"}</span>
-                  <span className="block text-xs font-normal text-steel">{t.availableSlotCount} khung giờ trống</span>
+                  {t.availableSlotCount !== undefined && (
+                    <span className="block text-xs font-normal text-steel">{t.availableSlotCount} khung giờ trống</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -213,7 +254,7 @@ export function BookingCreate({ staff = false, onBooked }: { staff?: boolean; on
 
           {selectedId && (
             <section>
-              <h2 className="mb-2 text-sm font-semibold">Khung giờ trống</h2>
+              <h2 className="mb-2 text-sm font-semibold">{offHours ? "Khung giờ ngoài giờ còn trống" : "Khung giờ trống"}</h2>
               {memberHint && <p className="mb-2 text-sm text-steel">{memberHint}</p>}
               {slotsError ? (
                 <Alert tone="error">{slotsError}</Alert>
@@ -222,7 +263,11 @@ export function BookingCreate({ staff = false, onBooked }: { staff?: boolean; on
                   <Spinner />
                 </div>
               ) : slots.length === 0 ? (
-                <p className="text-sm text-steel">Huấn luyện viên này vừa hết chỗ. Chọn người khác hoặc ngày khác.</p>
+                <p className="text-sm text-steel">
+                  {offHours
+                    ? "Huấn luyện viên này không còn khung giờ ngoài giờ nào trống trong ngày. Chọn người khác hoặc ngày khác."
+                    : "Huấn luyện viên này vừa hết chỗ. Chọn người khác hoặc ngày khác."}
+                </p>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {slots.map((s) => (
@@ -233,7 +278,7 @@ export function BookingCreate({ staff = false, onBooked }: { staff?: boolean; on
                       onClick={() => void book(s)}
                       className="rounded border px-3 py-2 text-sm disabled:opacity-50"
                     >
-                      {hhmm(s.startTime)} - {hhmm(s.endTime)}
+                      {slotLabel(s.startTime, s.endTime)}
                     </button>
                   ))}
                 </div>
