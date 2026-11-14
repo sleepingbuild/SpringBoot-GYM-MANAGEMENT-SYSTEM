@@ -7,12 +7,15 @@ import com.gym.management.exception.BusinessException;
 import com.gym.management.exception.ErrorCode;
 import com.gym.management.repository.FaceProfileRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FaceMatchServiceImpl implements FaceMatchService {
@@ -30,7 +33,8 @@ public class FaceMatchServiceImpl implements FaceMatchService {
         UUID bestUserId = null;
         double bestDistance = Double.MAX_VALUE;
 
-        for (FaceProfile profile : faceProfileRepository.findAll()) {
+        List<FaceProfile> profiles = faceProfileRepository.findAll();
+        for (FaceProfile profile : profiles) {
             List<Double> stored = parseDescriptor(profile.getDescriptor());
             double distance = euclideanDistance(inputDescriptor, stored);
             if (distance < bestDistance) {
@@ -39,7 +43,13 @@ public class FaceMatchServiceImpl implements FaceMatchService {
             }
         }
 
-        if (bestUserId != null && bestDistance < properties.getMatchThreshold()) {
+        boolean matched = bestUserId != null && bestDistance < properties.getMatchThreshold();
+        // Chỉ ghi khoảng cách và mã người dùng (không ghi descriptor). Dùng để hiệu chỉnh ngưỡng.
+        log.debug("face-match mode=1:N profiles={} bestDistance={} threshold={} matched={} bestUserId={}",
+                profiles.size(), formatDistance(bestUserId == null ? null : bestDistance),
+                properties.getMatchThreshold(), matched, bestUserId);
+
+        if (matched) {
             return Optional.of(bestUserId);
         }
         return Optional.empty();
@@ -55,7 +65,10 @@ public class FaceMatchServiceImpl implements FaceMatchService {
 
         List<Double> stored = parseDescriptor(profile.getDescriptor());
         double distance = euclideanDistance(inputDescriptor, stored);
-        return distance < properties.getMatchThreshold();
+        boolean matched = distance < properties.getMatchThreshold();
+        log.debug("face-match mode=1:1 distance={} threshold={} matched={} userId={}",
+                formatDistance(distance), properties.getMatchThreshold(), matched, targetUserId);
+        return matched;
     }
 
     @Override
@@ -66,6 +79,10 @@ public class FaceMatchServiceImpl implements FaceMatchService {
             sum += diff * diff;
         }
         return Math.sqrt(sum);
+    }
+
+    private static String formatDistance(Double distance) {
+        return distance == null ? "n/a" : String.format(Locale.ROOT, "%.4f", distance);
     }
 
     private void validateDescriptor(List<Double> descriptor) {
