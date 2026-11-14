@@ -36,6 +36,22 @@ Hoặc chạy `.\scripts\demo-smoke.ps1` vài lần, hoặc thao tác trên giao
 | Kết nối cơ sở dữ liệu (Hikari) | Số kết nối đang dùng, rảnh và tối đa tới SQL Server |
 | Top 5 đường dẫn | Những endpoint được gọi nhiều nhất |
 
+## Cảnh báo (alert)
+
+Luật cảnh báo nằm ở `monitoring/prometheus/alerts.yml`, xem tại Prometheus, trang **Alerts** (`http://localhost:9090/alerts`). Chưa nối Alertmanager nên không gửi mail hay tin nhắn, chỉ hiện trên Prometheus.
+
+| Cảnh báo | Điều kiện | Mức |
+|---|---|---|
+| `BackendDown` | Prometheus không lấy được số liệu backend quá 30 giây | critical |
+| `HighServerErrorRate` | Lỗi 5xx trên 0,05 lần/giây trong 1 phút | warning |
+| `HighLatencyP95` | 95% yêu cầu chậm hơn 1 giây trong 2 phút | warning |
+| `HeapAlmostFull` | Heap JVM trên 90% trong 5 phút | warning |
+| `DatabasePoolExhausted` | Trên 90% kết nối của pool đang dùng trong 2 phút | warning |
+
+**Thử cảnh báo:** `docker compose -f docker-compose.demo.yml -f docker-compose.monitoring.yml stop backend`, đợi khoảng 1 phút, `BackendDown` chuyển Pending rồi Firing. Bật lại bằng `... start backend`.
+
+Sửa `alerts.yml` xong, nạp lại không cần tạo lại container: `docker compose -f docker-compose.demo.yml -f docker-compose.monitoring.yml kill -s SIGHUP prometheus`. Jenkins và script triển khai SSH đã tự làm bước này.
+
 ## Bảo mật
 - Endpoint `/actuator/prometheus` được cho phép không cần đăng nhập ở tầng bảo mật, **nhưng mặc định không được mở** (trả 404). Chỉ khi bật như trên (`SPRING_APPLICATION_JSON` trong `docker-compose.monitoring.yml`) nó mới có số liệu. Bản chạy Jenkins (cổng 8081) và chạy tay không bật nên không lộ số liệu.
 - Số liệu gồm tên đường dẫn và thống kê JVM, không có dữ liệu người dùng hay mật khẩu. Nếu đưa lên môi trường thật, hãy chặn cổng này ở tầng mạng hoặc thêm xác thực.
