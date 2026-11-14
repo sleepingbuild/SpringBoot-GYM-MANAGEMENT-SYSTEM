@@ -38,6 +38,7 @@ public class OpenApiConfig {
             "Lịch làm việc PT",
             "Booking (đặt lịch PT)",
             "Check-in",
+            "Thống kê hội viên",
             "Face Profiles",
             "Face Attendance",
             "Staff Attendance",
