@@ -220,7 +220,9 @@ pipeline {
 
                     Write-Host "== 3/4 Chay trien khai tren may chu (commit $env:GIT_COMMIT)"
                     if ($isWindows) {
-                        $remote = "powershell -NoProfile -ExecutionPolicy Bypass -File gms-remote-deploy.ps1 -RepoUrl '$repoUrl' -Commit '$env:GIT_COMMIT' -Branch 'master' -PublicHost '$publicHost'"
+                        # Khong dung dau nhay: powershell.exe -File giu nguyen dau nhay don trong gia tri, con PowerShell 5.1 lam hong dau nhay kep
+                        # khi chuyen cho ssh. Dia chi git, ma commit, nhanh, dia chi may chu deu khong co khoang trang hay ky tu dac biet.
+                        $remote = "powershell -NoProfile -ExecutionPolicy Bypass -File gms-remote-deploy.ps1 -RepoUrl $repoUrl -Commit $env:GIT_COMMIT -Branch master -PublicHost $publicHost"
                     } else {
                         $remote = "GMS_REPO_URL='$repoUrl' GMS_COMMIT='$env:GIT_COMMIT' GMS_BRANCH='master' GMS_PUBLIC_HOST='$publicHost' bash /tmp/gms-remote-deploy.sh"
                     }
