@@ -80,7 +80,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen lg:grid lg:grid-cols-[16rem_1fr]">
       {/* Màn hình lớn: cột menu cố định */}
       <aside className="sticky top-0 hidden h-screen flex-col border-r border-line bg-paper lg:flex">
-        <div className="px-6 py-5 text-lg font-bold tracking-tight text-plate"></div>
+        <div className="px-6 py-5 text-lg font-bold tracking-tight text-plate">GMS</div>
         {nav}
         {identity}
       </aside>
