@@ -1,5 +1,6 @@
 package com.gym.management.service;
 
+import com.gym.management.dto.request.MemberPosOrderRequest;
 import com.gym.management.dto.request.PosOrderCreateRequest;
 import com.gym.management.dto.response.PageResponse;
 import com.gym.management.dto.response.PosOrderResponse;
@@ -34,4 +35,16 @@ public interface PosOrderService {
     PosOrderResponse getById(UUID id);
 
     PageResponse<PosOrderResponse> search(UUID branchId, LocalDate from, LocalDate to, Pageable pageable);
+
+    /**
+     * Hội viên tự mua (thanh toán mô phỏng, thành công ngay). Người mua LUÔN là {@code memberId} lấy từ JWT, không
+     * nhận memberId từ client; pos_orders.staff_id để null. Dùng chung lõi trừ kho/khoá bi quan với đơn tại quầy.
+     */
+    PosOrderResponse createOwnOrder(UUID memberId, MemberPosOrderRequest request);
+
+    /** Chi tiết đơn của chính hội viên; đơn của người khác trả POS_ORDER_NOT_FOUND (không lộ việc đơn có tồn tại). */
+    PosOrderResponse getOwnById(UUID memberId, UUID orderId);
+
+    /** Các đơn của chính hội viên, phân trang. */
+    PageResponse<PosOrderResponse> searchOwn(UUID memberId, Pageable pageable);
 }

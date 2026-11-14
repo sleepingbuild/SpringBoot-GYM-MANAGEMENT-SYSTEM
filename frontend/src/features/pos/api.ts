@@ -1,9 +1,10 @@
 import { apiFetch } from "@/lib/api/client";
 import type { PageResponse } from "@/lib/types";
-import type { CreateOrderInput, PosOrder, Product, ProductInput } from "./types";
+import type { CreateOrderInput, CreateOwnOrderInput, PosOrder, Product, ProductInput } from "./types";
 
 const PRODUCTS = "/api/v1/products";
 const ORDERS = "/api/v1/pos/orders";
+const MY_ORDERS = "/api/v1/pos/my-orders";
 
 /** Sản phẩm đang bán (mọi người đã đăng nhập xem được). */
 export const listActiveProducts = (page = 0, size = 100) =>
@@ -28,3 +29,10 @@ export const cancelOrder = (id: string) => apiFetch<PosOrder>(`${ORDERS}/${id}/c
 /** from/to dạng yyyy-MM-dd; bỏ trống cả hai = backend mặc định hôm nay. */
 export const listOrders = (params: { from?: string; to?: string; branchId?: string; page?: number; size?: number }) =>
   apiFetch<PageResponse<PosOrder>>(ORDERS, { query: { page: 0, size: 20, ...params } });
+
+/** Hội viên tự mua: thanh toán mô phỏng thành công ngay, trừ kho trong cùng request. */
+export const createOwnOrder = (body: CreateOwnOrderInput) => apiFetch<PosOrder>(MY_ORDERS, { method: "POST", body });
+
+/** Đơn của chính hội viên, mới nhất trước. */
+export const listMyOrders = (page = 0, size = 20) =>
+  apiFetch<PageResponse<PosOrder>>(MY_ORDERS, { query: { page, size } });

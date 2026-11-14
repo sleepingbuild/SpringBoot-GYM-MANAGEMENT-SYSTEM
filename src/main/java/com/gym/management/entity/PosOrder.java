@@ -41,8 +41,9 @@ public class PosOrder extends BaseEntity {
     @JoinColumn(name = "member_id")
     private User member; // null = khách vãng lai
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "staff_id", nullable = false)
+    /** null = đơn do hội viên tự mua (POS cho member), không có nhân viên thu tiền. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "staff_id")
     private User staff;
 
     @Column(name = "branch_id")
