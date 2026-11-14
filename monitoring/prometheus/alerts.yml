@@ -1,0 +1,49 @@
+# Luat canh bao cho GMS (Agent 1). Xem tren Prometheus: Alerts (http://<may-chu>:9090/alerts).
+# Chua noi Alertmanager (gui mail/Slack), nen canh bao chi hien tren Prometheus va Grafana.
+groups:
+  - name: gms-backend
+    rules:
+      - alert: BackendDown
+        expr: max(up{job="gms-backend"}) == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend GMS khong tra loi"
+          description: "Prometheus khong lay duoc so lieu cua gms-backend qua 30 giay. Kiem tra: docker compose logs backend."
+
+      - alert: HighServerErrorRate
+        expr: sum(rate(http_server_requests_seconds_count{job="gms-backend",status=~"5.."}[1m])) > 0.05
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Loi 5xx vuot 0,05 lan moi giay"
+          description: "Backend dang tra nhieu loi may chu (5xx) lien tuc 1 phut. Xem log backend."
+
+      - alert: HighLatencyP95
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job="gms-backend"}[2m]))) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "95% yeu cau cham hon 1 giay"
+          description: "Do tre p95 cua API vuot 1 giay trong 2 phut."
+
+      - alert: HeapAlmostFull
+        expr: sum(jvm_memory_used_bytes{job="gms-backend",area="heap"}) / sum(jvm_memory_max_bytes{job="gms-backend",area="heap"}) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Bo nho heap JVM dung tren 90%"
+          description: "Heap cua backend dung tren 90% trong 5 phut, co nguy co het bo nho."
+
+      - alert: DatabasePoolExhausted
+        expr: hikaricp_connections_active{job="gms-backend"} / hikaricp_connections_max{job="gms-backend"} > 0.9
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ket noi toi SQL Server gan can"
+          description: "Hon 90% ket noi trong pool dang duoc dung trong 2 phut."
