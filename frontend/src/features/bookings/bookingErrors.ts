@@ -6,7 +6,8 @@ export const BOOKING_ERROR_MESSAGES: Record<string, string> = {
   BOOKING_WEEKLY_LIMIT_EXCEEDED: "Đã đạt số buổi tối đa được đặt trong tuần. Hãy chọn một ngày ở tuần khác.",
   BOOKING_SLOT_TAKEN: "Khung giờ này vừa có người khác đặt. Danh sách khung giờ đã được tải lại.",
   BOOKING_DOUBLE_BOOKED: "Hội viên đã có một buổi khác trùng khung giờ này. Hãy chọn khung giờ khác.",
-  BOOKING_OUT_OF_WORKING_HOURS: "Khung giờ này nằm ngoài ca làm việc của huấn luyện viên.",
+  BOOKING_OUT_OF_WORKING_HOURS:
+    "Khung giờ này nằm ngoài ca làm việc của huấn luyện viên và ngoài khung đặt ngoài giờ. Hãy chọn khung giờ khác.",
   MEMBERSHIP_EXPIRED: "Gói tập đã hết hạn nên chưa thể đặt lịch. Hãy gia hạn hoặc mua gói mới.",
   MEMBERSHIP_NO_SESSION: "Gói tập đã hết buổi nên chưa thể đặt lịch. Hãy gia hạn hoặc mua gói mới.",
 };
