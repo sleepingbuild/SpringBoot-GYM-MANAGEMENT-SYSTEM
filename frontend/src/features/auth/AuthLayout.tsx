@@ -5,7 +5,7 @@ export function AuthLayout({ title, subtitle, children, footer }: { title: strin
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
       <aside className="floor-lanes hidden flex-col justify-between p-10 text-chalk lg:flex">
-        <span className="text-lg font-bold tracking-tight">GMS</span>
+        <span className="text-lg font-bold tracking-tight"></span>
         <div>
           <p className="max-w-sm text-2xl font-semibold leading-snug">Quản lý hội viên, lịch tập và điểm danh tại một nơi.</p>
           <p className="mt-3 max-w-sm text-sm text-chalk/80">Gym Management System</p>
