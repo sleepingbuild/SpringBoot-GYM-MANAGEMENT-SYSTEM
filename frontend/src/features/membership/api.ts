@@ -80,9 +80,17 @@ export function listBranches(opts: Opts = {}) {
   return apiFetch<Branch[]>("/api/v1/branches", opts);
 }
 
-/** Hội viên tự mua (bỏ `userId`) hoặc Lễ tân, Admin bán hộ (truyền `userId` của hội viên). */
+/**
+ * Lễ tân, Admin bán hộ (truyền `userId` của hội viên). Gói ở trạng thái PENDING, chờ xác nhận thanh toán.
+ * Hội viên tự mua dùng `purchasePackage` (thanh toán mô phỏng, kích hoạt ngay).
+ */
 export function registerPackage(input: { packageId: string; userId?: string; branchId?: string }) {
   return apiFetch<PackagePurchase>("/api/v1/member-packages", { method: "POST", body: input });
+}
+
+/** Hội viên tự mua gói cho chính mình: thanh toán mô phỏng thành công ngay, gói ACTIVE luôn. Không có `userId`. */
+export function purchasePackage(input: { packageId: string; branchId?: string }) {
+  return apiFetch<PackagePurchase>("/api/v1/member-packages/purchase", { method: "POST", body: input });
 }
 
 export function upgradePackage(memberPackageId: string, input: { newPackageId: string; branchId?: string }) {

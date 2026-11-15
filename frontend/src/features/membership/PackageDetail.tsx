@@ -10,17 +10,18 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { ApiError } from "@/lib/api/errors";
 import { hasAnyRole } from "@/lib/roles";
 import { useToast } from "@/lib/toast";
-import { getPackage, registerPackage } from "./api";
+import { getPackage, purchasePackage } from "./api";
 import { BranchSelect } from "./BranchSelect";
 import { branchIdOrUndefined } from "./branchOptions";
 import { ErrorBlock, LoadingBlock } from "./Feedback";
 import { PACKAGE_TYPE_LABELS, PEAK_TYPE_LABELS, labelOf } from "./labels";
-import { formatVnd, packageSummary, weeklyLimitText } from "./format";
+import { formatDate, formatVnd, packageSummary, weeklyLimitText } from "./format";
 import { membershipErrorMessage } from "./messages";
 import type { PackageItem, PackagePurchase } from "./types";
 import { useLoad } from "./useLoad";
 
-function RegisterPanel({ pkg }: { pkg: PackageItem }) {
+/** Hội viên tự mua: thanh toán mô phỏng thành công ngay, gói ACTIVE luôn (POST /member-packages/purchase). */
+function PurchasePanel({ pkg }: { pkg: PackageItem }) {
   const toast = useToast();
   const [confirming, setConfirming] = useState(false);
   const [branchId, setBranchId] = useState("");
@@ -32,9 +33,9 @@ function RegisterPanel({ pkg }: { pkg: PackageItem }) {
     setBusy(true);
     setError(null);
     try {
-      const purchase = await registerPackage({ packageId: pkg.id, branchId: branchIdOrUndefined(branchId) });
+      const purchase = await purchasePackage({ packageId: pkg.id, branchId: branchIdOrUndefined(branchId) });
       setResult(purchase);
-      toast.success("Đã gửi đăng ký gói.");
+      toast.success("Mua gói thành công.");
     } catch (e) {
       setError(e);
     } finally {
@@ -43,13 +44,18 @@ function RegisterPanel({ pkg }: { pkg: PackageItem }) {
   }
 
   if (result) {
+    const mp = result.memberPackage;
     return (
-      <Alert tone="success" title="Đã gửi đăng ký">
+      <Alert tone="success" title="Mua gói thành công">
         <p>
           Mã giao dịch <strong className="font-mono">{result.paymentTransaction.transactionCode}</strong>, số tiền{" "}
           <strong>{formatVnd(result.paymentTransaction.amount)}</strong>.
         </p>
-        <p className="mt-1">Gói sẽ được kích hoạt sau khi lễ tân xác nhận bạn đã thanh toán tại quầy.</p>
+        <p className="mt-1">
+          Gói đã được kích hoạt, hiệu lực từ {formatDate(mp.startDate)}
+          {mp.endDate ? ` đến ${formatDate(mp.endDate)}` : ", không thời hạn"}.{" "}
+          {mp.remainingSessions == null ? "Không giới hạn buổi." : `Còn ${mp.remainingSessions} buổi.`}
+        </p>
         <p className="mt-2">
           <Link href="/my-membership" className="underline">
             Xem gói của tôi
@@ -64,7 +70,7 @@ function RegisterPanel({ pkg }: { pkg: PackageItem }) {
   return (
     <div className="space-y-3">
       {error != null && (
-        <Alert tone="error" title="Chưa đăng ký được">
+        <Alert tone="error" title="Chưa mua được gói">
           {membershipErrorMessage(error)}
           {pendingExists && (
             <>
@@ -77,16 +83,17 @@ function RegisterPanel({ pkg }: { pkg: PackageItem }) {
         </Alert>
       )}
       {!confirming ? (
-        <Button onClick={() => setConfirming(true)}>Đăng ký gói này</Button>
+        <Button onClick={() => setConfirming(true)}>Mua gói này</Button>
       ) : (
         <div className="space-y-3">
-          <Alert tone="info" title={`Đăng ký ${pkg.name}?`}>
-            Bạn sẽ thanh toán {formatVnd(pkg.price)} tại quầy. Gói chỉ bắt đầu tính từ ngày lễ tân xác nhận thanh toán.
+          <Alert tone="info" title={`Mua ${pkg.name}?`}>
+            Số tiền {formatVnd(pkg.price)}. Đây là thanh toán mô phỏng: hệ thống ghi nhận thành công ngay và không trừ
+            tiền thật. Gói được kích hoạt và tính từ hôm nay.
           </Alert>
           <BranchSelect value={branchId} onChange={setBranchId} />
           <div className="flex gap-2">
             <Button loading={busy} onClick={submit}>
-              Xác nhận đăng ký
+              Xác nhận mua
             </Button>
             <Button variant="secondary" disabled={busy} onClick={() => setConfirming(false)}>
               Để sau
@@ -145,7 +152,7 @@ export function PackageDetail({ id }: { id: string }) {
         </dl>
 
         <div className="panel p-5">
-          {isMember && <RegisterPanel pkg={p} />}
+          {isMember && <PurchasePanel pkg={p} />}
           {isStaff && (
             <p className="text-sm">
               Để bán gói này cho hội viên, vào mục{" "}
