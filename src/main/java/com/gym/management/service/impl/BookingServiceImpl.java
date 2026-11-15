@@ -13,6 +13,7 @@ import com.gym.management.repository.BookingRepository;
 import com.gym.management.repository.UserRepository;
 import com.gym.management.service.BookingService;
 import com.gym.management.service.MembershipLookupPort;
+import com.gym.management.service.OpenBookingCountPort;
 import com.gym.management.service.TrainerScheduleService;
 import com.gym.management.service.event.BookingSettledEvent;
 import com.gym.management.service.event.BookingSettledEvent.Outcome;
@@ -40,7 +41,7 @@ import java.util.UUID;
  */
 @Service
 @RequiredArgsConstructor
-public class BookingServiceImpl implements BookingService {
+public class BookingServiceImpl implements BookingService, OpenBookingCountPort {
 
     private static final List<String> STAFF_ROLES_CAN_BOOK_FOR_OTHERS = List.of("RECEPTIONIST", "SUPER_ADMIN");
     private static final String ROLE_TRAINER = "TRAINER";
@@ -498,6 +499,16 @@ public class BookingServiceImpl implements BookingService {
         return open.stream()
                 .filter(b -> b.getStatus() == BookingStatus.PENDING || b.getStatus() == BookingStatus.CONFIRMED)
                 .count();
+    }
+
+    /**
+     * Cổng cho Agent 2 (heldSessions): cùng một con số với luật đặt lịch bước 5c, đã áp lazy-status.
+     * Lazy-status có thể ghi DB nên chạy trong transaction ghi; người gọi không được đánh dấu readOnly.
+     */
+    @Override
+    @Transactional
+    public int countOpenBookings(UUID memberId) {
+        return Math.toIntExact(countOpenBookings(memberId, BookingRepository.NO_EXCLUDE));
     }
 
     private UUID resolveMemberId(UUID currentUserId, String currentUserRole, UUID requestedMemberId) {
