@@ -9,6 +9,7 @@ import com.gym.management.service.BookingService;
 import com.gym.management.service.CheckInHistoryService;
 import com.gym.management.service.MemberStatsService;
 import com.gym.management.service.MembershipService;
+import com.gym.management.service.OpenBookingCountPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,11 +34,14 @@ public class MemberStatsServiceImpl implements MemberStatsService {
     private final MembershipService membershipService;
     private final BookingService bookingService;
     private final CheckInHistoryService checkInHistoryService;
+    /** Cổng đếm booking mở do BookingService cung cấp: cùng con số với luật đặt lịch bước 5c. */
+    private final OpenBookingCountPort openBookingCountPort;
     /** Bean Clock dùng chung của dự án (múi giờ Asia/Ho_Chi_Minh), để "hôm nay" khớp mọi module. */
     private final Clock clock;
 
     @Override
-    @Transactional(readOnly = true)
+    // Không readOnly: cổng đếm booking mở có thể ghi DB khi áp lazy-status (xem OpenBookingCountPort).
+    @Transactional
     public MemberStatsResponse getMyStats(UUID memberId) {
         LocalDate to = LocalDate.now(clock);
         LocalDate from = to.minusDays(WINDOW_DAYS - 1L);
@@ -56,8 +60,7 @@ public class MemberStatsServiceImpl implements MemberStatsService {
 
         // Số liệu không giới hạn thời gian: tổng buổi đã hoàn thành và số buổi đang giữ chỗ.
         int completedTotal = bookingService.findMyBookings(memberId, ROLE_MEMBER, BookingStatus.COMPLETED, null, null).size();
-        int reserved = bookingService.findMyBookings(memberId, ROLE_MEMBER, BookingStatus.PENDING, null, null).size()
-                + bookingService.findMyBookings(memberId, ROLE_MEMBER, BookingStatus.CONFIRMED, null, null).size();
+        int reserved = openBookingCountPort.countOpenBookings(memberId);
 
         int visits = (int) checkInHistoryService.findMyHistory(memberId).stream()
                 .map(CheckInHistoryItem::getCheckInTime)
