@@ -1,6 +1,6 @@
 # Kich ban demo end-to-end (Issue X.2), chay vao API that:
-#   Sales tao Lead -> convert -> Le tan ban goi -> Member dat lich PT -> Member face check-in
-#   -> PT hoan thanh buoi -> Commission tu tinh -> Le tan ban POS -> Admin xem bao cao
+#   Sales tao Lead -> convert -> Le tan ban goi -> Member dat lich PT (tu dong CONFIRMED) -> Member face check-in
+#   -> PT hoan thanh buoi -> Commission tu tinh -> Le tan ban POS -> Admin xem bao cao -> Member xem thong ke ca nhan
 # Dung: .\scripts\e2e\demo-flow.ps1 [-BaseUrl http://localhost:18080]
 # Dieu kien: xem scripts\e2e\README.md (backend can 2 bien moi truong de buoi hoc bat dau sau vai phut).
 # File nay co y viet khong dau, va khong in ten tieng Viet lay tu API, vi Windows PowerShell 5.1
@@ -143,7 +143,7 @@ try {
     Expect ($mine.status -eq "ACTIVE") "Sau khi thu tien, goi cua hoi vien ACTIVE (con $($mine.remainingSessions) buoi)"
 
     # ---------------------------------------------------------------- 3
-    Step "3. Member dat lich PT, PT xac nhan"
+    Step "3. Member dat lich PT (PT co ca lam viec nen duoc CONFIRMED ngay)"
     $startAt = (VnNow).AddMinutes($StartInMinutes)
     $startAt = $startAt.AddSeconds(-$startAt.Second).AddMilliseconds(-$startAt.Millisecond)
     $endAt = $startAt.AddMinutes($SessionMinutes)
@@ -174,16 +174,7 @@ try {
         }
         throw
     }
-    Expect ($booking.status -eq "PENDING") "Dat lich $bookingDate $startStr - $endStr, trang thai PENDING (id $($booking.id))"
-    try {
-        $booking = Invoke-Api -Method Post -Path "/api/v1/bookings/$($booking.id)/confirm" -Token $trainerToken
-    } catch {
-        if ("$_" -match "CANCELLED") {
-            throw "Buoi PENDING bi tu huy vi gan gio bat dau. Hay chay backend voi GMS_BOOKING_PENDING_CANCEL_THRESHOLD_MINUTES=0 (xem scripts\e2e\README.md). Chi tiet: $_"
-        }
-        throw
-    }
-    Expect ($booking.status -eq "CONFIRMED") "PT xac nhan, trang thai CONFIRMED"
+    Expect ($booking.status -eq "CONFIRMED") "Dat lich $bookingDate $startStr - $endStr trong ca cua PT, tu dong CONFIRMED (id $($booking.id))"
     $bookingId = $booking.id
 
     # ---------------------------------------------------------------- 4
@@ -250,8 +241,20 @@ try {
     $null = Invoke-Api -Method Get -Path "/api/v1/reports/renewal-rate?from=$today&to=$today" -Token $adminToken
     Pass "Cac bao cao luu luong, goi ban chay, ty le gia han tra ket qua binh thuong"
 
+    # ---------------------------------------------------------------- 8
+    Step "8. Member xem thong ke ca nhan (GET /members/me/stats)"
+    $stats = Invoke-Api -Method Get -Path "/api/v1/members/me/stats" -Token $memberToken
+    Expect ($stats.hasActiveMembership -eq $true) "Co goi dang hoat dong: $($stats.packageName)"
+    Expect ([int]$stats.completedSessionsTotal -ge 1) "So buoi da hoan thanh >= 1 (hien $($stats.completedSessionsTotal))"
+    Expect ([int]$stats.bookingsByStatusLast30Days.COMPLETED -ge 1) "So booking COMPLETED trong 30 ngay >= 1"
+    Expect ([int]$stats.reservedSessions -eq 0) "Khong con buoi giu cho (hien $($stats.reservedSessions))"
+    if ($null -ne $stats.remainingSessions) {
+        Expect ([int]$stats.availableSessions -eq [int]$stats.remainingSessions) "So buoi con dat duoc bang so buoi con lai ($($stats.remainingSessions))"
+    }
+    Pass "Thong ke ca nhan nhat quan voi buoi vua hoan thanh"
+
     Write-Host ""
-    Write-Host "HOAN TAT: kich ban demo end-to-end chay dung ca 7 buoc." -ForegroundColor Green
+    Write-Host "HOAN TAT: kich ban demo end-to-end chay dung ca 8 buoc." -ForegroundColor Green
     Write-Host "Tai khoan hoi vien vua tao de xem tren giao dien: $memberEmail / $memberPassword" -ForegroundColor White
     exit 0
 } catch {
