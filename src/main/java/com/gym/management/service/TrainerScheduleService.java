@@ -34,4 +34,14 @@ public interface TrainerScheduleService {
 
     /** Dùng nội bộ bởi BookingService để kiểm tra 1 khung giờ có nằm trong ca làm việc thật không. */
     boolean isWithinWorkingHours(UUID trainerId, LocalDate date, java.time.LocalTime start, java.time.LocalTime end);
+
+    /**
+     * Khung giờ [start, end] có nằm trọn trong khung "ngoài giờ" toàn hệ thống không
+     * (cấu hình gms.booking.off-hours-start / off-hours-end, mặc định 21:00 đến 23:59).
+     * Đặt trong khung này mà ngoài ca của PT thì booking ở trạng thái PENDING, chờ PT xác nhận.
+     */
+    boolean isWithinOffHours(java.time.LocalTime start, java.time.LocalTime end);
+
+    /** Slot ngoài giờ còn trống của PT trong 1 ngày: trừ slot nằm trong ca của PT, slot đã có người đặt, slot quá sát giờ. */
+    List<AvailableSlotResponse> findOffHoursSlots(UUID trainerId, LocalDate date);
 }
