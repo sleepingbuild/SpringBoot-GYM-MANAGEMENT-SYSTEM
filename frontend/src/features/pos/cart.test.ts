@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_LINE_QUANTITY, addToCart, cartCount, cartTotal, removeLine, setQuantity, toOrderItems } from "./cart";
+import { MAX_LINE_QUANTITY, addToCart, cartCount, cartTotal, removeLine, setQuantity, toOrderItems, toOwnOrderInput } from "./cart";
 import type { Product } from "./types";
 
 const water: Product = { id: "p1", name: "Nước suối", category: "DRINK", price: 10000, stockQuantity: 3, unit: "chai", active: true };
@@ -63,5 +63,14 @@ describe("cart", () => {
     const next = addToCart(lines, water);
     expect(lines[0].quantity).toBe(1);
     expect(next[0].quantity).toBe(2);
+  });
+});
+
+describe("toOwnOrderInput", () => {
+  it("chỉ gửi items (productId, quantity): không memberId, không paymentMethod, không giá", () => {
+    const lines = [{ productId: "p1", name: "Nước", unitPrice: 10000, quantity: 2, maxQuantity: 5 }];
+    const body = toOwnOrderInput(lines);
+    expect(body).toEqual({ items: [{ productId: "p1", quantity: 2 }] });
+    expect(Object.keys(body)).toEqual(["items"]);
   });
 });

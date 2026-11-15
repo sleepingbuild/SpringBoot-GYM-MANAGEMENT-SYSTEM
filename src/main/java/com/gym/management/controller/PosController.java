@@ -61,7 +61,7 @@ public class PosController {
 
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasAnyRole('RECEPTIONIST','SUPER_ADMIN')")
-    @Operation(summary = "Huỷ đơn đã hoàn thành — hoàn lại tồn kho (không hoàn tiền, ngoài phạm vi schema hiện tại)")
+    @Operation(summary = "Huỷ đơn đã hoàn thành — hoàn tiền giao dịch của đơn rồi hoàn lại tồn kho")
     public ApiResponse<PosOrderResponse> cancel(@PathVariable UUID id) {
         return ApiResponse.success("Huỷ đơn hàng thành công", posOrderService.cancelOrder(id));
     }

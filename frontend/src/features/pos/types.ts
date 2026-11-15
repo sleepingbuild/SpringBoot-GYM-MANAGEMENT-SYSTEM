@@ -31,7 +31,7 @@ export type PaymentMethod = "CASH" | "LOCAL_CONFIRM";
 
 export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
   CASH: "Tiền mặt",
-  LOCAL_CONFIRM: "Xác nhận tại quầy",
+  LOCAL_CONFIRM: "Xác nhận tại quầy / thanh toán mô phỏng",
 };
 
 export type PosOrderStatus = "PENDING" | "COMPLETED" | "CANCELLED";
@@ -53,7 +53,8 @@ export interface PosOrderItem {
 export interface PosOrder {
   id: string;
   memberId: string | null;
-  staffId: string;
+  /** null = đơn hội viên tự mua (không có nhân viên thu tiền). */
+  staffId: string | null;
   branchId: string | null;
   totalAmount: number;
   paymentMethod: PaymentMethod | string;
@@ -68,5 +69,11 @@ export interface CreateOrderInput {
   memberId?: string | null;
   branchId?: string | null;
   paymentMethod: PaymentMethod;
+  items: { productId: string; quantity: number }[];
+}
+
+/** MemberPosOrderRequest.java: KHÔNG có memberId (người mua lấy từ JWT) và KHÔNG có paymentMethod (mô phỏng cố định). */
+export interface CreateOwnOrderInput {
+  branchId?: string | null;
   items: { productId: string; quantity: number }[];
 }

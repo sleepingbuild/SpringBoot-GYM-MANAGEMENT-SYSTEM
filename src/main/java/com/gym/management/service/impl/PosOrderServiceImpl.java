@@ -1,6 +1,8 @@
 package com.gym.management.service.impl;
 
 import com.gym.management.constant.RelatedType;
+import com.gym.management.constant.PaymentMethodType;
+import com.gym.management.dto.request.MemberPosOrderRequest;
 import com.gym.management.dto.request.PosOrderCreateRequest;
 import com.gym.management.dto.response.PageResponse;
 import com.gym.management.dto.response.PaymentTransactionResponse;
@@ -64,16 +66,34 @@ public class PosOrderServiceImpl implements PosOrderService {
                     .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy hội viên"));
         }
 
+        return placeOrder(staff, member, request.getBranchId(), request.getPaymentMethod(), request.getItems());
+    }
+
+    @Override
+    @Transactional
+    public PosOrderResponse createOwnOrder(UUID memberId, MemberPosOrderRequest request) {
+        User member = userRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_TOKEN_INVALID, "Không xác định được hội viên"));
+        // Thanh toán mô phỏng cùng cách MemberSelfPurchaseService của Agent 2: LOCAL_CONFIRM, xác nhận ngay.
+        return placeOrder(null, member, request.getBranchId(), PaymentMethodType.LOCAL_CONFIRM, request.getItems());
+    }
+
+    /**
+     * Lõi tạo đơn dùng chung cho đơn tại quầy (staff != null) và đơn hội viên tự mua (staff == null):
+     * giá lấy từ DB, khoá bi quan theo id tăng dần, trừ kho, rồi thu tiền ngay trong cùng transaction.
+     */
+    private PosOrderResponse placeOrder(User staff, User member, UUID branchId, String paymentMethod,
+                                        List<PosOrderCreateRequest.Item> lines) {
         PosOrder order = new PosOrder();
         order.setStaff(staff);
         order.setMember(member);
-        order.setBranchId(request.getBranchId());
-        order.setPaymentMethod(request.getPaymentMethod());
+        order.setBranchId(branchId);
+        order.setPaymentMethod(paymentMethod);
         order.setStatus(PosOrderStatus.PENDING);
 
         // Gộp các dòng trùng sản phẩm (giữ thứ tự khách chọn để hiển thị).
         Map<UUID, Integer> wanted = new LinkedHashMap<>();
-        for (PosOrderCreateRequest.Item line : request.getItems()) {
+        for (PosOrderCreateRequest.Item line : lines) {
             wanted.merge(line.getProductId(), line.getQuantity(), Integer::sum);
         }
 
@@ -121,7 +141,7 @@ public class PosOrderServiceImpl implements PosOrderService {
         PaymentTransactionResponse pendingTx = paymentService.createPendingTransaction(
                 member, RelatedType.POS, order.getId(), total);
         PaymentTransactionResponse confirmedTx = paymentService.confirmPayment(
-                pendingTx.getId(), request.getPaymentMethod());
+                pendingTx.getId(), paymentMethod);
 
         order.setStatus(PosOrderStatus.COMPLETED);
         order = posOrderRepository.save(order);
@@ -181,6 +201,21 @@ public class PosOrderServiceImpl implements PosOrderService {
                 order -> toResponse(order, null));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PosOrderResponse getOwnById(UUID memberId, UUID orderId) {
+        PosOrder order = posOrderRepository.findById(orderId)
+                .filter(o -> o.getMember() != null && memberId.equals(o.getMember().getId()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.POS_ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
+        return toResponse(order, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<PosOrderResponse> searchOwn(UUID memberId, Pageable pageable) {
+        return PageResponse.from(posOrderRepository.findByMemberId(memberId, pageable), order -> toResponse(order, null));
+    }
+
     private PosOrderResponse toResponse(PosOrder order, UUID paymentTransactionId) {
         List<PosOrderResponse.Item> items = order.getItems().stream()
                 .map(item -> PosOrderResponse.Item.builder()
@@ -195,7 +230,7 @@ public class PosOrderServiceImpl implements PosOrderService {
         return PosOrderResponse.builder()
                 .id(order.getId())
                 .memberId(order.getMember() != null ? order.getMember().getId() : null)
-                .staffId(order.getStaff().getId())
+                .staffId(order.getStaff() != null ? order.getStaff().getId() : null)
                 .branchId(order.getBranchId())
                 .totalAmount(order.getTotalAmount())
                 .paymentMethod(order.getPaymentMethod())

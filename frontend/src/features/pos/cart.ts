@@ -42,3 +42,6 @@ export const cartTotal = (lines: CartLine[]): number => lines.reduce((sum, l) =>
 export const cartCount = (lines: CartLine[]): number => lines.reduce((sum, l) => sum + l.quantity, 0);
 
 export const toOrderItems = (lines: CartLine[]) => lines.map((l) => ({ productId: l.productId, quantity: l.quantity }));
+
+/** Body POST /pos/my-orders: chỉ có items. Cố ý không có memberId/paymentMethod/giá (backend tự lấy). */
+export const toOwnOrderInput = (lines: CartLine[]) => ({ items: toOrderItems(lines) });

@@ -90,6 +90,18 @@ class PosCommissionControllersTest {
     }
 
     @Test
+    void memberPos_isMemberOnly_andRequestCannotCarryBuyerOrPaymentMethod() {
+        assertThat(endpointsWithoutPreAuthorize(MemberPosController.class)).isEmpty();
+        for (String name : List.of("create", "list", "getById")) {
+            assertThat(method(MemberPosController.class, name).getAnnotation(PreAuthorize.class).value())
+                    .as(name).isEqualTo("hasRole('MEMBER')");
+        }
+        // Người mua lấy từ JWT, phương thức thanh toán cố định: request không được có hai trường này.
+        assertThat(Arrays.stream(com.gym.management.dto.request.MemberPosOrderRequest.class.getDeclaredFields())
+                .map(java.lang.reflect.Field::getName)).doesNotContain("memberId", "paymentMethod");
+    }
+
+    @Test
     void payRatesAndPayouts_areSuperAdminOnly_andOwnSalaryIsTrainerOnly() {
         assertThat(method(TrainerPayRateController.class, "getByTrainerId").getAnnotation(PreAuthorize.class).value()).isEqualTo(ADMIN);
         assertThat(method(TrainerPayRateController.class, "upsert").getAnnotation(PreAuthorize.class).value()).isEqualTo(ADMIN);

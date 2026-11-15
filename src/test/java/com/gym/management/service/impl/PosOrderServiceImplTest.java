@@ -1,7 +1,9 @@
 package com.gym.management.service.impl;
 
 import com.gym.management.constant.RelatedType;
+import com.gym.management.dto.request.MemberPosOrderRequest;
 import com.gym.management.dto.request.PosOrderCreateRequest;
+import com.gym.management.dto.response.PageResponse;
 import com.gym.management.dto.response.PaymentTransactionResponse;
 import com.gym.management.dto.response.PosOrderResponse;
 import com.gym.management.entity.PosOrder;
@@ -23,6 +25,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
@@ -331,5 +335,120 @@ class PosOrderServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.VALIDATION_ERROR);
+    }
+
+    // ---- Hội viên tự mua (POS cho member) ----
+
+    private User member(UUID id) {
+        User m = new User();
+        ReflectionTestUtils.setField(m, "id", id);
+        when(userRepository.findById(id)).thenReturn(Optional.of(m));
+        return m;
+    }
+
+    private MemberPosOrderRequest memberRequest(Object... productAndQty) {
+        MemberPosOrderRequest req = new MemberPosOrderRequest();
+        java.util.ArrayList<PosOrderCreateRequest.Item> items = new java.util.ArrayList<>();
+        for (int i = 0; i < productAndQty.length; i += 2) {
+            PosOrderCreateRequest.Item it = new PosOrderCreateRequest.Item();
+            it.setProductId(((Product) productAndQty[i]).getId());
+            it.setQuantity((Integer) productAndQty[i + 1]);
+            items.add(it);
+        }
+        req.setItems(items);
+        return req;
+    }
+
+    @Test
+    void createOwnOrder_buyerIsTheJwtMember_noStaff_simulatedPaymentConfirmedNow() {
+        UUID memberId = UUID.randomUUID();
+        User member = member(memberId);
+        Product water = product("Nước suối", "10000.00", 10, true);
+
+        PosOrderResponse res = service.createOwnOrder(memberId, memberRequest(water, 3));
+
+        assertThat(res.getMemberId()).isEqualTo(memberId);
+        assertThat(res.getStaffId()).isNull();
+        assertThat(res.getStatus()).isEqualTo(PosOrderStatus.COMPLETED);
+        assertThat(res.getPaymentMethod()).isEqualTo("LOCAL_CONFIRM");
+        assertThat(res.getTotalAmount()).isEqualByComparingTo("30000.00");
+        assertThat(water.getStockQuantity()).isEqualTo(7);
+        verify(paymentService).createPendingTransaction(eq(member), eq(RelatedType.POS), any(UUID.class),
+                eq(new BigDecimal("30000.00")));
+        verify(paymentService).confirmPayment(txId, "LOCAL_CONFIRM");
+    }
+
+    @Test
+    void createOwnOrder_unknownMember_isRejectedBeforeTouchingStockOrPayment() {
+        UUID ghost = UUID.randomUUID();
+        when(userRepository.findById(ghost)).thenReturn(Optional.empty());
+        Product water = product("Nước suối", "10000.00", 10, true);
+
+        assertThatThrownBy(() -> service.createOwnOrder(ghost, memberRequest(water, 1)))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.AUTH_TOKEN_INVALID);
+        assertThat(water.getStockQuantity()).isEqualTo(10);
+        verify(paymentService, never()).createPendingTransaction(any(), any(), any(), any());
+    }
+
+    @Test
+    void createOwnOrder_notEnoughStock_isRejected_andNothingIsCharged() {
+        UUID memberId = UUID.randomUUID();
+        member(memberId);
+        Product bcaa = product("BCAA", "300000.00", 3, true);
+
+        assertThatThrownBy(() -> service.createOwnOrder(memberId, memberRequest(bcaa, 4)))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.PRODUCT_OUT_OF_STOCK);
+        assertThat(bcaa.getStockQuantity()).isEqualTo(3);
+        verify(paymentService, never()).createPendingTransaction(any(), any(), any(), any());
+        verify(paymentService, never()).confirmPayment(any(), any());
+    }
+
+    @Test
+    void getOwnById_returnsOwnOrder_butOtherMembersOrWalkInOrdersAreNotFound() {
+        UUID me = UUID.randomUUID();
+        User meUser = member(me);
+        User other = member(UUID.randomUUID());
+
+        PosOrder mine = orderOf(meUser);
+        PosOrder theirs = orderOf(other);
+        PosOrder walkIn = orderOf(null);
+
+        assertThat(service.getOwnById(me, mine.getId()).getMemberId()).isEqualTo(me);
+        for (PosOrder notMine : List.of(theirs, walkIn)) {
+            assertThatThrownBy(() -> service.getOwnById(me, notMine.getId()))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting(e -> ((BusinessException) e).getErrorCode())
+                    .isEqualTo(ErrorCode.POS_ORDER_NOT_FOUND);
+        }
+    }
+
+    @Test
+    void searchOwn_onlyQueriesTheCallersOwnOrders() {
+        UUID me = UUID.randomUUID();
+        User meUser = member(me);
+        PosOrder mine = orderOf(meUser);
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(posOrderRepository.findByMemberId(me, pageable)).thenReturn(new PageImpl<>(List.of(mine), pageable, 1));
+
+        PageResponse<PosOrderResponse> page = service.searchOwn(me, pageable);
+
+        assertThat(page.getContent()).hasSize(1);
+        assertThat(page.getContent().get(0).getStaffId()).isNull();
+        verify(posOrderRepository).findByMemberId(me, pageable);
+    }
+
+    private PosOrder orderOf(User member) {
+        PosOrder o = new PosOrder();
+        UUID id = UUID.randomUUID();
+        ReflectionTestUtils.setField(o, "id", id);
+        o.setMember(member); // staff để null: đơn hội viên tự mua / khách vãng lai hoặc đơn tự mua
+        o.setPaymentMethod("LOCAL_CONFIRM");
+        o.setStatus(PosOrderStatus.COMPLETED);
+        when(posOrderRepository.findById(id)).thenReturn(Optional.of(o));
+        return o;
     }
 }
