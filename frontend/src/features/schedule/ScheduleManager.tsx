@@ -7,7 +7,7 @@ import { Field } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { errorMessage } from "@/lib/api/errors";
 import { useToast } from "@/lib/toast";
-import { createSchedule, deleteSchedule, listMySchedules, updateSchedule } from "./api";
+import { createSchedule, deleteSchedule, listSchedules, updateSchedule } from "./api";
 import type { TrainerSchedule } from "./types";
 
 const RANGE_DAYS = 30;
@@ -31,8 +31,13 @@ function dayLabel(isoDate: string) {
   });
 }
 
-export function ScheduleManager() {
+/**
+ * Khong truyen trainerId: PT quan ly ca cua chinh minh.
+ * Truyen trainerId (Super Admin): xem va khai ca ho PT do.
+ */
+export function ScheduleManager({ trainerId, trainerName }: { trainerId?: string; trainerName?: string | null }) {
   const toast = useToast();
+  const adminMode = Boolean(trainerId);
   const [items, setItems] = useState<TrainerSchedule[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -47,7 +52,9 @@ export function ScheduleManager() {
   useEffect(() => {
     let cancelled = false;
     const today = new Date();
-    listMySchedules(toIsoDate(today), toIsoDate(addDays(today, RANGE_DAYS)))
+    setItems(null);
+    setLoadError(null);
+    listSchedules(toIsoDate(today), toIsoDate(addDays(today, RANGE_DAYS)), trainerId)
       .then((list) => {
         if (cancelled) return;
         setItems(list);
@@ -57,7 +64,7 @@ export function ScheduleManager() {
     return () => {
       cancelled = true;
     };
-  }, [reloadKey]);
+  }, [reloadKey, trainerId]);
 
   const reload = () => setReloadKey((k) => k + 1);
 
@@ -83,7 +90,7 @@ export function ScheduleManager() {
     }
     setSaving(true);
     try {
-      await createSchedule({ workDate, startTime, endTime });
+      await createSchedule({ workDate, startTime, endTime, ...(trainerId ? { trainerId } : {}) });
       toast.success("Đã thêm ca làm việc.");
       setStartTime("");
       setEndTime("");
@@ -132,8 +139,12 @@ export function ScheduleManager() {
   return (
     <div>
       <PageHeader
-        title="Lịch dạy"
-        description={`Khai các ca bạn có thể nhận học viên. Hiển thị ${RANGE_DAYS} ngày tới.`}
+        title={adminMode ? `Ca làm việc của ${trainerName ?? "huấn luyện viên"}` : "Lịch dạy"}
+        description={
+          adminMode
+            ? `Xem và khai ca thay huấn luyện viên này. Hiển thị ${RANGE_DAYS} ngày tới.`
+            : `Khai các ca bạn có thể nhận học viên. Hiển thị ${RANGE_DAYS} ngày tới.`
+        }
       />
 
       <form onSubmit={onAdd} className="panel mb-6 max-w-xl space-y-4 p-5" noValidate>
@@ -157,8 +168,14 @@ export function ScheduleManager() {
         </div>
       ) : groups.length === 0 ? (
         <div className="panel p-8 text-center">
-          <p className="text-sm font-medium">Bạn chưa khai ca làm việc nào trong {RANGE_DAYS} ngày tới.</p>
-          <p className="mt-1 text-sm text-steel">Dùng biểu mẫu phía trên để thêm ca đầu tiên. Học viên chỉ đặt được trong các ca này.</p>
+          <p className="text-sm font-medium">
+            {adminMode
+              ? `Huấn luyện viên này chưa có ca làm việc nào trong ${RANGE_DAYS} ngày tới.`
+              : `Bạn chưa khai ca làm việc nào trong ${RANGE_DAYS} ngày tới.`}
+          </p>
+          <p className="mt-1 text-sm text-steel">
+            Dùng biểu mẫu phía trên để thêm ca đầu tiên. Học viên chỉ đặt được trong các ca này.
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
