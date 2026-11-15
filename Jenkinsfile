@@ -152,8 +152,18 @@ pipeline {
                     # PHAI kem file giam sat: neu khong backend tao lai se mat cau hinh lo so lieu va Grafana bi trong.
                     docker compose -f $env:DEMO_COMPOSE -f $env:DEMO_MONITORING up -d --build backend frontend prometheus grafana
                     if ($LASTEXITCODE -ne 0) { throw "docker compose up that bai (xem log build o tren)" }
-                    # Prometheus doc lai cau hinh va luat canh bao khi cac tep nay doi.
-                    docker compose -f $env:DEMO_COMPOSE -f $env:DEMO_MONITORING kill -s SIGHUP prometheus | Out-Null
+                    # Prometheus doc lai cau hinh va luat canh bao khi cac tep nay doi. CHI gui tin hieu khi Prometheus da san sang:
+                    # gui qua som (luc moi khoi dong) lam no thoat ngay, va "docker kill" con khien Docker khong tu bat lai.
+                    for ($i = 1; $i -le 24; $i++) {
+                        try {
+                            $r = Invoke-WebRequest -Uri "http://localhost:9090/-/ready" -UseBasicParsing -TimeoutSec 5
+                            if ($r.StatusCode -eq 200) {
+                                docker compose -f $env:DEMO_COMPOSE -f $env:DEMO_MONITORING kill -s SIGHUP prometheus | Out-Null
+                                break
+                            }
+                        } catch { }
+                        Start-Sleep -Seconds 5
+                    }
 
                     $targets = @($env:DEMO_API_URL, $env:DEMO_WEB_URL)
                     foreach ($url in $targets) {

@@ -68,10 +68,9 @@ if ($LASTEXITCODE -ne 0) {
     Log "Neu loi co chu: error getting credentials / logon session: xoa dong credsStore trong %USERPROFILE%\.docker\config.json roi chay lai (docs/CICD_SSH_DEPLOY.md)"
     Fail "docker compose up that bai"
 }
-docker @compose kill -s SIGHUP prometheus *> $null
 
 # 4. Cho tat ca san sang
-function Wait-For($name, $url, $tries) {
+function Wait-For($name, $url, $tries, $service) {
     for ($i = 1; $i -le $tries; $i++) {
         try {
             $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 10
@@ -79,14 +78,18 @@ function Wait-For($name, $url, $tries) {
         } catch { }
         Start-Sleep -Seconds 5
     }
-    docker @compose ps
-    docker @compose logs --tail=60 backend
+    docker @compose ps -a
+    Log "Nhat ky cua dich vu $service (60 dong cuoi):"
+    docker @compose logs --tail=60 $service
     Fail "$name khong san sang: $url"
 }
-Wait-For "API (backend)" "http://localhost:$apiPort/actuator/health" 72
-Wait-For "Web (frontend)" "http://localhost:$webPort/" 36
-Wait-For "Prometheus" "http://localhost:$promPort/-/ready" 24
-Wait-For "Grafana" "http://localhost:$grafanaPort/api/health" 24
+Wait-For "API (backend)" "http://localhost:$apiPort/actuator/health" 72 "backend"
+Wait-For "Web (frontend)" "http://localhost:$webPort/" 36 "frontend"
+Wait-For "Prometheus" "http://localhost:$promPort/-/ready" 24 "prometheus"
+# Nap lai cau hinh va luat canh bao (tep mount doi noi dung thi container khong tu tao lai). CHI gui sau khi Prometheus da san sang:
+# gui qua som (luc moi khoi dong) lam no thoat ngay (ma 2), va "docker kill" con khien Docker khong tu bat lai.
+docker @compose kill -s SIGHUP prometheus *> $null
+Wait-For "Grafana" "http://localhost:$grafanaPort/api/health" 24 "grafana"
 
 $scraping = $false
 for ($i = 1; $i -le 12; $i++) {

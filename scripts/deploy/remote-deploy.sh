@@ -64,25 +64,27 @@ else
   log "Cap nhat backend, frontend, Prometheus, Grafana (giu nguyen SQL Server, Redis, du lieu)"
   "${COMPOSE[@]}" up -d --build backend frontend prometheus grafana
 fi
-# Prometheus doc lai cau hinh va luat canh bao khi cac tep nay doi (tep mount, container khong tu tao lai)
-"${COMPOSE[@]}" kill -s SIGHUP prometheus >/dev/null 2>&1 || true
 
 # 4. Cho tat ca san sang
 wait_for() { # ten url so_lan
-  local name="$1" url="$2" tries="${3:-60}" i
+  local name="$1" url="$2" tries="${3:-60}" service="${4:-backend}" i
   for ((i = 1; i <= tries; i++)); do
     if curl -fsS -o /dev/null --max-time 10 "$url"; then log "OK  $name  $url"; return 0; fi
     sleep 5
   done
   echo "[deploy][LOI] $name khong san sang: $url" >&2
-  "${COMPOSE[@]}" ps >&2 || true
-  "${COMPOSE[@]}" logs --tail=60 backend >&2 || true
+  "${COMPOSE[@]}" ps -a >&2 || true
+  echo "[deploy] Nhat ky cua dich vu ${service} (60 dong cuoi):" >&2
+  "${COMPOSE[@]}" logs --tail=60 "$service" >&2 || true
   return 1
 }
-wait_for "API (backend)" "http://localhost:${API_PORT}/actuator/health" 72
-wait_for "Web (frontend)" "http://localhost:${WEB_PORT}/" 36
-wait_for "Prometheus" "http://localhost:${PROM_PORT}/-/ready" 24
-wait_for "Grafana" "http://localhost:${GRAFANA_PORT}/api/health" 24
+wait_for "API (backend)" "http://localhost:${API_PORT}/actuator/health" 72 backend
+wait_for "Web (frontend)" "http://localhost:${WEB_PORT}/" 36 frontend
+wait_for "Prometheus" "http://localhost:${PROM_PORT}/-/ready" 24 prometheus
+# Nap lai cau hinh va luat canh bao (tep mount doi noi dung thi container khong tu tao lai). CHI gui sau khi Prometheus da san sang:
+# gui qua som (luc moi khoi dong) lam no thoat ngay (ma 2), va "docker kill" con khien Docker khong tu bat lai.
+"${COMPOSE[@]}" kill -s SIGHUP prometheus >/dev/null 2>&1 || true
+wait_for "Grafana" "http://localhost:${GRAFANA_PORT}/api/health" 24 grafana
 
 # Prometheus phai lay duoc so lieu cua backend (can vai chuc giay sau khi backend len)
 for ((i = 1; i <= 12; i++)); do
