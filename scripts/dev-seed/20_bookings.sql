@@ -27,12 +27,16 @@ BEGIN
     RETURN;
 END
 
--- 1) Lich lam viec: moi PT lam 06:00-22:00 trong 8 ngay (hom nay den 7 ngay sau), chi them neu chua co.
+-- 1) Lich lam viec: moi PT lam 06:00-22:00 tu hom nay den cuoi thang (toi thieu 8 ngay, de chay vao
+--    nhung ngay cuoi thang van du ca), chi them neu chua co. Ngay tinh theo ngay chay, khong go cung.
 DECLARE @trainers TABLE (id UNIQUEIDENTIFIER);
 INSERT INTO @trainers (id) VALUES (@trainer1), (@trainer2);
 
+DECLARE @daysToMonthEnd INT = DATEDIFF(DAY, @today, EOMONTH(@today)) + 1;
+DECLARE @days INT = CASE WHEN @daysToMonthEnd < 8 THEN 8 ELSE @daysToMonthEnd END;
+
 ;WITH n AS (
-    SELECT TOP (8) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) - 1 AS d FROM sys.all_objects
+    SELECT TOP (@days) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) - 1 AS d FROM sys.all_objects
 )
 INSERT INTO trainer_schedules (trainer_id, work_date, start_time, end_time, is_active)
 SELECT t.id, DATEADD(DAY, n.d, @today), '06:00', '22:00', 1
