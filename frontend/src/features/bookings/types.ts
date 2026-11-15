@@ -5,7 +5,7 @@ export interface AvailableTrainer {
   availableSlotCount: number;
 }
 
-/** Khop voi AvailableSlotResponse (GET /api/v1/trainer-schedules/available). Ngay yyyy-MM-dd, gio HH:mm:ss. */
+/** Khop voi AvailableSlotResponse (GET /api/v1/trainer-schedules/available va /off-hours). Ngay yyyy-MM-dd, gio HH:mm:ss. */
 export interface AvailableSlot {
   trainerId: string;
   date: string;
@@ -48,4 +48,18 @@ export interface PageResult<T> {
   size: number;
   totalElements: number;
   totalPages: number;
+}
+
+/** Khop voi TrainerResponse (GET /api/v1/trainers): moi PT dang hoat dong, khong can co ca lam viec. */
+export interface TrainerOption {
+  id: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+}
+
+/** Mot PT de chon. availableSlotCount chi co khi biet so slot trong ca (dat trong ca). */
+export interface TrainerChoice {
+  trainerId: string;
+  trainerName: string | null;
+  availableSlotCount?: number;
 }
