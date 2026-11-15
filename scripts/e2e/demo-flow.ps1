@@ -244,7 +244,7 @@ try {
     # ---------------------------------------------------------------- 8
     Step "8. Member xem thong ke ca nhan (GET /members/me/stats)"
     $stats = Invoke-Api -Method Get -Path "/api/v1/members/me/stats" -Token $memberToken
-    Expect ($stats.hasActiveMembership -eq $true) "Co goi dang hoat dong: $($stats.packageName)"
+    Expect ($stats.hasActiveMembership -eq $true) "Co goi dang hoat dong (con $($stats.remainingSessions) buoi)"
     Expect ([int]$stats.completedSessionsTotal -ge 1) "So buoi da hoan thanh >= 1 (hien $($stats.completedSessionsTotal))"
     Expect ([int]$stats.bookingsByStatusLast30Days.COMPLETED -ge 1) "So booking COMPLETED trong 30 ngay >= 1"
     Expect ([int]$stats.reservedSessions -eq 0) "Khong con buoi giu cho (hien $($stats.reservedSessions))"
