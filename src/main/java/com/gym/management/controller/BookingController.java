@@ -3,6 +3,7 @@ package com.gym.management.controller;
 import com.gym.management.dto.response.BookingResponse;
 import com.gym.management.dto.request.BookingRequest;
 import com.gym.management.dto.request.BookingUpdateRequest;
+import com.gym.management.dto.request.CompleteBookingRequest;
 import com.gym.management.dto.request.EarlyLeaveReasonRequest;
 import com.gym.management.exception.ApiResponse;
 import com.gym.management.security.CurrentUserId;
@@ -56,9 +57,9 @@ public class BookingController {
     @PostMapping("/{id}/complete")
     @PreAuthorize("hasRole('TRAINER')")
     @Operation(summary = "PT hoàn thành buổi tập")
-    public ApiResponse<BookingResponse> complete(@PathVariable UUID id) {
+    public ApiResponse<BookingResponse> complete(@PathVariable UUID id, @Valid @RequestBody(required = false) CompleteBookingRequest request) {
         return ApiResponse.success("Đánh dấu hoàn thành buổi tập thành công",
-                bookingService.completeBooking(CurrentUserId.get(), id));
+                bookingService.completeBooking(CurrentUserId.get(), id, request == null ? null : request.getReason()));
     }
 
     @PutMapping("/{id}/early-leave-reason")
