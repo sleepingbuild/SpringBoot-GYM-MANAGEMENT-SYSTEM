@@ -24,6 +24,7 @@ fi
 
 # Thứ tự: 00 (tài khoản) trước 10, 20 và 40; 41 cần 40; 50 chỉ cần 00; 61 cần gói do 60 tạo.
 FILES=(00_users.sql 10_packages_memberships.sql 20_bookings.sql 40_attendance.sql 41_pt_live_session.sql 50_pos.sql 60_leads_reports.sql 61_expiring_members.sql)
+
 for f in "${FILES[@]}"; do
   echo "==> $f"
   docker cp "$DIR/$f" "$CONTAINER:/tmp/$f"

@@ -21,6 +21,7 @@ if (($check | Out-String).Trim() -ne "OK") {
 
 # Thu tu: 00 (tai khoan) truoc 10, 20 va 40; 41 can 40; 50 chi can 00; 61 can goi do 60 tao.
 $files = @("00_users.sql", "10_packages_memberships.sql", "20_bookings.sql", "40_attendance.sql", "41_pt_live_session.sql", "50_pos.sql", "60_leads_reports.sql", "61_expiring_members.sql")
+
 foreach ($f in $files) {
     Write-Host "==> $f"
     # docker cp roi chay bang -i trong container: tranh PowerShell lam hong tieng Viet khi pipe vao lenh ngoai.
