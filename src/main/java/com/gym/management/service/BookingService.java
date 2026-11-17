@@ -24,7 +24,17 @@ public interface BookingService {
 
     BookingResponse confirmBooking(UUID trainerId, UUID bookingId);
 
-    BookingResponse completeBooking(UUID trainerId, UUID bookingId);
+    default BookingResponse completeBooking(UUID trainerId, UUID bookingId) {
+        return completeBooking(trainerId, bookingId, null);
+    }
+
+    /**
+     * PT hoàn thành buổi. Không cần quét mặt vào/ra: thời lượng tính từ lúc PT quét vào (chưa quét thì từ giờ bắt
+     * đầu theo lịch) đến lúc PT quét ra (chưa quét ra thì đến lúc bấm hoàn thành, ghi lại làm giờ ra với cách MANUAL).
+     * Dưới số phút tối thiểu (gms.booking.min-complete-minutes, mặc định 45) thì bắt buộc có lý do.
+     * Luật như nhau cho buổi trong ca và buổi ngoài giờ.
+     */
+    BookingResponse completeBooking(UUID trainerId, UUID bookingId, String reason);
 
     /**
      * PT nộp lý do rời buổi sớm (chỉ booking của chính PT, còn CONFIRMED, PT đã quét ra trước giờ kết thúc).

@@ -723,31 +723,6 @@ class BookingServiceImplTest {
         }
 
         @Test
-        void throwsPtNotCheckedIn_whenPtNeverScanned() {
-            // start 07:50 -> S+15 = 08:05 > now 08:00: còn trong ân hạn nên lazy chưa lật sang PT_NO_SHOW
-            Booking b = bookingAt(BookingStatus.CONFIRMED, LocalTime.of(7, 50), LocalTime.of(8, 50));
-            b.setCheckInTime(today.atTime(7, 51)); // học viên đã quét, PT chưa quét gì
-            willFind(b);
-
-            assertThatThrownBy(() -> service.completeBooking(trainerId, b.getId()))
-                    .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode").isEqualTo(ErrorCode.BOOKING_PT_NOT_CHECKED_IN);
-            assertThat(b.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
-            verifyNoSettledEvent();
-        }
-
-        @Test
-        void throwsPtNotCheckedIn_whenPtCheckedInButNotOut() {
-            Booking b = readyToComplete(); // PT đã quét vào, chưa quét ra
-            willFind(b);
-
-            assertThatThrownBy(() -> service.completeBooking(trainerId, b.getId()))
-                    .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode").isEqualTo(ErrorCode.BOOKING_PT_NOT_CHECKED_IN);
-            verifyNoSettledEvent();
-        }
-
-        @Test
         void memberNotCheckedInIsReportedBeforePtNotCheckedIn() {
             Booking b = bookingAt(BookingStatus.CONFIRMED, LocalTime.of(9, 0), LocalTime.of(10, 0)); // cả hai chưa quét
             willFind(b);
@@ -768,17 +743,6 @@ class BookingServiceImplTest {
             BookingSettledEvent event = captureSettledEvent();
             assertThat(event.outcome()).isEqualTo(Outcome.COMPLETED);
             assertThat(event.fullDuration()).isTrue();
-        }
-
-        @Test
-        void publishesCompleted_fullDurationFalse_whenPtLeftEarlyWithoutReason() {
-            Booking b = readyToComplete();
-            b.setPtCheckOutTime(today.atTime(7, 30));
-            willFind(b);
-
-            service.completeBooking(trainerId, b.getId());
-
-            assertThat(captureSettledEvent().fullDuration()).isFalse();
         }
 
         @Test
