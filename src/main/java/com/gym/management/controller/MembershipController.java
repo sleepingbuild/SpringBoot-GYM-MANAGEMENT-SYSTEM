@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.gym.management.service.MyMembershipOverviewService;
 
 import java.util.UUID;
 
@@ -36,6 +37,7 @@ public class MembershipController {
     private static final String ROLE_SUPER_ADMIN = "SUPER_ADMIN";
 
     private final MembershipService membershipService;
+    private final MyMembershipOverviewService myMembershipOverviewService;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('MEMBER','RECEPTIONIST','SUPER_ADMIN')")
@@ -75,7 +77,7 @@ public class MembershipController {
     @PreAuthorize("hasAnyRole('MEMBER','TRAINER','RECEPTIONIST','SUPER_ADMIN')")
     @Operation(summary = "Gói tập hiện tại của tôi (dùng getCurrentMembership — nguồn chân lý duy nhất)")
     public ApiResponse<MemberPackageResponse> getMyCurrentMembership() {
-        return ApiResponse.success(membershipService.getCurrentMembershipResponse(CurrentUserId.get()));
+        return ApiResponse.success(myMembershipOverviewService.getMyCurrentMembership(CurrentUserId.get()));
     }
 
     @GetMapping("/me/history")

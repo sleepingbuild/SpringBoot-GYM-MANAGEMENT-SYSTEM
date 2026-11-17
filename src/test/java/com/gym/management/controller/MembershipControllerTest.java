@@ -1,6 +1,7 @@
 package com.gym.management.controller;
 
 import com.gym.management.service.MembershipService;
+import com.gym.management.service.MyMembershipOverviewService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -29,10 +30,16 @@ class MembershipControllerTest {
 
     @Mock
     private MembershipService membershipService;
+    @Mock
+    private MyMembershipOverviewService myMembershipOverviewService;
+
+    private MembershipController controller() {
+        return new MembershipController(membershipService, myMembershipOverviewService);
+    }
 
     @Test
     void getCurrentMembershipOf_shouldLookUpTheRequestedUser() {
-        MembershipController controller = new MembershipController(membershipService);
+        MembershipController controller = controller();
         UUID userId = UUID.randomUUID();
 
         controller.getCurrentMembershipOf(userId);
@@ -43,7 +50,7 @@ class MembershipControllerTest {
 
     @Test
     void getHistoryOf_shouldLookUpTheRequestedUserWithPaging() {
-        MembershipController controller = new MembershipController(membershipService);
+        MembershipController controller = controller();
         UUID userId = UUID.randomUUID();
 
         controller.getHistoryOf(userId, 2, 10, "createdAt,desc");

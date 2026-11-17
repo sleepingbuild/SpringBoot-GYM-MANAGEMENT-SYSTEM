@@ -69,6 +69,14 @@ function CurrentTab() {
             <dd>{mp.endDate ? formatDate(mp.endDate) : "Không thời hạn"}</dd>
             <dt className="text-steel">Số buổi còn lại</dt>
             <dd>{mp.remainingSessions == null ? "Không giới hạn buổi" : `${mp.remainingSessions} buổi`}</dd>
+            <dd>{mp.heldSessions != null && mp.bookableSessions != null && (
+                <>
+                    <dt className="text-steel">Đang giữ chỗ</dt>
+                    <dd>{mp.heldSessions} buổi (booking chờ hoặc đã xác nhận)</dd>
+                    <dt className="text-steel">Còn đặt được</dt>
+                    <dd>{mp.bookableSessions} buổi</dd>
+                </>
+            )}</dd>
           </dl>
 
           <div className="mt-5 border-t pt-4">
