@@ -111,6 +111,7 @@ class BookingCompleteRulesTest {
         BookingSettledEvent event = settledEvent();
         assertEquals(BookingSettledEvent.Outcome.COMPLETED, event.outcome());
         assertTrue(event.fullDuration());
+        assertFalse(event.earlyLeaveWithReason()); // dạy đủ giờ: không phải ca "ra sớm có lý do"
     }
 
     @Test
@@ -136,7 +137,9 @@ class BookingCompleteRulesTest {
 
         assertEquals(BookingStatus.COMPLETED, b.getStatus());
         assertEquals("Hoc vien xin ve som", b.getPtEarlyLeaveReason());
-        assertTrue(settledEvent().fullDuration());
+        BookingSettledEvent event = settledEvent();
+        assertTrue(event.fullDuration());
+        assertTrue(event.earlyLeaveWithReason()); // quét ra trước 10:30 và có lý do: Agent 5 ghi nhận cờ này
     }
 
     @Test
@@ -159,7 +162,9 @@ class BookingCompleteRulesTest {
         service.completeBooking(trainerId, b.getId());
 
         assertEquals(BookingStatus.COMPLETED, b.getStatus());
-        assertFalse(settledEvent().fullDuration()); // giữ luật cũ: chưa đủ giờ, không lý do thì không tính công
+        BookingSettledEvent event = settledEvent();
+        assertFalse(event.fullDuration()); // giữ luật cũ: chưa đủ giờ, không lý do thì không tính công
+        assertFalse(event.earlyLeaveWithReason());
     }
 
     @Test

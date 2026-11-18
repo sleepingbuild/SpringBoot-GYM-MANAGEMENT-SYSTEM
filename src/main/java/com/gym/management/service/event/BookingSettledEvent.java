@@ -17,6 +17,10 @@ import java.util.UUID;
  * {@code fullDuration == false} thì Agent 5 bỏ qua. {@code fullDuration} luôn là true với
  * MEMBER_NO_SHOW và LATE_CANCEL (PT không có lỗi nên không bị trừ lương).
  *
+ * {@code earlyLeaveWithReason == true} khi buổi COMPLETED nhờ lý do giải trình: PT quét ra TRƯỚC giờ kết thúc
+ * và đã nộp lý do (fullDuration vẫn là true, lương không đổi). Agent 5 chỉ ghi nhận cờ này để hiển thị; luôn
+ * false với MEMBER_NO_SHOW và LATE_CANCEL.
+ *
  * Không phát khi PT_NO_SHOW (lỗi của PT: không trừ buổi, không trả công) hay CANCELLED.
  * Listener là {@code @EventListener} đồng bộ, chạy chung transaction với nơi phát.
  */
@@ -26,8 +30,15 @@ public record BookingSettledEvent(
         UUID memberId,
         Outcome outcome,
         boolean fullDuration,
-        LocalDateTime settledAt
+        LocalDateTime settledAt,
+        boolean earlyLeaveWithReason
 ) {
+    /** Giữ chữ ký cũ (6 tham số) để các nơi tạo sự kiện hiện có không phải sửa; earlyLeaveWithReason = false. */
+    public BookingSettledEvent(UUID bookingId, UUID trainerId, UUID memberId, Outcome outcome,
+                               boolean fullDuration, LocalDateTime settledAt) {
+        this(bookingId, trainerId, memberId, outcome, fullDuration, settledAt, false);
+    }
+
     public enum Outcome {
         COMPLETED,
         MEMBER_NO_SHOW,

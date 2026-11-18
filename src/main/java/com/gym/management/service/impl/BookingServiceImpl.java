@@ -223,7 +223,7 @@ public class BookingServiceImpl implements BookingService, OpenBookingCountPort 
         booking.setStatus(BookingStatus.COMPLETED);
         Booking saved = bookingRepository.save(booking);
 
-        publishSettled(saved, Outcome.COMPLETED, fullDuration);
+        publishSettled(saved, Outcome.COMPLETED, fullDuration, isEarlyLeaveWithReason(saved));
         return toResponse(saved);
     }
 
@@ -618,6 +618,10 @@ public class BookingServiceImpl implements BookingService, OpenBookingCountPort 
     // ------------------------------------------------------------------
 
     private void publishSettled(Booking booking, Outcome outcome, boolean fullDuration) {
+        publishSettled(booking, outcome, fullDuration, false);
+    }
+
+    private void publishSettled(Booking booking, Outcome outcome, boolean fullDuration, boolean earlyLeaveWithReason) {
         try {
             // Ép kiểm tra version ngay tại đây: nếu request khác đã chốt booking này trước,
             // ngoại lệ bật ra TRƯỚC khi event được phát -> hội viên không bị trừ buổi 2 lần.
@@ -628,7 +632,15 @@ public class BookingServiceImpl implements BookingService, OpenBookingCountPort 
         }
         eventPublisher.publishEvent(new BookingSettledEvent(
                 booking.getId(), booking.getTrainer().getId(), booking.getMember().getId(),
-                outcome, fullDuration, LocalDateTime.now(clock)));
+                outcome, fullDuration, LocalDateTime.now(clock), earlyLeaveWithReason));
+    }
+
+    /** PT quét ra trước giờ kết thúc theo lịch và có lý do giải trình (Agent 5 chỉ ghi nhận cờ này, không đổi lương). */
+    private boolean isEarlyLeaveWithReason(Booking b) {
+        if (b.getPtCheckOutTime() == null || b.getPtEarlyLeaveReason() == null || b.getPtEarlyLeaveReason().isBlank()) {
+            return false;
+        }
+        return b.getPtCheckOutTime().isBefore(LocalDateTime.of(b.getBookingDate(), b.getEndTime()));
     }
 
     /**
