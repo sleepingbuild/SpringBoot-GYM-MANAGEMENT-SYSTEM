@@ -62,7 +62,7 @@ if (-not $existing) {
     docker @compose up -d --build
 } else {
     Log "Cap nhat backend, frontend, Prometheus, Grafana (giu nguyen SQL Server, Redis, du lieu)"
-    docker @compose up -d --build backend frontend prometheus grafana
+    docker @compose up -d --build backend frontend prometheus grafana cadvisor
 }
 if ($LASTEXITCODE -ne 0) {
     Log "Neu loi co chu: error getting credentials / logon session: xoa dong credsStore trong %USERPROFILE%\.docker\config.json roi chay lai (docs/CICD_SSH_DEPLOY.md)"

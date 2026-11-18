@@ -23,6 +23,22 @@ services:
     ports:
       - "${GMS_PROMETHEUS_PORT:-9090}:9090"
 
+  # cAdvisor: do CPU, RAM, mang, o dia cua TUNG container Docker. Prometheus lay so lieu o job "cadvisor".
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "${GMS_CADVISOR_PORT:-8083}:8080"
+
   grafana:
     image: grafana/grafana:11.1.0
     restart: unless-stopped

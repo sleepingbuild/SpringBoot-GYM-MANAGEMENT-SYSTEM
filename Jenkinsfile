@@ -150,7 +150,7 @@ pipeline {
                     # Ten du an co dinh "gms-demo" (khai bao trong file compose) nen Jenkins cap nhat DUNG cac container dang chay.
                     # SQL Server, Redis, volume du lieu duoc giu nguyen; chi dung lai backend va frontend tu ma nguon vua checkout.
                     # PHAI kem file giam sat: neu khong backend tao lai se mat cau hinh lo so lieu va Grafana bi trong.
-                    docker compose -f $env:DEMO_COMPOSE -f $env:DEMO_MONITORING up -d --build backend frontend prometheus grafana
+                    docker compose -f $env:DEMO_COMPOSE -f $env:DEMO_MONITORING up -d --build backend frontend prometheus grafana cadvisor
                     if ($LASTEXITCODE -ne 0) { throw "docker compose up that bai (xem log build o tren)" }
                     # Prometheus doc lai cau hinh va luat canh bao khi cac tep nay doi. CHI gui tin hieu khi Prometheus da san sang:
                     # gui qua som (luc moi khoi dong) lam no thoat ngay, va "docker kill" con khien Docker khong tu bat lai.
