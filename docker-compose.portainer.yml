@@ -1,0 +1,19 @@
+# Portainer (tuy chon, Agent 1): giao dien web de xem va quan ly container, image, volume, network cua Docker.
+# Chay:  docker compose -f docker-compose.portainer.yml up -d     roi mo  https://localhost:9443  (trinh duyet bao chung chi tu ky, chon tiep tuc)
+# Lan dau vao phai tao tai khoan admin trong vong 5 phut, neu qua han: docker restart gms-portainer-portainer-1
+# Luu y bao mat: Portainer can doc socket Docker nen co quyen rat cao tren may. Chi dung de hoc va demo, tat khi khong can:
+#   docker compose -f docker-compose.portainer.yml down
+name: gms-portainer
+
+services:
+  portainer:
+    image: portainer/portainer-ce:lts
+    restart: unless-stopped
+    ports:
+      - "${GMS_PORTAINER_PORT:-9443}:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+
+volumes:
+  portainer-data:

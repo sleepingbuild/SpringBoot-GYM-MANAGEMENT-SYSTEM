@@ -36,6 +36,10 @@ Hoặc chạy `.\scripts\demo-smoke.ps1` vài lần, hoặc thao tác trên giao
 | Kết nối cơ sở dữ liệu (Hikari) | Số kết nối đang dùng, rảnh và tối đa tới SQL Server |
 | Top 5 đường dẫn | Những endpoint được gọi nhiều nhất |
 
+## Giám sát container (cAdvisor)
+
+cAdvisor (`http://localhost:8083`) đo CPU, RAM, mạng, ổ đĩa của từng container; Prometheus lấy số liệu ở job `cadvisor` và Grafana hiển thị ở dashboard **GMS Docker**. Cách cài, theo dõi bằng lệnh Docker, volume và kịch bản trình bày xem `docs/DOCKER_TOOLS_VOLUMES.md`.
+
 ## Cảnh báo (alert)
 
 Luật cảnh báo nằm ở `monitoring/prometheus/alerts.yml`, xem tại Prometheus, trang **Alerts** (`http://localhost:9090/alerts`). Chưa nối Alertmanager nên không gửi mail hay tin nhắn, chỉ hiện trên Prometheus.

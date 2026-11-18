@@ -15,6 +15,10 @@ scrape_configs:
         labels:
           application: gym-management-system
 
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
   - job_name: prometheus
     static_configs:
       - targets: ["localhost:9090"]
