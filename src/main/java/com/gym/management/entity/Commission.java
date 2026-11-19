@@ -55,4 +55,8 @@ public class Commission extends BaseEntity {
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
+
+    /** Buổi PT ra trước giờ kết thúc nhưng có lý do giải trình (từ BookingSettledEvent). Chỉ hiển thị, không đổi tiền. */
+    @Column(name = "short_session_with_reason", nullable = false)
+    private boolean shortSessionWithReason;
 }

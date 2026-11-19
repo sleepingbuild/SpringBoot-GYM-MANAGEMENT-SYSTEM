@@ -84,6 +84,21 @@ class CommissionServiceImplTest {
     }
 
     @Test
+    void recordSessionPay_shortSessionWithReason_isStoredButAmountIsUnchanged() {
+        when(commissionRepository.existsByBookingId(any())).thenReturn(false);
+        when(trainerPayRateRepository.findByTrainerId(trainerId)).thenReturn(Optional.of(rate("150000.00")));
+
+        service.recordSessionPay(trainerId, UUID.randomUUID(), Outcome.COMPLETED, true);
+        service.recordSessionPay(trainerId, UUID.randomUUID(), Outcome.COMPLETED); // chữ ký cũ = false
+
+        ArgumentCaptor<Commission> captor = ArgumentCaptor.forClass(Commission.class);
+        verify(commissionRepository, org.mockito.Mockito.times(2)).save(captor.capture());
+        assertThat(captor.getAllValues()).extracting(Commission::isShortSessionWithReason).containsExactly(true, false);
+        assertThat(captor.getAllValues()).extracting(Commission::getAmount)
+                .allSatisfy(a -> assertThat(a).isEqualByComparingTo("150000.00"));
+    }
+
+    @Test
     void recordSessionPay_calledTwiceForSameBooking_createsOnlyOne() {
         when(trainerPayRateRepository.findByTrainerId(trainerId)).thenReturn(Optional.of(rate("150000.00")));
         when(commissionRepository.existsByBookingId(bookingId)).thenReturn(false, true);

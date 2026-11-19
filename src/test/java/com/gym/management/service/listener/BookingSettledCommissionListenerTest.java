@@ -14,6 +14,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -34,20 +35,30 @@ class BookingSettledCommissionListenerTest {
         for (Outcome outcome : Outcome.values()) {
             BookingSettledEvent e = event(outcome, true);
             listener.onBookingSettled(e);
-            verify(commissionService).recordSessionPay(e.trainerId(), e.bookingId(), outcome);
+            verify(commissionService).recordSessionPay(e.trainerId(), e.bookingId(), outcome, false);
         }
+    }
+
+    @Test
+    void earlyLeaveWithReason_isPassedThroughAndStillPaid() {
+        BookingSettledEvent e = new BookingSettledEvent(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                Outcome.COMPLETED, true, LocalDateTime.now(), true);
+
+        listener.onBookingSettled(e);
+
+        verify(commissionService).recordSessionPay(e.trainerId(), e.bookingId(), Outcome.COMPLETED, true);
     }
 
     @Test
     void notFullDuration_isIgnored() {
         listener.onBookingSettled(event(Outcome.COMPLETED, false));
 
-        verify(commissionService, never()).recordSessionPay(any(), any(), any());
+        verify(commissionService, never()).recordSessionPay(any(), any(), any(), anyBoolean());
     }
 
     @Test
     void serviceFailure_neverPropagates_soBookingTransactionIsSafe() {
-        doThrow(new RuntimeException("boom")).when(commissionService).recordSessionPay(any(), any(), any());
+        doThrow(new RuntimeException("boom")).when(commissionService).recordSessionPay(any(), any(), any(), anyBoolean());
 
         assertThatCode(() -> listener.onBookingSettled(event(Outcome.COMPLETED, true))).doesNotThrowAnyException();
     }

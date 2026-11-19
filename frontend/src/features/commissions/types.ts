@@ -22,6 +22,14 @@ export interface Commission {
   status: CommissionStatus;
   paidAt: string | null;
   createdAt: string;
+  /** PT ra trước giờ kết thúc nhưng có lý do giải trình. Chỉ để hiển thị, không đổi số tiền. */
+  shortSessionWithReason: boolean;
+}
+
+/** Nhãn loại buổi; buổi dạy ngắn có lý do được ghi chú thêm (tiền không đổi). */
+export function outcomeText(c: Pick<Commission, "outcome" | "shortSessionWithReason">): string {
+  const base = OUTCOME_LABEL[c.outcome] ?? c.outcome;
+  return c.shortSessionWithReason ? `${base} (ra sớm, có lý do)` : base;
 }
 
 export interface TrainerPayRate {

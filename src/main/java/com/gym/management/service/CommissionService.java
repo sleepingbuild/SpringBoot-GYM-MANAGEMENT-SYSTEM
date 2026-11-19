@@ -27,7 +27,16 @@ public interface CommissionService {
      * đã commit — lỗi ở đây không thể làm rollback việc chốt buổi (xem Javadoc listener).
      * PT chưa có mức lương thì bỏ qua và chỉ log cảnh báo, không ném exception.
      */
-    void recordSessionPay(UUID trainerId, UUID bookingId, BookingSettledEvent.Outcome outcome);
+    default void recordSessionPay(UUID trainerId, UUID bookingId, BookingSettledEvent.Outcome outcome) {
+        recordSessionPay(trainerId, bookingId, outcome, false);
+    }
+
+    /**
+     * Như trên, kèm cờ {@code shortSessionWithReason}: buổi PT ra sớm có lý do giải trình. Cờ chỉ được lưu để hiển thị,
+     * KHÔNG ảnh hưởng số tiền (mức lương theo buổi giữ nguyên).
+     */
+    void recordSessionPay(UUID trainerId, UUID bookingId, BookingSettledEvent.Outcome outcome,
+                          boolean shortSessionWithReason);
 
     CommissionResponse markPaid(UUID commissionId);
 
