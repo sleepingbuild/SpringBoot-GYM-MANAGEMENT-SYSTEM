@@ -7,9 +7,15 @@ import { Field } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { errorMessage } from "@/lib/api/errors";
 import { useToast } from "@/lib/toast";
-import { cancelBooking, completeBooking, confirmBooking, listMyBookings, submitEarlyLeaveReason } from "./bookingsApi";
+import { cancelBooking, completeBooking, confirmBooking, listMyBookings } from "./bookingsApi";
 import type { Booking } from "./bookingTypes";
-import { completeWarning, needsEarlyLeaveReason } from "./trainerBookingRules";
+import {
+  MIN_COMPLETE_MINUTES,
+  MIN_REASON_LENGTH,
+  completeBlocker,
+  completeWarning,
+  completionPlan,
+} from "./trainerBookingRules";
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "Chờ xác nhận",
@@ -20,8 +26,6 @@ const STATUS_LABEL: Record<string, string> = {
   NO_SHOW: "Học viên vắng",
   PT_NO_SHOW: "PT vắng",
 };
-
-const MIN_REASON = 5;
 
 const isOpen = (b: Booking) => b.status === "PENDING" || b.status === "CONFIRMED";
 const hhmm = (t: string) => t.slice(0, 5);
@@ -40,21 +44,22 @@ function dateLabel(iso: string) {
 
 interface CardProps {
   booking: Booking;
+  now: Date;
   busy: boolean;
   draft: string;
   onDraft: (v: string) => void;
   onConfirm: () => void;
   onComplete: () => void;
   onCancel: () => void;
-  onSubmitReason: () => void;
 }
 
-function BookingCard({ booking: b, busy, draft, onDraft, onConfirm, onComplete, onCancel, onSubmitReason }: CardProps) {
+function BookingCard({ booking: b, now, busy, draft, onDraft, onConfirm, onComplete, onCancel }: CardProps) {
   const memberIn = timeOf(b.checkInTime);
   const ptIn = timeOf(b.ptCheckInTime);
   const ptOut = timeOf(b.ptCheckOutTime);
-  const readyToComplete = Boolean(b.checkInTime && b.ptCheckInTime && b.ptCheckOutTime);
-  const needsReason = needsEarlyLeaveReason(b);
+  const plan = completionPlan(b, now);
+  const showTimes = b.status === "CONFIRMED" || b.status === "COMPLETED";
+  const memberScanned = Boolean(b.checkInTime);
 
   return (
     <li className="panel p-4">
@@ -68,30 +73,37 @@ function BookingCard({ booking: b, busy, draft, onDraft, onConfirm, onComplete, 
         <span className="rounded border px-2 py-0.5 text-xs">{STATUS_LABEL[b.status] ?? b.status}</span>
       </div>
 
-      {b.status === "CONFIRMED" && (
+      {showTimes && (
         <div className="mt-2 space-y-1 text-sm text-steel">
           <p>Học viên: {memberIn ? `đã quét mặt vào lúc ${memberIn}` : "chưa quét mặt vào"}</p>
           <p>
-            Bạn: {ptIn ? `vào ${ptIn}` : "chưa quét mặt vào"}
-            {ptOut ? `, ra ${ptOut}` : ptIn ? ", chưa quét ra" : ""}
+            Bạn: vào {ptIn ?? "–"}, ra {ptOut ?? "–"}
+            {b.ptCheckOutMethod === "MANUAL" ? " (ghi lúc bạn bấm hoàn thành)" : ""}
           </p>
           {b.ptEarlyLeaveReason && <p>Lý do rời sớm: {b.ptEarlyLeaveReason}</p>}
         </div>
       )}
 
-      {needsReason && (
+      {b.status === "NO_SHOW" && (
+        <p className="mt-2 text-sm text-steel">
+          Hệ thống tự ghi nhận học viên vắng khi hết thời gian chờ kể từ giờ bắt đầu mà học viên chưa quét mặt.
+        </p>
+      )}
+
+      {b.status === "CONFIRMED" && (plan.reasonRequired || plan.reasonSuggested) && (
         <div className="mt-3 space-y-2 border-t pt-3">
-          <p className="text-sm">Bạn quét ra trước giờ kết thúc. Nộp lý do để buổi được tính đủ thời lượng.</p>
+          <p className="text-sm">
+            {plan.reasonRequired
+              ? `Buổi mới được ${Math.max(plan.minutes, 0)} phút, chưa đủ ${MIN_COMPLETE_MINUTES} phút. Nhập lý do để hoàn thành.`
+              : "Buổi chưa đủ thời lượng theo lịch. Nhập lý do để buổi được tính công (không bắt buộc)."}
+          </p>
           <Field
-            label="Lý do rời buổi sớm"
+            label={plan.reasonRequired ? "Lý do (bắt buộc)" : "Lý do (không bắt buộc)"}
             maxLength={255}
             value={draft}
             onChange={(e) => onDraft(e.target.value)}
-            hint={`Từ ${MIN_REASON} đến 255 ký tự.`}
+            hint={`Từ ${MIN_REASON_LENGTH} đến 255 ký tự.`}
           />
-          <Button type="button" loading={busy} onClick={onSubmitReason}>
-            Nộp lý do
-          </Button>
         </div>
       )}
 
@@ -103,17 +115,15 @@ function BookingCard({ booking: b, busy, draft, onDraft, onConfirm, onComplete, 
             </Button>
           )}
           {b.status === "CONFIRMED" && (
-            <Button type="button" loading={busy} disabled={!readyToComplete} onClick={onComplete}>
+            <Button type="button" loading={busy} disabled={!memberScanned} onClick={onComplete}>
               Hoàn thành buổi
             </Button>
           )}
           <button type="button" className="text-sm underline disabled:opacity-50" disabled={busy} onClick={onCancel}>
             Huỷ buổi
           </button>
-          {b.status === "CONFIRMED" && !readyToComplete && (
-            <p className="text-sm text-steel">
-              Chỉ hoàn thành được khi học viên và bạn đã quét mặt vào, và bạn đã quét ra.
-            </p>
+          {b.status === "CONFIRMED" && !memberScanned && (
+            <p className="text-sm text-steel">Chỉ hoàn thành được khi học viên đã quét mặt vào.</p>
           )}
         </div>
       )}
@@ -129,6 +139,13 @@ export function TrainerBookings() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  // Cap nhat "bay gio" moi 30 giay de so phut da day va yeu cau ly do luon dung khi PT mo man hinh lau.
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -178,31 +195,30 @@ export function TrainerBookings() {
   }
 
   function onComplete(b: Booking) {
-    const warning = completeWarning(b);
-    if (warning && !window.confirm(warning)) return;
-    void run(b, () => completeBooking(b.id), "Đã hoàn thành buổi tập.");
-  }
-
-  function onSubmitReason(b: Booking) {
-    const reason = (drafts[b.id] ?? "").trim();
-    if (reason.length < MIN_REASON) {
-      setError(`Lý do phải từ ${MIN_REASON} ký tự trở lên.`);
+    const plan = completionPlan(b, new Date());
+    const draft = drafts[b.id] ?? "";
+    const blocker = completeBlocker(plan, draft);
+    if (blocker) {
+      setError(blocker);
       return;
     }
-    void run(b, () => submitEarlyLeaveReason(b.id, reason), "Đã ghi nhận lý do rời sớm.");
+    const warning = completeWarning(plan, draft);
+    if (warning && !window.confirm(warning)) return;
+    const reason = draft.trim();
+    void run(b, () => completeBooking(b.id, reason || undefined), "Đã hoàn thành buổi tập.");
   }
 
   const renderCard = (b: Booking) => (
     <BookingCard
       key={b.id}
       booking={b}
+      now={now}
       busy={busyId === b.id}
       draft={drafts[b.id] ?? ""}
       onDraft={(v) => setDrafts((d) => ({ ...d, [b.id]: v }))}
       onConfirm={() => void run(b, () => confirmBooking(b.id), "Đã xác nhận buổi tập.")}
       onComplete={() => onComplete(b)}
       onCancel={() => onCancel(b)}
-      onSubmitReason={() => onSubmitReason(b)}
     />
   );
 
@@ -210,7 +226,7 @@ export function TrainerBookings() {
     <div>
       <PageHeader
         title="Buổi dạy"
-        description="Xác nhận buổi do học viên đặt, hoàn thành buổi sau khi cả hai đã quét mặt, và nộp lý do nếu rời buổi sớm."
+        description="Xác nhận buổi do học viên đặt ngoài giờ, và hoàn thành buổi sau khi học viên đã quét mặt. Không cần quét mặt ra: buổi dưới 45 phút thì nhập lý do."
       />
 
       {error && (
@@ -229,7 +245,8 @@ export function TrainerBookings() {
         <div className="panel p-8 text-center">
           <p className="text-sm font-medium">Bạn chưa có buổi dạy nào.</p>
           <p className="mt-1 text-sm text-steel">
-            Khi học viên đặt lịch trong các ca bạn đã khai ở tab Ca làm việc, buổi sẽ hiện ở đây để bạn xác nhận.
+            Khi học viên đặt lịch, buổi sẽ hiện ở đây. Buổi trong ca của bạn được xác nhận ngay; buổi đặt ngoài giờ
+            chờ bạn xác nhận.
           </p>
         </div>
       ) : (

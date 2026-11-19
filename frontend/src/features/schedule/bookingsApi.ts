@@ -16,7 +16,9 @@ export async function listMyBookings(): Promise<Booking[]> {
 
 export const confirmBooking = (id: string) => apiFetch<Booking>(`${BASE}/${id}/confirm`, { method: "POST" });
 
-export const completeBooking = (id: string) => apiFetch<Booking>(`${BASE}/${id}/complete`, { method: "POST" });
+/** Hoan thanh buoi. reason chi can khi buoi chua du so phut toi thieu (backend kiem tra lai). */
+export const completeBooking = (id: string, reason?: string) =>
+  apiFetch<Booking>(`${BASE}/${id}/complete`, { method: "POST", ...(reason ? { body: { reason } } : {}) });
 
 export const cancelBooking = (id: string) => apiFetch<Booking>(`${BASE}/${id}/cancel`, { method: "POST" });
 

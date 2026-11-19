@@ -25,4 +25,13 @@ public class MemberPackageResponse {
     private LocalDate startDate;
     private LocalDate endDate;
     private Integer remainingSessions;
+
+    /**
+     * Chỉ được điền ở GET /member-packages/me: số booking đang mở (PENDING, CONFIRMED) của hội viên, theo đúng
+     * con số mà luật đặt lịch dùng. null ở mọi endpoint khác và khi gói không tính theo buổi.
+     */
+    private Integer heldSessions;
+
+    /** Số buổi còn đặt được = max(0, remainingSessions - heldSessions). Chỉ điền ở /me, null khi gói không tính theo buổi. */
+    private Integer bookableSessions;
 }

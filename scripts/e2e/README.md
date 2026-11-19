@@ -4,11 +4,12 @@
 
 1. **Sales** tạo lead, đổi trạng thái `CONTACTED`, chuyển thành hội viên (`convert`).
 2. **Lễ tân** bán gói tập (có buổi PT) và xác nhận thu tiền mặt, gói chuyển `ACTIVE`.
-3. **Hội viên** đặt lịch PT, **PT** xác nhận.
+3. **Hội viên** đặt lịch PT trong ca làm việc của PT, booking tự `CONFIRMED` (kịch bản tự tạo ca nếu PT chưa có).
 4. **Quét khuôn mặt** (máy quét của lễ tân): hội viên vào, PT vào, PT ra sớm và nộp lý do.
 5. **PT hoàn thành buổi**, khoản lương theo buổi tự được ghi.
 6. **Lễ tân bán POS** cho hội viên đó.
 7. **Admin xem báo cáo**: doanh thu gói và POS, lương PT, lưu lượng, gói bán chạy, gia hạn đều phản ánh dữ liệu vừa tạo.
+8. **Hội viên xem thống kê cá nhân** (`GET /members/me/stats`): có buổi hoàn thành, không còn buổi giữ chỗ, số buổi còn đặt được khớp số buổi còn lại.
 
 Mỗi bước có kiểm tra rõ ràng, kịch bản dừng ở bước đầu tiên lỗi (mã thoát 1) và in lý do.
 
@@ -17,7 +18,7 @@ Mỗi bước có kiểm tra rõ ràng, kịch bản dừng ở bước đầu t
 1. Đã nạp dữ liệu mẫu: `.\scripts\dev-seed\run-all.ps1` (cần ít nhất seed 00, 10, 20, 30: tài khoản `@gym.test`,
    gói tập, lịch làm việc của PT và mức lương theo buổi).
 2. **Backend phải chạy với hai biến môi trường rút ngắn thời gian chờ**, nếu không buổi tập phải đặt trước
-   30 phút và buổi PENDING còn dưới 60 phút bị tự huỷ, kịch bản không thể chạy trong vài phút:
+   30 phút và buổi PENDING (đặt ngoài giờ, chờ PT xác nhận) còn dưới 60 phút bị tự huỷ, kịch bản không thể chạy trong vài phút:
 
    ```powershell
    $env:GMS_BOOKING_MIN_LEAD_MINUTES = "0"
@@ -55,7 +56,7 @@ Kịch bản tốn khoảng 30 giây vì phải chờ 16 giây giữa hai lần 
 | Thông báo | Nguyên nhân và cách xử lý |
 |---|---|
 | `BOOKING_TOO_SOON` | Backend chưa đặt `GMS_BOOKING_MIN_LEAD_MINUTES=0`. |
-| `Buoi PENDING bi tu huy` | Backend chưa đặt `GMS_BOOKING_PENDING_CANCEL_THRESHOLD_MINUTES=0`. |
+| `Buoi PENDING bi tu huy` | Chỉ gặp khi buổi bị đặt ngoài ca của PT (PENDING): backend chưa đặt `GMS_BOOKING_PENDING_CANCEL_THRESHOLD_MINUTES=0`. Luồng chính hiện tự CONFIRMED vì kịch bản tạo ca làm việc cho PT. |
 | `Chua thay khoan luong` | PT chưa có mức lương theo buổi (chạy seed 30) hoặc listener lương lỗi, xem log backend. |
 | `Dang nhap ... that bai` | Chưa nạp seed 00, hoặc mật khẩu khác `Gym@12345` (dùng `-Password`). |
 | `BOOKING_OUT_OF_WORKING_HOURS` hoặc lỗi trùng lịch | Ca làm việc hôm nay của PT không phủ khung giờ, hoặc PT đã có buổi trùng giờ: đổi `-TrainerEmail` sang `trainer2@gym.test` hoặc chờ vài phút rồi chạy lại. |

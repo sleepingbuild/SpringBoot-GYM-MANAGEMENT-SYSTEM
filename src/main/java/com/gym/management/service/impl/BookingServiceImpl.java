@@ -46,6 +46,8 @@ public class BookingServiceImpl implements BookingService, OpenBookingCountPort 
     private static final List<String> STAFF_ROLES_CAN_BOOK_FOR_OTHERS = List.of("RECEPTIONIST", "SUPER_ADMIN");
     private static final String ROLE_TRAINER = "TRAINER";
     private static final String METHOD_FACE = "FACE";
+    /** PT không quét ra mà bấm hoàn thành: giờ bấm được ghi làm giờ ra. */
+    private static final String METHOD_MANUAL = "MANUAL";
     /** PT được check-in sớm tối đa bao nhiêu phút trước giờ bắt đầu (G6: [S-30, S+ân hạn]). */
     private static final int TRAINER_CHECKIN_EARLY_MINUTES = 30;
     private static final int MIN_EARLY_LEAVE_REASON_LENGTH = 5;
@@ -71,6 +73,10 @@ public class BookingServiceImpl implements BookingService, OpenBookingCountPort 
     /** Học viên huỷ booking CONFIRMED khi còn DƯỚI số giờ này thì bị LATE_CANCELLED. */
     @Value("${gms.booking.late-cancel-hours:2}")
     private int lateCancelHours;
+
+    /** Buổi thực tế dưới số phút này thì PT phải nhập lý do mới hoàn thành được. */
+    @Value("${gms.booking.min-complete-minutes:45}")
+    private int minCompleteMinutes = 45;
 
     // ------------------------------------------------------------------
     // Tạo mới / sửa
@@ -162,12 +168,12 @@ public class BookingServiceImpl implements BookingService, OpenBookingCountPort 
     }
 
     /**
-     * Điều kiện hoàn thành (G4): booking đang CONFIRMED, học viên đã quét vào, PT đã quét vào VÀ ra.
+     * Điều kiện hoàn thành (G4, đã đổi): booking đang CONFIRMED và học viên đã quét vào. PT không cần quét vào/ra: thời lượng tính từ lúc PT quét vào (hoặc giờ bắt đầu theo lịch) đến lúc quét ra (hoặc lúc bấm hoàn thành); dưới mức tối thiểu thì phải có lý do.
      * PT ra sớm không có lý do vẫn hoàn thành được nhưng {@code fullDuration = false} nên không được tính lương.
      */
     @Override
     @Transactional
-    public BookingResponse completeBooking(UUID trainerId, UUID bookingId) {
+    public BookingResponse completeBooking(UUID trainerId, UUID bookingId, String reason) {
         Booking booking = bookingRepository.findByIdAndTrainerId(bookingId, trainerId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy booking"));
         applyLazyStatus(booking);
@@ -182,9 +188,35 @@ public class BookingServiceImpl implements BookingService, OpenBookingCountPort 
             throw new BusinessException(ErrorCode.BOOKING_NOT_CHECKED_IN,
                     "Hội viên chưa điểm danh khuôn mặt, không thể đánh dấu hoàn thành");
         }
-        if (booking.getPtCheckInTime() == null || booking.getPtCheckOutTime() == null) {
-            throw new BusinessException(ErrorCode.BOOKING_PT_NOT_CHECKED_IN,
-                    "PT phải quét mặt vào và ra trước khi hoàn thành");
+        // Thời lượng thực tế: từ lúc PT quét vào (chưa quét thì từ giờ bắt đầu theo lịch) đến lúc PT quét ra
+        // (chưa quét ra thì đến lúc bấm hoàn thành). Dưới mức tối thiểu thì bắt buộc có lý do.
+        LocalDateTime actualStart = booking.getPtCheckInTime() != null
+                ? booking.getPtCheckInTime()
+                : LocalDateTime.of(booking.getBookingDate(), booking.getStartTime());
+        LocalDateTime actualEnd = booking.getPtCheckOutTime() != null
+                ? booking.getPtCheckOutTime()
+                : LocalDateTime.now(clock);
+        long workedMinutes = java.time.Duration.between(actualStart, actualEnd).toMinutes();
+
+        String given = reason == null ? "" : reason.trim();
+        if (!given.isEmpty() && given.length() < MIN_EARLY_LEAVE_REASON_LENGTH) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "Lý do phải có ít nhất " + MIN_EARLY_LEAVE_REASON_LENGTH + " ký tự");
+        }
+        String existingReason = booking.getPtEarlyLeaveReason();
+        boolean hasReason = !given.isEmpty() || (existingReason != null && !existingReason.isBlank());
+        if (workedMinutes < minCompleteMinutes && !hasReason) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "Buổi tập chưa đủ " + minCompleteMinutes + " phút, cần nhập lý do (ít nhất "
+                            + MIN_EARLY_LEAVE_REASON_LENGTH + " ký tự)");
+        }
+        if (!given.isEmpty()) {
+            booking.setPtEarlyLeaveReason(given);
+        }
+        if (booking.getPtCheckOutTime() == null) {
+            // PT không quét ra: ghi giờ bấm hoàn thành làm giờ ra để lương và báo cáo dùng chung một mốc.
+            booking.setPtCheckOutTime(actualEnd);
+            booking.setPtCheckOutMethod(METHOD_MANUAL);
         }
 
         boolean fullDuration = isFullDuration(booking);

@@ -48,6 +48,8 @@ export interface MemberPackage {
   startDate: string; // yyyy-MM-dd
   endDate: string | null;
   remainingSessions: number | null; // null = không giới hạn buổi
+  heldSessions?: number | null; // chỉ có ở GET /member-packages/me: số booking đang mở (PENDING, CONFIRMED)
+  bookableSessions?: number | null; // còn đặt được = max(0, remainingSessions - heldSessions)
 }
 
 /** PaymentTransactionResponse.java. status: PENDING, SUCCESS, FAILED, REFUNDED. */

@@ -9,6 +9,7 @@ import com.gym.management.entity.Package;
 import com.gym.management.service.BookingService;
 import com.gym.management.service.CheckInHistoryService;
 import com.gym.management.service.MembershipService;
+import com.gym.management.service.OpenBookingCountPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,7 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
@@ -42,6 +42,7 @@ class MemberStatsServiceImplTest {
     @Mock private MembershipService membershipService;
     @Mock private BookingService bookingService;
     @Mock private CheckInHistoryService checkInHistoryService;
+    @Mock private OpenBookingCountPort openBookingCountPort;
 
     private MemberStatsServiceImpl service;
     private final UUID memberId = UUID.randomUUID();
@@ -50,7 +51,7 @@ class MemberStatsServiceImplTest {
     void setUp() {
         // 2026-11-13 10:00 giờ VN
         Clock clock = Clock.fixed(Instant.parse("2026-11-13T03:00:00Z"), VN);
-        service = new MemberStatsServiceImpl(membershipService, bookingService, checkInHistoryService, clock);
+        service = new MemberStatsServiceImpl(membershipService, bookingService, checkInHistoryService, openBookingCountPort, clock);
     }
 
     private static BookingResponse booking(BookingStatus status) {
@@ -67,16 +68,13 @@ class MemberStatsServiceImplTest {
         return mp;
     }
 
-    private void stubBookings(List<BookingResponse> window, int completedTotal, int pending, int confirmed) {
+    private void stubBookings(List<BookingResponse> window, int completedTotal, int open) {
         LocalDate to = LocalDate.of(2026, 11, 13);
         LocalDate from = to.minusDays(29);
         when(bookingService.findMyBookings(memberId, MEMBER, null, from, to)).thenReturn(window);
         when(bookingService.findMyBookings(eq(memberId), eq(MEMBER), eq(BookingStatus.COMPLETED), isNull(), isNull()))
                 .thenReturn(java.util.Collections.nCopies(completedTotal, booking(BookingStatus.COMPLETED)));
-        when(bookingService.findMyBookings(eq(memberId), eq(MEMBER), eq(BookingStatus.PENDING), isNull(), isNull()))
-                .thenReturn(java.util.Collections.nCopies(pending, booking(BookingStatus.PENDING)));
-        when(bookingService.findMyBookings(eq(memberId), eq(MEMBER), eq(BookingStatus.CONFIRMED), isNull(), isNull()))
-                .thenReturn(java.util.Collections.nCopies(confirmed, booking(BookingStatus.CONFIRMED)));
+        when(openBookingCountPort.countOpenBookings(memberId)).thenReturn(open);
     }
 
     private static CheckInHistoryItem visit(LocalDateTime t) {
@@ -87,7 +85,7 @@ class MemberStatsServiceImplTest {
     void countsWindowStatusesAndAvailableSessions() {
         stubBookings(List.of(
                 booking(BookingStatus.COMPLETED), booking(BookingStatus.COMPLETED),
-                booking(BookingStatus.CONFIRMED), booking(BookingStatus.LATE_CANCELLED)), 9, 1, 2);
+                booking(BookingStatus.CONFIRMED), booking(BookingStatus.LATE_CANCELLED)), 9, 3);
         when(checkInHistoryService.findMyHistory(memberId)).thenReturn(List.of(
                 visit(LocalDateTime.of(2026, 11, 13, 6, 0)),   // hôm nay: tính
                 visit(LocalDateTime.of(2026, 10, 15, 6, 0)),   // ngày đầu cửa sổ: tính
@@ -115,7 +113,7 @@ class MemberStatsServiceImplTest {
 
     @Test
     void availableSessionsNeverNegative() {
-        stubBookings(List.of(), 0, 2, 2);
+        stubBookings(List.of(), 0, 4);
         when(checkInHistoryService.findMyHistory(memberId)).thenReturn(List.of());
         when(membershipService.getCurrentMembership(memberId)).thenReturn(Optional.of(pack(1)));
 
@@ -127,7 +125,7 @@ class MemberStatsServiceImplTest {
 
     @Test
     void unlimitedPackageHasNullRemainingAndAvailable() {
-        stubBookings(List.of(), 0, 0, 1);
+        stubBookings(List.of(), 0, 1);
         when(checkInHistoryService.findMyHistory(memberId)).thenReturn(List.of());
         when(membershipService.getCurrentMembership(memberId)).thenReturn(Optional.of(pack(null)));
 
@@ -141,7 +139,7 @@ class MemberStatsServiceImplTest {
 
     @Test
     void noActiveMembershipStillReturnsActivityStats() {
-        stubBookings(List.of(booking(BookingStatus.NO_SHOW)), 3, 0, 0);
+        stubBookings(List.of(booking(BookingStatus.NO_SHOW)), 3, 0);
         when(checkInHistoryService.findMyHistory(memberId)).thenReturn(List.of());
         when(membershipService.getCurrentMembership(memberId)).thenReturn(Optional.empty());
 

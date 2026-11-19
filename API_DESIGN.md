@@ -119,7 +119,7 @@
 | PUT/DELETE | `/api/v1/packages/{id}` | Super Admin (DELETE = ngừng bán, `is_active = false`) |
 | POST | `/api/v1/member-packages` | Receptionist (bán gói) hoặc Member (đăng ký) — gói ở trạng thái PENDING, chờ xác nhận thanh toán; Member muốn có gói ngay dùng `/purchase` |
 | POST | `/api/v1/member-packages/purchase` | Member — tự mua gói cho chính mình, thanh toán mô phỏng thành công ngay (phương thức `LOCAL_CONFIRM`), gói chuyển ACTIVE luôn. Body `{ "packageId": "...", "branchId": "..." }` (`branchId` tùy chọn; không có `userId`, người mua luôn là người đăng nhập). Lỗi: `PACKAGE_NOT_FOUND`, `MEMBERSHIP_PENDING_EXISTS`. Response: `memberPackage` (ACTIVE, có `remainingSessions`, `endDate`) và `paymentTransaction` (SUCCESS) |
-| GET | `/api/v1/member-packages/me` | Member, Trainer, Receptionist, Super Admin — gói ACTIVE của chính mình (dùng `getCurrentMembership`); không có gói ACTIVE trả `MEMBERSHIP_NOT_FOUND` |
+| GET | `/api/v1/member-packages/me` | Member, Trainer, Receptionist, Super Admin — gói ACTIVE của chính mình (dùng `getCurrentMembership`); không có gói ACTIVE trả `MEMBERSHIP_NOT_FOUND` Response thêm heldSessions (số booking PENDING, CONFIRMED đang mở) và bookableSessions = max(0, remainingSessions - heldSessions); cả hai null khi gói không tính theo buổi. Chỉ có ở endpoint này. |
 | GET | `/api/v1/member-packages/me/history` | Như trên — lịch sử toàn bộ gói của chính mình (mọi trạng thái), phân trang |
 | GET | `/api/v1/member-packages/current?userId={id}` | Receptionist, Super Admin — gói ACTIVE của một hội viên (để nâng, hạ cấp hộ); không có gói ACTIVE trả `MEMBERSHIP_NOT_FOUND` |
 | GET | `/api/v1/member-packages?userId={id}` | Receptionist, Super Admin — lịch sử gói của một hội viên (mọi trạng thái), phân trang |
@@ -140,7 +140,7 @@
 | PUT | `/api/v1/bookings/{id}` | Member/Receptionist (sửa lịch, áp lại đủ rule) |
 | POST | `/api/v1/bookings/{id}/confirm` | Trainer |
 | POST | `/api/v1/bookings/{id}/cancel` | Member/Trainer/Receptionist — huỷ muộn (dưới 2 giờ, booking `CONFIRMED`) → `LATE_CANCELLED`, mất 1 buổi, PT vẫn có lương |
-| POST | `/api/v1/bookings/{id}/complete` | Trainer — chỉ khi `CONFIRMED`, học viên đã check-in, PT đã quét vào và ra |
+| POST | `/api/v1/bookings/{id}/complete` | Trainer — chỉ khi `CONFIRMED` và học viên đã check-in; PT không cần quét mặt vào/ra. Thời lượng thực tế tính từ lúc PT quét vào (chưa quét thì từ giờ bắt đầu theo lịch) đến lúc PT quét ra (chưa quét thì đến lúc bấm; ghi lại làm giờ ra, `ptCheckOutMethod = MANUAL`). Body tuỳ chọn `{ "reason": "..." }`: bắt buộc (từ 5 ký tự) khi thời lượng dưới `gms.booking.min-complete-minutes` (mặc định 45), thiếu thì `VALIDATION_ERROR`; lý do lưu vào `ptEarlyLeaveReason`. Buổi chưa đủ giờ kết thúc theo lịch và không có lý do vẫn hoàn thành nhưng `fullDuration = false` (không tính công). Giống nhau cho buổi trong ca và buổi ngoài giờ |
 | PUT | `/api/v1/bookings/{id}/early-leave-reason` | Trainer — nộp lý do ra sớm (`{ "reason": "..." }`), trước khi hoàn thành |
 | GET | `/api/v1/bookings/me` | Member/Trainer — lọc tuỳ chọn `status`, `from`, `to` (`yyyy-MM-dd`); lọc theo trạng thái sau khi áp lazy-status |
 | GET | `/api/v1/bookings/{id}` | Member/Trainer/Receptionist/Admin — chi tiết một buổi; chỉ chủ buổi (học viên hoặc PT) hoặc nhân viên, người khác bị `AUTH_FORBIDDEN_ROLE` |
