@@ -102,7 +102,8 @@ class LeadAssignmentServiceImplTest {
         Lead l = lead(LeadStatus.NEW, salesA);
         when(salesUserRepository.isActiveSales(salesB)).thenReturn(false);
 
-        BusinessException ex = assertThrows(BusinessException.class, () -> service.assign(leadId, request(salesB)));
+        AssignLeadRequest req = request(salesB);
+        BusinessException ex = assertThrows(BusinessException.class, () -> service.assign(leadId, req));
 
         assertEquals(ErrorCode.VALIDATION_ERROR, ex.getErrorCode());
         assertEquals(salesA, l.getAssignedSalesId());
@@ -112,7 +113,8 @@ class LeadAssignmentServiceImplTest {
     @Test
     void assign_convertedLeadCannotBeReassigned() {
         lead(LeadStatus.CONVERTED, salesA);
-        BusinessException ex = assertThrows(BusinessException.class, () -> service.assign(leadId, request(salesB)));
+        AssignLeadRequest req = request(salesB);
+        BusinessException ex = assertThrows(BusinessException.class, () -> service.assign(leadId, req));
         assertEquals(ErrorCode.LEAD_ALREADY_CONVERTED, ex.getErrorCode());
         verify(leadRepository, never()).save(any());
     }
@@ -120,7 +122,8 @@ class LeadAssignmentServiceImplTest {
     @Test
     void assign_lostLeadCannotBeReassigned() {
         lead(LeadStatus.LOST, salesA);
-        BusinessException ex = assertThrows(BusinessException.class, () -> service.assign(leadId, request(salesB)));
+        AssignLeadRequest req = request(salesB);
+        BusinessException ex = assertThrows(BusinessException.class, () -> service.assign(leadId, req));
         assertEquals(ErrorCode.VALIDATION_ERROR, ex.getErrorCode());
         verify(leadRepository, never()).save(any());
     }
@@ -128,7 +131,8 @@ class LeadAssignmentServiceImplTest {
     @Test
     void assign_unknownLeadIsNotFound() {
         when(leadRepository.findByIdForUpdate(leadId)).thenReturn(Optional.empty());
-        BusinessException ex = assertThrows(BusinessException.class, () -> service.assign(leadId, request(salesB)));
+        AssignLeadRequest req = request(salesB);
+        BusinessException ex = assertThrows(BusinessException.class, () -> service.assign(leadId, req));
         assertEquals(ErrorCode.LEAD_NOT_FOUND, ex.getErrorCode());
     }
 

@@ -77,6 +77,9 @@ gms:
   booking:
     min-lead-minutes: 30
     slot-duration-minutes: 60
+    # Khung ngoài giờ toàn hệ thống (HH:mm, có nháy để YAML không đọc thành số). Cuối khung 23:59 hiển thị là 24:00.
+    off-hours-start: "21:00"
+    off-hours-end: "23:59"
     pending-cancel-threshold-minutes: 60
     # Luật mới (CHANGE_PT_ATTENDANCE_AND_PAY.md). Tên khoá chờ Agent 3 xác nhận khớp với code.
     no-show-grace-minutes: 15                 # sau S+15 phút: PT chưa quét -> PT_NO_SHOW; học viên chưa quét -> NO_SHOW

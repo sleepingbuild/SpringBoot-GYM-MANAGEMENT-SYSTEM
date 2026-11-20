@@ -496,38 +496,49 @@ public class BookingServiceImpl implements BookingService, OpenBookingCountPort 
                     "Ngày đặt lịch vượt quá hạn gói tập (hạn đến hết " + membership.endDate() + ")");
         }
 
-        // 5b. Giới hạn buổi/tuần theo gói (Thứ 2 -> Chủ nhật)
-        Integer maxPerWeek = membership.maxSessionsPerWeek();
-        if (maxPerWeek != null) {
-            if (maxPerWeek == 0) {
-                throw new BusinessException(ErrorCode.BOOKING_WEEKLY_LIMIT_EXCEEDED,
-                        "Gói tập hiện tại không cho phép đặt lịch với PT");
-            }
-            LocalDate weekStart = booking.getBookingDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-            LocalDate weekEnd = weekStart.plusDays(6);
-            long countInWeek = bookingRepository.countActiveInWeek(
-                    booking.getMember().getId(), weekStart, weekEnd, exclude);
-            if (countInWeek >= maxPerWeek) {
-                throw new BusinessException(ErrorCode.BOOKING_WEEKLY_LIMIT_EXCEEDED,
-                        "Đã đạt giới hạn " + maxPerWeek + " buổi/tuần theo gói tập");
-            }
-        }
-
-        // 5c. Gói tính theo buổi: số buổi còn lại trừ số booking đang mở (PENDING/CONFIRMED) phải còn > 0.
-        // remaining_sessions chỉ giảm lúc chốt buổi nên nếu chỉ so với remaining thì hội viên còn 1 buổi
-        // vẫn đặt được nhiều booking cùng lúc. Gói không tính theo buổi (remaining = null) thì bỏ qua.
-        Integer remaining = membership.remainingSessions();
-        if (remaining != null) {
-            long openBookings = countOpenBookings(booking.getMember().getId(), exclude);
-            if (remaining - openBookings <= 0) {
-                throw new BusinessException(ErrorCode.MEMBERSHIP_NO_SESSION,
-                        "Gói tập còn " + remaining + " buổi và đang có " + openBookings
-                                + " buổi chờ thực hiện, không thể đặt thêm");
-            }
-        }
+        checkWeeklyLimit(membership, booking, exclude);
+        checkRemainingSessions(membership, booking, exclude);
 
         // true = đặt ngoài ca (khung ngoài giờ), cần PT xác nhận; false = trong ca, tự xác nhận.
         return offHours;
+    }
+
+    /** 5b. Giới hạn buổi/tuần theo gói (Thứ 2 -> Chủ nhật). */
+    private void checkWeeklyLimit(MembershipLookupPort.ActiveMembership membership, Booking booking, UUID exclude) {
+        Integer maxPerWeek = membership.maxSessionsPerWeek();
+        if (maxPerWeek == null) {
+            return;
+        }
+        if (maxPerWeek == 0) {
+            throw new BusinessException(ErrorCode.BOOKING_WEEKLY_LIMIT_EXCEEDED,
+                    "Gói tập hiện tại không cho phép đặt lịch với PT");
+        }
+        LocalDate weekStart = booking.getBookingDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate weekEnd = weekStart.plusDays(6);
+        long countInWeek = bookingRepository.countActiveInWeek(
+                booking.getMember().getId(), weekStart, weekEnd, exclude);
+        if (countInWeek >= maxPerWeek) {
+            throw new BusinessException(ErrorCode.BOOKING_WEEKLY_LIMIT_EXCEEDED,
+                    "Đã đạt giới hạn " + maxPerWeek + " buổi/tuần theo gói tập");
+        }
+    }
+
+    /**
+     * 5c. Gói tính theo buổi: số buổi còn lại trừ số booking đang mở (PENDING/CONFIRMED) phải còn > 0.
+     * remaining_sessions chỉ giảm lúc chốt buổi nên nếu chỉ so với remaining thì hội viên còn 1 buổi
+     * vẫn đặt được nhiều booking cùng lúc. Gói không tính theo buổi (remaining = null) thì bỏ qua.
+     */
+    private void checkRemainingSessions(MembershipLookupPort.ActiveMembership membership, Booking booking, UUID exclude) {
+        Integer remaining = membership.remainingSessions();
+        if (remaining == null) {
+            return;
+        }
+        long openBookings = countOpenBookings(booking.getMember().getId(), exclude);
+        if (remaining - openBookings <= 0) {
+            throw new BusinessException(ErrorCode.MEMBERSHIP_NO_SESSION,
+                    "Gói tập còn " + remaining + " buổi và đang có " + openBookings
+                            + " buổi chờ thực hiện, không thể đặt thêm");
+        }
     }
 
     /**

@@ -123,8 +123,9 @@ class BookingAutoConfirmTest {
         when(trainerScheduleService.isWithinWorkingHours(trainerId, DATE, start, end)).thenReturn(false);
         when(trainerScheduleService.isWithinOffHours(start, end)).thenReturn(false);
 
+        BookingRequest req = request(start, end);
         BusinessException ex = assertThrows(BusinessException.class,
-                () -> service.createBooking(memberId, "MEMBER", request(start, end)));
+                () -> service.createBooking(memberId, "MEMBER", req));
 
         assertEquals(ErrorCode.BOOKING_OUT_OF_WORKING_HOURS, ex.getErrorCode());
         verify(bookingRepository, never()).save(any(Booking.class));
@@ -146,8 +147,9 @@ class BookingAutoConfirmTest {
                 .build();
         when(bookingRepository.findOpenByMember(eq(memberId), any())).thenReturn(List.of(open));
 
+        BookingRequest req = request(start, end);
         BusinessException ex = assertThrows(BusinessException.class,
-                () -> service.createBooking(memberId, "MEMBER", request(start, end)));
+                () -> service.createBooking(memberId, "MEMBER", req));
 
         assertEquals(ErrorCode.MEMBERSHIP_NO_SESSION, ex.getErrorCode());
         verify(bookingRepository, never()).save(any(Booking.class));
@@ -168,8 +170,9 @@ class BookingAutoConfirmTest {
                 .build();
         when(bookingRepository.findOpenByMember(eq(memberId), any())).thenReturn(List.of(open));
 
+        BookingRequest req = request(start, end);
         BusinessException ex = assertThrows(BusinessException.class,
-                () -> service.createBooking(memberId, "MEMBER", request(start, end)));
+                () -> service.createBooking(memberId, "MEMBER", req));
 
         assertEquals(ErrorCode.MEMBERSHIP_NO_SESSION, ex.getErrorCode());
     }

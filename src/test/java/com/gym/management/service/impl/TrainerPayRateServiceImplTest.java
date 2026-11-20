@@ -112,7 +112,8 @@ class TrainerPayRateServiceImplTest {
         when(trainerPayRateRepository.findByTrainerId(trainerId)).thenReturn(Optional.empty());
         when(userRepository.findById(trainerId)).thenReturn(Optional.of(userWithRole("MEMBER")));
 
-        assertThatThrownBy(() -> service.upsert(trainerId, request("150000")))
+        TrainerPayRateRequest payRate = request("150000");
+        assertThatThrownBy(() -> service.upsert(trainerId, payRate))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.VALIDATION_ERROR);
@@ -124,7 +125,8 @@ class TrainerPayRateServiceImplTest {
         when(trainerPayRateRepository.findByTrainerId(trainerId)).thenReturn(Optional.empty());
         when(userRepository.findById(trainerId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.upsert(trainerId, request("150000")))
+        TrainerPayRateRequest payRate = request("150000");
+        assertThatThrownBy(() -> service.upsert(trainerId, payRate))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.RESOURCE_NOT_FOUND);
