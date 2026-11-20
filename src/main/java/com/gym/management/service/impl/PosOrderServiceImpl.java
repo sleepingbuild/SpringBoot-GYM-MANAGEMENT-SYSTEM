@@ -49,6 +49,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PosOrderServiceImpl implements PosOrderService {
 
+    private static final String ORDER_NOT_FOUND_MESSAGE = "Không tìm thấy đơn hàng";
+
     private final PosOrderRepository posOrderRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
@@ -153,7 +155,7 @@ public class PosOrderServiceImpl implements PosOrderService {
     @Transactional
     public PosOrderResponse cancelOrder(UUID id) {
         PosOrder order = posOrderRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.POS_ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.POS_ORDER_NOT_FOUND, ORDER_NOT_FOUND_MESSAGE));
 
         if (order.getStatus() == PosOrderStatus.CANCELLED) {
             return toResponse(order, null); // idempotent — huỷ lại không lỗi
@@ -186,7 +188,7 @@ public class PosOrderServiceImpl implements PosOrderService {
     @Transactional(readOnly = true)
     public PosOrderResponse getById(UUID id) {
         return toResponse(posOrderRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.POS_ORDER_NOT_FOUND, "Không tìm thấy đơn hàng")), null);
+                .orElseThrow(() -> new BusinessException(ErrorCode.POS_ORDER_NOT_FOUND, ORDER_NOT_FOUND_MESSAGE)), null);
     }
 
     @Override
@@ -206,7 +208,7 @@ public class PosOrderServiceImpl implements PosOrderService {
     public PosOrderResponse getOwnById(UUID memberId, UUID orderId) {
         PosOrder order = posOrderRepository.findById(orderId)
                 .filter(o -> o.getMember() != null && memberId.equals(o.getMember().getId()))
-                .orElseThrow(() -> new BusinessException(ErrorCode.POS_ORDER_NOT_FOUND, "Không tìm thấy đơn hàng"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.POS_ORDER_NOT_FOUND, ORDER_NOT_FOUND_MESSAGE));
         return toResponse(order, null);
     }
 

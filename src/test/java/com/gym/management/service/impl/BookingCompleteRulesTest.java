@@ -205,7 +205,8 @@ class BookingCompleteRulesTest {
         Booking b = booking(LocalTime.of(9, 50), LocalTime.of(10, 50));
         b.setPtCheckInTime(TODAY.atTime(9, 50));
 
-        BusinessException ex = assertThrows(BusinessException.class, () -> service.completeBooking(trainerId, b.getId()));
+        UUID bookingId = b.getId();
+        BusinessException ex = assertThrows(BusinessException.class, () -> service.completeBooking(trainerId, bookingId));
 
         assertEquals(ErrorCode.BOOKING_NOT_CHECKED_IN, ex.getErrorCode());
     }

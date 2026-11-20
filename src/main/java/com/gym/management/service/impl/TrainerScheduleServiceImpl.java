@@ -54,10 +54,10 @@ public class TrainerScheduleServiceImpl implements TrainerScheduleService {
     private int slotDurationMinutes;
 
     /** Khung ngoài giờ toàn hệ thống (HH:mm). Cuối khung 23:59 hiển thị là 24:00 vì cột time không lưu được 24:00. */
-    @Value("${gms.booking.off-hours-start:21:00}")
+    @Value("${gms.booking.off-hours-start}")
     private String offHoursStart = "21:00";
 
-    @Value("${gms.booking.off-hours-end:23:59}")
+    @Value("${gms.booking.off-hours-end}")
     private String offHoursEnd = "23:59";
 
     @Override
@@ -191,6 +191,11 @@ public class TrainerScheduleServiceImpl implements TrainerScheduleService {
     @Override
     @Transactional(readOnly = true)
     public boolean isWithinWorkingHours(UUID trainerId, LocalDate date, LocalTime start, LocalTime end) {
+        return shiftCovers(trainerId, date, start, end);
+    }
+
+    /** Dùng chung cho isWithinWorkingHours và danh sách slot ngoài giờ, để không gọi hàm @Transactional qua this. */
+    private boolean shiftCovers(UUID trainerId, LocalDate date, LocalTime start, LocalTime end) {
         return scheduleRepository.findByTrainerIdAndWorkDateAndActiveTrue(trainerId, date).stream()
                 .anyMatch(s -> !start.isBefore(s.getStartTime()) && !end.isAfter(s.getEndTime()));
     }
@@ -226,7 +231,7 @@ public class TrainerScheduleServiceImpl implements TrainerScheduleService {
                     .anyMatch(b -> b.getStartTime().isBefore(end) && b.getEndTime().isAfter(slotStart));
             boolean tooSoon = LocalDateTime.of(date, slotStart).isBefore(earliest);
             // Slot nằm trong ca của PT đã có ở danh sách slot trong ca (tự xác nhận), không lặp lại ở đây.
-            boolean inShift = isWithinWorkingHours(trainerId, date, slotStart, end);
+            boolean inShift = shiftCovers(trainerId, date, slotStart, end);
 
             if (!occupied && !tooSoon && !inShift) {
                 result.add(AvailableSlotResponse.builder()

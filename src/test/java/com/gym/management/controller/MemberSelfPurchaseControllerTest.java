@@ -41,7 +41,7 @@ class MemberSelfPurchaseControllerTest {
         Set<ConstraintViolation<SelfPurchaseRequest>> violations = validator.validate(new SelfPurchaseRequest());
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getPropertyPath().toString()).isEqualTo("packageId");
+        assertThat(violations.iterator().next().getPropertyPath()).hasToString("packageId");
     }
 
     @Test

@@ -384,7 +384,8 @@ class PosOrderServiceImplTest {
         when(userRepository.findById(ghost)).thenReturn(Optional.empty());
         Product water = product("Nước suối", "10000.00", 10, true);
 
-        assertThatThrownBy(() -> service.createOwnOrder(ghost, memberRequest(water, 1)))
+        MemberPosOrderRequest ghostOrder = memberRequest(water, 1);
+        assertThatThrownBy(() -> service.createOwnOrder(ghost, ghostOrder))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.AUTH_TOKEN_INVALID);
@@ -398,7 +399,8 @@ class PosOrderServiceImplTest {
         member(memberId);
         Product bcaa = product("BCAA", "300000.00", 3, true);
 
-        assertThatThrownBy(() -> service.createOwnOrder(memberId, memberRequest(bcaa, 4)))
+        MemberPosOrderRequest tooMany = memberRequest(bcaa, 4);
+        assertThatThrownBy(() -> service.createOwnOrder(memberId, tooMany))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.PRODUCT_OUT_OF_STOCK);
@@ -419,7 +421,8 @@ class PosOrderServiceImplTest {
 
         assertThat(service.getOwnById(me, mine.getId()).getMemberId()).isEqualTo(me);
         for (PosOrder notMine : List.of(theirs, walkIn)) {
-            assertThatThrownBy(() -> service.getOwnById(me, notMine.getId()))
+            UUID notMineId = notMine.getId();
+            assertThatThrownBy(() -> service.getOwnById(me, notMineId))
                     .isInstanceOf(BusinessException.class)
                     .extracting(e -> ((BusinessException) e).getErrorCode())
                     .isEqualTo(ErrorCode.POS_ORDER_NOT_FOUND);

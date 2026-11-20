@@ -87,8 +87,9 @@ class UserAdminServiceImplTest {
 
     @Test
     void createStaff_rejectsMemberRole() {
+        AdminUserCreateRequest req = createRequest(Set.of("MEMBER"));
         BusinessException ex = assertThrows(BusinessException.class,
-                () -> service.createStaff(createRequest(Set.of("MEMBER"))));
+                () -> service.createStaff(req));
 
         assertEquals(ErrorCode.VALIDATION_ERROR, ex.getErrorCode());
         verify(userAdminRepository, never()).save(any());
@@ -96,8 +97,9 @@ class UserAdminServiceImplTest {
 
     @Test
     void createStaff_rejectsUnknownRole() {
+        AdminUserCreateRequest req = createRequest(Set.of("BOSS"));
         BusinessException ex = assertThrows(BusinessException.class,
-                () -> service.createStaff(createRequest(Set.of("BOSS"))));
+                () -> service.createStaff(req));
 
         assertEquals(ErrorCode.VALIDATION_ERROR, ex.getErrorCode());
     }
@@ -106,8 +108,9 @@ class UserAdminServiceImplTest {
     void createStaff_rejectsDuplicateEmail() {
         when(userAdminRepository.existsByEmail("a@gym.local")).thenReturn(true);
 
+        AdminUserCreateRequest req = createRequest(Set.of("TRAINER"));
         BusinessException ex = assertThrows(BusinessException.class,
-                () -> service.createStaff(createRequest(Set.of("TRAINER"))));
+                () -> service.createStaff(req));
 
         assertEquals(ErrorCode.AUTH_EMAIL_ALREADY_EXISTS, ex.getErrorCode());
         verify(userAdminRepository, never()).save(any());
@@ -147,8 +150,10 @@ class UserAdminServiceImplTest {
         UUID id = UUID.randomUUID();
         when(userAdminRepository.findById(id)).thenReturn(Optional.empty());
 
+        UUID actor = UUID.randomUUID();
+        Set<String> roles = Set.of("TRAINER");
         BusinessException ex = assertThrows(BusinessException.class,
-                () -> service.setRoles(UUID.randomUUID(), id, Set.of("TRAINER")));
+                () -> service.setRoles(actor, id, roles));
 
         assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
     }
@@ -158,8 +163,9 @@ class UserAdminServiceImplTest {
         UUID me = UUID.randomUUID();
         when(userAdminRepository.findById(me)).thenReturn(Optional.of(user(me, "Admin", "admin@gym.local", "ACTIVE", "SUPER_ADMIN")));
 
+        Set<String> roles = Set.of("TRAINER");
         BusinessException ex = assertThrows(BusinessException.class,
-                () -> service.setRoles(me, me, Set.of("TRAINER")));
+                () -> service.setRoles(me, me, roles));
 
         assertEquals(ErrorCode.USER_SELF_CHANGE_FORBIDDEN, ex.getErrorCode());
     }
@@ -169,8 +175,10 @@ class UserAdminServiceImplTest {
         UUID id = UUID.randomUUID();
         when(userAdminRepository.findById(id)).thenReturn(Optional.of(user(id, "A", "a@gym.local", "ACTIVE", "MEMBER")));
 
+        UUID actor = UUID.randomUUID();
+        Set<String> roles = Set.of("MEMBER", "TRAINER");
         BusinessException ex = assertThrows(BusinessException.class,
-                () -> service.setRoles(UUID.randomUUID(), id, Set.of("MEMBER", "TRAINER")));
+                () -> service.setRoles(actor, id, roles));
 
         assertEquals(ErrorCode.VALIDATION_ERROR, ex.getErrorCode());
     }
@@ -202,8 +210,9 @@ class UserAdminServiceImplTest {
         UUID id = UUID.randomUUID();
         when(userAdminRepository.findById(id)).thenReturn(Optional.of(user(id, "A", "a@gym.local", "ACTIVE", "MEMBER")));
 
+        UUID actor = UUID.randomUUID();
         BusinessException ex = assertThrows(BusinessException.class,
-                () -> service.setStatus(UUID.randomUUID(), id, "BANNED"));
+                () -> service.setStatus(actor, id, "BANNED"));
 
         assertEquals(ErrorCode.VALIDATION_ERROR, ex.getErrorCode());
     }
