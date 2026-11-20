@@ -18,8 +18,12 @@ import {
 import { bookingErrorMessage } from "./bookingErrors";
 import { buildCreateInput, missingMemberHint } from "./createBookingRules";
 import { addDays, toIsoDate } from "./dates";
+import { getMyMembership } from "@/features/membership/api";
+import type { MemberPackage } from "@/features/membership/types";
 import { MemberPicker } from "./MemberPicker";
 import { bookedMessage, slotLabel, toTrainerChoices } from "./offHoursRules";
+import { SessionBanner } from "./SessionBanner";
+import { sessionSummary } from "./sessionRules";
 import type { AvailableSlot, BranchOption, MemberOption, TrainerChoice } from "./types";
 
 const INPUT_CLASS = "w-full rounded border px-3 py-2 text-sm";
@@ -53,6 +57,21 @@ export function BookingCreate({
   const [reloadKey, setReloadKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busyStart, setBusyStart] = useState<string | null>(null);
+
+  // Hội viên tự đặt: xem số buổi còn lại (GET /member-packages/me). Lỗi tải thì bỏ qua, không chặn đặt.
+  const [membership, setMembership] = useState<MemberPackage | null | undefined>(undefined);
+  useEffect(() => {
+    if (staff) return;
+    let cancelled = false;
+    getMyMembership()
+      .then((m) => !cancelled && setMembership(m))
+      .catch(() => !cancelled && setMembership(undefined));
+    return () => {
+      cancelled = true;
+    };
+  }, [staff, reloadKey]);
+  const summary = !staff && membership !== undefined ? sessionSummary(membership) : null;
+  const sessionBlocked = summary?.blocked ?? false;
 
   // Chi nhanh la tuy chon: neu tai loi thi bo qua, van dat duoc.
   useEffect(() => {
@@ -157,6 +176,7 @@ export function BookingCreate({
       <PageHeader title={title} description={description} />
 
       {staff && <MemberPicker value={member} onChange={setMember} />}
+      {summary && <SessionBanner summary={summary} />}
 
       <div className="panel mb-6 max-w-md space-y-4 p-5">
         <Field
@@ -274,7 +294,7 @@ export function BookingCreate({
                     <button
                       key={s.startTime}
                       type="button"
-                      disabled={busyStart !== null || memberHint !== null}
+                      disabled={busyStart !== null || memberHint !== null || sessionBlocked}
                       onClick={() => void book(s)}
                       className="rounded border px-3 py-2 text-sm disabled:opacity-50"
                     >
