@@ -14,6 +14,16 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
+# Kiem tra chat luong frontend cho Jenkins (stage "Frontend CI"): lint, typecheck, test.
+# Chay: docker build --target frontend-test frontend   (khong nam trong anh chay that vi stage "run" o cuoi la mac dinh)
+FROM node:20-alpine AS frontend-test
+WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    CI=true
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run lint && npm run typecheck && npm test
+
 FROM node:20-alpine AS run
 WORKDIR /app
 ENV NODE_ENV=production \

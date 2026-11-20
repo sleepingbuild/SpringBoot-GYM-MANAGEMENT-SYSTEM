@@ -68,6 +68,26 @@ pipeline {
             }
         }
 
+        // Kiem tra frontend (lint, typecheck, test) trong Docker nen may Jenkins KHONG can cai Node.
+        // Chay tren moi nhanh. Neu Docker chua chay thi bo qua (khong lam do pipeline); loi that cua lint/test thi do.
+        stage('Frontend CI') {
+            steps {
+                powershell '''
+                    # PowerShell 5.1: lenh native ghi stderr bi coi la loi neu dung "Stop" nen dung "Continue" va kiem tra $LASTEXITCODE.
+                    $ErrorActionPreference = "Continue"
+                    docker version --format "{{.Server.Version}}" | Out-Null
+                    if ($LASTEXITCODE -ne 0) {
+                        Write-Host "Docker chua chay tren may Jenkins: bo qua Frontend CI (mo Docker Desktop de bat lai buoc nay)."
+                        exit 0
+                    }
+                    docker build --target frontend-test -t gms-frontend-test frontend
+                    if ($LASTEXITCODE -ne 0) { throw "Frontend CI that bai (lint, typecheck hoac test), xem log build o tren" }
+                    Write-Host "Frontend CI OK: lint, typecheck, test deu dat"
+                    docker image rm gms-frontend-test 2>&1 | Out-Null
+                '''
+            }
+        }
+
         stage('Publish') {
             steps {
                 bat 'mvn -B -ntp -DskipTests package'
