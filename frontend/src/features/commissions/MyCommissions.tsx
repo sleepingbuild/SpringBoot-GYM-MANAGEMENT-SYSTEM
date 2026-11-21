@@ -11,7 +11,7 @@ import { Pager } from "@/features/pos/Pager";
 import type { PageResponse } from "@/lib/types";
 import { listMyCommissions } from "./api";
 import { sumCommissions } from "./summary";
-import { OUTCOME_LABEL, STATUS_LABEL, type Commission } from "./types";
+import { STATUS_LABEL, outcomeText, type Commission } from "./types";
 
 export function MyCommissions() {
   const [page, setPage] = useState(0);
@@ -83,7 +83,7 @@ export function MyCommissions() {
                 {data.content.map((c) => (
                   <tr key={c.id} className="border-b border-line last:border-0">
                     <td className="px-3 py-2">{formatDateTime(c.createdAt)}</td>
-                    <td className="px-3 py-2">{OUTCOME_LABEL[c.outcome] ?? c.outcome}</td>
+                    <td className="px-3 py-2">{outcomeText(c)}</td>
                     <td className="px-3 py-2 text-right">{formatVnd(c.amount)}</td>
                     <td className="px-3 py-2">{STATUS_LABEL[c.status] ?? c.status}</td>
                     <td className="px-3 py-2">{formatDateTime(c.paidAt)}</td>

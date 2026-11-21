@@ -38,7 +38,8 @@ public class BookingSettledCommissionListener {
             return;
         }
         try {
-            commissionService.recordSessionPay(event.trainerId(), event.bookingId(), event.outcome());
+            commissionService.recordSessionPay(event.trainerId(), event.bookingId(), event.outcome(),
+                    event.earlyLeaveWithReason());
         } catch (Exception ex) {
             // Không bao giờ để lỗi tính lương làm hỏng transaction chốt buổi của PT.
             log.error("Lỗi khi ghi nhận lương cho booking {} (trainer {}, outcome {}) — bỏ qua, cần xử lý bù thủ công",

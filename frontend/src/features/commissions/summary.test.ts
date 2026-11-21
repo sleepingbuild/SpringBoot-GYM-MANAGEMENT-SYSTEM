@@ -5,6 +5,7 @@ import type { Commission } from "./types";
 const row = (amount: number, status: Commission["status"]): Commission => ({
   id: String(Math.random()),
   staffId: "s",
+  shortSessionWithReason: false,
   bookingId: "b",
   outcome: "COMPLETED",
   amount,

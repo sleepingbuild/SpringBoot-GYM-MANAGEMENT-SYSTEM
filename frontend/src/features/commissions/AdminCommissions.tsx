@@ -14,7 +14,7 @@ import { markCommissionPaid, searchCommissions } from "./api";
 import { trainerLabel } from "./trainers";
 import { useTrainers } from "./useTrainers";
 import { sumCommissions } from "./summary";
-import { OUTCOME_LABEL, STATUS_LABEL, type Commission } from "./types";
+import { STATUS_LABEL, outcomeText, type Commission } from "./types";
 
 export function AdminCommissions() {
   const toast = useToast();
@@ -121,7 +121,7 @@ export function AdminCommissions() {
                     <tr key={c.id} className="border-b border-line last:border-0">
                       <td className="px-3 py-2">{formatDateTime(c.createdAt)}</td>
                       <td className="px-3 py-2">{trainerLabel(trainers ?? [], c.staffId)}</td>
-                      <td className="px-3 py-2">{OUTCOME_LABEL[c.outcome] ?? c.outcome}</td>
+                      <td className="px-3 py-2">{outcomeText(c)}</td>
                       <td className="px-3 py-2 text-right">{formatVnd(c.amount)}</td>
                       <td className="px-3 py-2">
                         {STATUS_LABEL[c.status] ?? c.status}

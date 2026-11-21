@@ -25,5 +25,6 @@ public class CommissionResponse {
     private BigDecimal amount;
     private CommissionStatus status;
     private LocalDateTime paidAt;
+    private boolean shortSessionWithReason;
     private LocalDateTime createdAt;
 }

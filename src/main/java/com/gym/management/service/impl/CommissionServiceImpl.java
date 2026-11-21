@@ -40,7 +40,8 @@ public class CommissionServiceImpl implements CommissionService {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void recordSessionPay(UUID trainerId, UUID bookingId, BookingSettledEvent.Outcome outcome) {
+    public void recordSessionPay(UUID trainerId, UUID bookingId, BookingSettledEvent.Outcome outcome,
+                                 boolean shortSessionWithReason) {
         if (commissionRepository.existsByBookingId(bookingId)) {
             // Idempotent theo thiết kế — có thể nhận cùng 1 event (hoặc lazy-check chạy lại)
             // nhiều lần cho cùng 1 booking. Không dùng unique-constraint exception để chống
@@ -70,6 +71,7 @@ public class CommissionServiceImpl implements CommissionService {
         commission.setOutcome(outcome);
         commission.setAmount(rateOpt.get().getAmountPerSession());
         commission.setStatus(CommissionStatus.PENDING);
+        commission.setShortSessionWithReason(shortSessionWithReason);
         commissionRepository.save(commission);
     }
 
@@ -155,6 +157,7 @@ public class CommissionServiceImpl implements CommissionService {
                 .amount(commission.getAmount())
                 .status(commission.getStatus())
                 .paidAt(commission.getPaidAt())
+                .shortSessionWithReason(commission.isShortSessionWithReason())
                 .createdAt(commission.getCreatedAt())
                 .build();
     }
