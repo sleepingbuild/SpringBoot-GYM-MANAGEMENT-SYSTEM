@@ -34,7 +34,7 @@ export function Dialog({
   }, []);
 
   return (
-    <div className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-ink/40 p-4 sm:items-center">
+    <div className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:items-center">
       <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby={titleId} className={`panel w-full ${widthClass} p-5`}>
         <div className="mb-4 flex items-start justify-between gap-3">
           <h2 id={titleId} className="text-lg">

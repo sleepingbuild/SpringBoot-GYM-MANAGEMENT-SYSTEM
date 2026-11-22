@@ -18,6 +18,8 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    /* Báo cho trình duyệt đây là giao diện tối: thanh cuộn, ô chọn, ô ngày dùng màu tối. */
+    color-scheme: dark;
   }
   body {
     @apply bg-chalk font-sans text-base text-ink antialiased;
@@ -32,19 +34,21 @@
 
 @layer components {
   .btn {
-    @apply inline-flex min-h-[2.5rem] items-center justify-center gap-2 rounded-control px-4 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex min-h-[2.5rem] items-center justify-center gap-2 rounded-control px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60;
   }
+  /* Hành động chính: cam. Chỉ dùng cho MỘT nút chính trên mỗi màn hình. */
   .btn-primary {
-    @apply btn bg-plate text-white hover:bg-plate-dark;
+    @apply btn bg-gradient-to-b from-accent to-accent-dark text-white hover:from-accent-dark hover:to-accent-dark;
   }
   .btn-secondary {
-    @apply btn border border-line bg-paper text-ink hover:bg-chalk;
+    @apply btn border border-line-strong bg-transparent text-ink hover:bg-raised;
   }
+  /* Nguy hiểm: viền đỏ, nền đỏ rất nhạt, chữ đỏ (không dùng nền đỏ đặc). */
   .btn-danger {
-    @apply btn bg-rubber text-white hover:opacity-90;
+    @apply btn border border-rubber/50 bg-rubber-tint text-rubber hover:bg-rubber/20;
   }
   .input {
-    @apply block w-full rounded-control border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-steel/70 focus:border-plate disabled:bg-chalk;
+    @apply block w-full rounded-control border border-line-strong bg-chalk px-3 py-2 text-sm text-ink placeholder:text-steel/80 focus:border-plate disabled:opacity-60;
   }
   .input-error {
     @apply border-rubber;
@@ -52,16 +56,20 @@
   .panel {
     @apply rounded-panel border border-line bg-paper;
   }
-  /* Vạch kẻ làn sàn tập: yếu tố nhận diện duy nhất của giao diện, chỉ dùng ở trang đăng nhập. */
+  /* Tab lọc dạng viên thuốc: dùng .pill, tab đang chọn thêm .pill-active (nên có aria-pressed hoặc aria-selected). */
+  .pill {
+    @apply inline-flex min-h-[2.25rem] items-center rounded-full px-4 text-sm font-medium text-plate transition-colors hover:bg-plate-tint;
+  }
+  .pill-active {
+    @apply bg-plate-dark text-white hover:bg-plate-dark;
+  }
+  /* Nền trang đăng nhập: vạch làn sàn mờ + quầng sáng cam và xanh rất nhẹ. */
   .floor-lanes {
-    background-color: #0e5a6b;
-    background-image: repeating-linear-gradient(
-      100deg,
-      transparent 0,
-      transparent 54px,
-      rgba(242, 244, 241, 0.16) 54px,
-      rgba(242, 244, 241, 0.16) 58px
-    );
+    background-color: #0b0f19;
+    background-image:
+      radial-gradient(60% 45% at 15% 0%, rgba(209, 71, 7, 0.28), transparent 70%),
+      radial-gradient(50% 40% at 100% 100%, rgba(37, 99, 235, 0.22), transparent 70%),
+      repeating-linear-gradient(100deg, transparent 0, transparent 54px, rgba(244, 245, 247, 0.05) 54px, rgba(244, 245, 247, 0.05) 58px);
   }
 }
 
