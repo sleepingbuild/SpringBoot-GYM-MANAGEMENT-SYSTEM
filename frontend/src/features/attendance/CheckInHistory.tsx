@@ -87,15 +87,15 @@ export function CheckInHistory() {
       <table className="w-full text-left text-sm">
         <thead>
           <tr className="border-b">
-            <th className="px-4 py-3 font-semibold">Loại</th>
-            <th className="px-4 py-3 font-semibold">Giờ vào</th>
-            <th className="px-4 py-3 font-semibold">Giờ ra</th>
-            <th className="px-4 py-3 font-semibold">Cách điểm danh</th>
+            <th className="px-4 py-3 font-semibold text-steel">Loại</th>
+            <th className="px-4 py-3 font-semibold text-steel">Giờ vào</th>
+            <th className="px-4 py-3 font-semibold text-steel">Giờ ra</th>
+            <th className="px-4 py-3 font-semibold text-steel">Cách điểm danh</th>
           </tr>
         </thead>
         <tbody>
           {state.items.map((item) => (
-            <tr key={`${item.type}-${item.id}`} className="border-b last:border-b-0">
+            <tr key={`${item.type}-${item.id}`} className="border-b last:border-b-0 hover:bg-raised">
               <td className="px-4 py-3">
                 <div>{checkInTypeLabel(item.type)}</div>
                 {item.trainerName && <div className="text-steel">PT {item.trainerName}</div>}
