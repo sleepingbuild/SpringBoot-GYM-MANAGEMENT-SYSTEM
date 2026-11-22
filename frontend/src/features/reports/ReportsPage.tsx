@@ -23,9 +23,9 @@ export function ReportsPage() {
 
   return (
     <div>
-      <PageHeader title="Báo cáo" description="Số liệu kinh doanh cho quản trị viên. Chọn khoảng thời gian rồi bấm Xem báo cáo." />
+      <PageHeader icon="📊" title="Báo cáo" description="Số liệu kinh doanh cho quản trị viên. Chọn khoảng thời gian rồi bấm Xem báo cáo." />
 
-      <div role="tablist" aria-label="Loại báo cáo" className="mb-4 flex flex-wrap gap-1 border-b border-line">
+      <div role="tablist" aria-label="Loại báo cáo" className="mb-4 flex flex-wrap gap-2">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -35,7 +35,7 @@ export function ReportsPage() {
             aria-selected={tab === t.id}
             aria-controls={`panel-${t.id}`}
             onClick={() => setTab(t.id)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === t.id ? "border-plate text-plate" : "border-transparent text-steel hover:text-ink"}`}
+            className={tab === t.id ? "pill pill-active" : "pill"}
           >
             {t.label}
           </button>

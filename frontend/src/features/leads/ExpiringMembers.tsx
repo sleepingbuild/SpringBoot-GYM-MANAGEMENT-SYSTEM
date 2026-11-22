@@ -18,6 +18,7 @@ export function ExpiringMembers() {
   return (
     <div>
       <PageHeader
+        icon="⏳"
         title="Hội viên sắp hết hạn"
         description="Hội viên có gói đang hoạt động sắp hết hạn, sắp theo ngày hết hạn. Những người đã đăng ký gói tiếp theo không có trong danh sách."
       />

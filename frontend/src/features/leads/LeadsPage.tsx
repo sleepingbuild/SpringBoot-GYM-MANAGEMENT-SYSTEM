@@ -134,6 +134,7 @@ export function LeadsPage() {
   return (
     <div>
       <PageHeader
+        icon="🎯"
         title="Khách tiềm năng"
         description="Theo dõi khách quan tâm, ghi nhận lần liên hệ và chuyển thành hội viên. Sales chỉ thấy khách được giao cho mình hoặc chưa có người phụ trách."
         actions={<Button onClick={() => setModal({ kind: "create" })}>Thêm khách</Button>}
