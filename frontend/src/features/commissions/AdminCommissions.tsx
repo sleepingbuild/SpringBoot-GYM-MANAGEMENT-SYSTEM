@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Field } from "@/components/ui/Field";
@@ -14,7 +15,7 @@ import { markCommissionPaid, searchCommissions } from "./api";
 import { trainerLabel } from "./trainers";
 import { useTrainers } from "./useTrainers";
 import { sumCommissions } from "./summary";
-import { STATUS_LABEL, outcomeText, type Commission } from "./types";
+import { STATUS_LABEL, STATUS_TONE, outcomeText, type Commission } from "./types";
 
 export function AdminCommissions() {
   const toast = useToast();
@@ -118,14 +119,14 @@ export function AdminCommissions() {
                 </thead>
                 <tbody>
                   {data.content.map((c) => (
-                    <tr key={c.id} className="border-b border-line last:border-0">
+                    <tr key={c.id} className="border-b border-line last:border-0 hover:bg-raised">
                       <td className="px-3 py-2">{formatDateTime(c.createdAt)}</td>
                       <td className="px-3 py-2">{trainerLabel(trainers ?? [], c.staffId)}</td>
                       <td className="px-3 py-2">{outcomeText(c)}</td>
                       <td className="px-3 py-2 text-right">{formatVnd(c.amount)}</td>
                       <td className="px-3 py-2">
-                        {STATUS_LABEL[c.status] ?? c.status}
-                        {c.paidAt ? ` · ${formatDateTime(c.paidAt)}` : ""}
+                        <Badge tone={STATUS_TONE[c.status] ?? "neutral"}>{STATUS_LABEL[c.status] ?? c.status}</Badge>
+                        {c.paidAt && <span className="ml-2 text-xs text-steel">{formatDateTime(c.paidAt)}</span>}
                       </td>
                       <td className="whitespace-nowrap px-3 py-2 text-right">
                         {c.status === "PENDING" && (

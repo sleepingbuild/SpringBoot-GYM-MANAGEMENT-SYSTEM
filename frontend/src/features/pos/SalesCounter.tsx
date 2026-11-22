@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
 import { Button, Spinner } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Field } from "@/components/ui/Field";
@@ -88,7 +89,7 @@ export function SalesCounter() {
                 type="button"
                 onClick={() => setFilter(f)}
                 aria-pressed={filter === f}
-                className={filter === f ? "btn-primary" : "btn-secondary"}
+                className={filter === f ? "pill pill-active" : "pill"}
               >
                 {f === "ALL" ? "Tất cả" : CATEGORY_LABEL[f]}
               </button>
@@ -122,8 +123,8 @@ export function SalesCounter() {
                     <p className="font-medium">{p.name}</p>
                     <p className="text-xs text-steel">{CATEGORY_LABEL[p.category]}</p>
                     <p className="mt-2 text-lg font-semibold">{formatVnd(p.price)}</p>
-                    <p className={`text-xs ${out ? "text-rubber" : "text-steel"}`}>
-                      {out ? "Hết hàng" : `Còn ${p.stockQuantity}${p.unit ? ` ${p.unit}` : ""}`}
+                    <p className="mt-1">
+                      <Badge tone={out ? "danger" : "success"}>{out ? "Hết hàng" : `Còn ${p.stockQuantity}${p.unit ? ` ${p.unit}` : ""}`}</Badge>
                     </p>
                   </div>
                   <Button className="mt-3" variant="secondary" disabled={out} onClick={() => setCart((c) => addToCart(c, p))}>

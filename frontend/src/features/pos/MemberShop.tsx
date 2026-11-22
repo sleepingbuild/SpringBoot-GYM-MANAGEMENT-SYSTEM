@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
 import { Button, Spinner } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Field } from "@/components/ui/Field";
@@ -79,7 +80,7 @@ export function MemberShop() {
           <Field className="w-full sm:w-64" label="Tìm sản phẩm" value={search} onChange={(e) => setSearch(e.target.value)} />
           <div className="flex flex-wrap gap-2" role="group" aria-label="Lọc theo danh mục">
             {(["ALL", "DRINK", "SUPPLEMENT", "ACCESSORY"] as Filter[]).map((f) => (
-              <button key={f} type="button" onClick={() => setFilter(f)} aria-pressed={filter === f} className={filter === f ? "btn-primary" : "btn-secondary"}>
+              <button key={f} type="button" onClick={() => setFilter(f)} aria-pressed={filter === f} className={filter === f ? "pill pill-active" : "pill"}>
                 {f === "ALL" ? "Tất cả" : CATEGORY_LABEL[f]}
               </button>
             ))}
@@ -113,7 +114,9 @@ export function MemberShop() {
                     <p className="font-medium">{p.name}</p>
                     <p className="text-xs text-steel">{CATEGORY_LABEL[p.category]}</p>
                     <p className="mt-2 text-lg font-semibold">{formatVnd(p.price)}</p>
-                    <p className={`text-xs ${out ? "text-rubber" : "text-steel"}`}>{out ? "Hết hàng" : `Còn ${p.stockQuantity}${p.unit ? ` ${p.unit}` : ""}`}</p>
+                    <p className="mt-1">
+                      <Badge tone={out ? "danger" : "success"}>{out ? "Hết hàng" : `Còn ${p.stockQuantity}${p.unit ? ` ${p.unit}` : ""}`}</Badge>
+                    </p>
                   </div>
                   <Button className="mt-3" variant="secondary" disabled={out} onClick={() => setCart((c) => addToCart(c, p))}>
                     Thêm vào giỏ

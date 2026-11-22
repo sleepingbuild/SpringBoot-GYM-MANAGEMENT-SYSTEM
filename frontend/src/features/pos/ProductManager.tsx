@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
 import { Button, Spinner } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Field } from "@/components/ui/Field";
@@ -133,7 +134,7 @@ export function ProductManager() {
               </thead>
               <tbody>
                 {data.content.map((p) => (
-                  <tr key={p.id} className="border-b border-line last:border-0">
+                  <tr key={p.id} className="border-b border-line last:border-0 hover:bg-raised">
                     <td className="px-3 py-2 font-medium">{p.name}</td>
                     <td className="px-3 py-2">{CATEGORY_LABEL[p.category]}</td>
                     <td className="px-3 py-2 text-right">{formatVnd(p.price)}</td>
@@ -141,7 +142,9 @@ export function ProductManager() {
                       {p.stockQuantity}
                       {p.unit ? ` ${p.unit}` : ""}
                     </td>
-                    <td className="px-3 py-2">{p.active ? "Đang bán" : "Ngừng bán"}</td>
+                    <td className="px-3 py-2">
+                      <Badge tone={p.active ? "success" : "neutral"}>{p.active ? "Đang bán" : "Ngừng bán"}</Badge>
+                    </td>
                     <td className="space-x-3 whitespace-nowrap px-3 py-2 text-right">
                       <button type="button" className="underline" onClick={() => startEdit(p)}>
                         Sửa

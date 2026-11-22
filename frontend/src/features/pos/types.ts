@@ -1,3 +1,4 @@
+import type { BadgeTone } from "@/components/ui/Badge";
 /** Khớp ProductResponse.java / PosOrderResponse.java (Agent 5). Tiền là số VND (BigDecimal phía backend). */
 export type ProductCategory = "DRINK" | "SUPPLEMENT" | "ACCESSORY";
 
@@ -40,6 +41,13 @@ export const ORDER_STATUS_LABEL: Record<PosOrderStatus, string> = {
   PENDING: "Chờ xác nhận",
   COMPLETED: "Hoàn thành",
   CANCELLED: "Đã huỷ",
+};
+
+/** Tông Badge cho trạng thái đơn (màu theo ý nghĩa, dùng chung thành phần Badge). */
+export const ORDER_STATUS_TONE: Record<PosOrderStatus, BadgeTone> = {
+  PENDING: "warning",
+  COMPLETED: "success",
+  CANCELLED: "neutral",
 };
 
 export interface PosOrderItem {

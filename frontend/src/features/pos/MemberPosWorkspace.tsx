@@ -16,8 +16,8 @@ export function MemberPosWorkspace() {
   const [tab, setTab] = useState<TabId>("shop");
   return (
     <div>
-      <PageHeader title="Cửa hàng" description="Mua đồ uống, thực phẩm bổ sung và phụ kiện. Thanh toán mô phỏng, ghi nhận ngay." />
-      <div role="tablist" aria-label="Cửa hàng" className="mb-5 flex gap-2 border-b border-line">
+      <PageHeader icon="🛒" title="Cửa hàng" description="Mua đồ uống, thực phẩm bổ sung và phụ kiện. Thanh toán mô phỏng, ghi nhận ngay." />
+      <div role="tablist" aria-label="Cửa hàng" className="mb-5 flex flex-wrap gap-2">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -27,7 +27,7 @@ export function MemberPosWorkspace() {
             aria-selected={tab === t.id}
             aria-controls={`shop-panel-${t.id}`}
             onClick={() => setTab(t.id)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === t.id ? "border-plate text-plate" : "border-transparent text-steel hover:text-ink"}`}
+            className={tab === t.id ? "pill pill-active" : "pill"}
           >
             {t.label}
           </button>
