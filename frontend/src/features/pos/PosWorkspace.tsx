@@ -18,8 +18,8 @@ export function PosWorkspace() {
   const [tab, setTab] = useState<TabId>("sell");
   return (
     <div>
-      <PageHeader title="Bán lẻ (POS)" description="Bán đồ uống, thực phẩm bổ sung và phụ kiện tại quầy. Giá và tồn kho lấy từ hệ thống." />
-      <div role="tablist" aria-label="Chức năng bán lẻ" className="mb-5 flex gap-2 border-b border-line">
+      <PageHeader icon="🛒" title="Bán lẻ (POS)" description="Bán đồ uống, thực phẩm bổ sung và phụ kiện tại quầy. Giá và tồn kho lấy từ hệ thống." />
+      <div role="tablist" aria-label="Chức năng bán lẻ" className="mb-5 flex flex-wrap gap-2">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -29,7 +29,7 @@ export function PosWorkspace() {
             aria-selected={tab === t.id}
             aria-controls={`pos-panel-${t.id}`}
             onClick={() => setTab(t.id)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === t.id ? "border-plate text-plate" : "border-transparent text-steel hover:text-ink"}`}
+            className={tab === t.id ? "pill pill-active" : "pill"}
           >
             {t.label}
           </button>

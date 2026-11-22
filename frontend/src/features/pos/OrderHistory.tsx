@@ -2,6 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
 import { Button, Spinner } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Field } from "@/components/ui/Field";
@@ -11,7 +12,7 @@ import { useToast } from "@/lib/toast";
 import { cancelOrder, listOrders } from "./api";
 import { formatDateTime, formatVnd, shortId, todayIso } from "./format";
 import { Pager } from "./Pager";
-import { ORDER_STATUS_LABEL, PAYMENT_LABEL, type PaymentMethod, type PosOrder } from "./types";
+import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE, PAYMENT_LABEL, type PaymentMethod, type PosOrder } from "./types";
 
 export function OrderHistory() {
   const toast = useToast();
@@ -96,12 +97,14 @@ export function OrderHistory() {
               <tbody>
                 {data.content.map((o) => (
                   <Fragment key={o.id}>
-                    <tr className="border-b border-line">
+                    <tr className="border-b border-line hover:bg-raised">
                       <td className="px-3 py-2 font-mono">{shortId(o.id)}</td>
                       <td className="px-3 py-2">{formatDateTime(o.createdAt)}</td>
                       <td className="px-3 py-2">{PAYMENT_LABEL[o.paymentMethod as PaymentMethod] ?? o.paymentMethod}</td>
                       <td className="px-3 py-2 text-right">{formatVnd(o.totalAmount)}</td>
-                      <td className="px-3 py-2">{ORDER_STATUS_LABEL[o.status] ?? o.status}</td>
+                      <td className="px-3 py-2">
+                      <Badge tone={ORDER_STATUS_TONE[o.status] ?? "neutral"}>{ORDER_STATUS_LABEL[o.status] ?? o.status}</Badge>
+                    </td>
                       <td className="space-x-3 whitespace-nowrap px-3 py-2 text-right">
                         <button type="button" className="underline" aria-expanded={openId === o.id} onClick={() => setOpenId(openId === o.id ? null : o.id)}>
                           {openId === o.id ? "Ẩn" : "Chi tiết"}
@@ -114,7 +117,7 @@ export function OrderHistory() {
                       </td>
                     </tr>
                     {openId === o.id && (
-                      <tr className="border-b border-line bg-chalk">
+                      <tr className="border-b border-line bg-raised">
                         <td colSpan={6} className="px-3 py-3">
                           <ul className="space-y-1">
                             {o.items.map((i) => (

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -11,7 +12,7 @@ import { Pager } from "@/features/pos/Pager";
 import type { PageResponse } from "@/lib/types";
 import { listMyCommissions } from "./api";
 import { sumCommissions } from "./summary";
-import { STATUS_LABEL, outcomeText, type Commission } from "./types";
+import { STATUS_LABEL, STATUS_TONE, outcomeText, type Commission } from "./types";
 
 export function MyCommissions() {
   const [page, setPage] = useState(0);
@@ -36,7 +37,7 @@ export function MyCommissions() {
 
   return (
     <div>
-      <PageHeader title="Lương theo buổi" description="Mỗi buổi dạy đã chốt được ghi một dòng lương theo mức lương mỗi buổi do quản trị viên cấu hình." />
+      <PageHeader icon="💰" title="Lương theo buổi" description="Mỗi buổi dạy đã chốt được ghi một dòng lương theo mức lương mỗi buổi do quản trị viên cấu hình." />
       {error && (
         <div className="mb-4">
           <Alert tone="error" title="Không tải được lương">
@@ -81,11 +82,13 @@ export function MyCommissions() {
               </thead>
               <tbody>
                 {data.content.map((c) => (
-                  <tr key={c.id} className="border-b border-line last:border-0">
+                  <tr key={c.id} className="border-b border-line last:border-0 hover:bg-raised">
                     <td className="px-3 py-2">{formatDateTime(c.createdAt)}</td>
                     <td className="px-3 py-2">{outcomeText(c)}</td>
                     <td className="px-3 py-2 text-right">{formatVnd(c.amount)}</td>
-                    <td className="px-3 py-2">{STATUS_LABEL[c.status] ?? c.status}</td>
+                    <td className="px-3 py-2">
+                      <Badge tone={STATUS_TONE[c.status] ?? "neutral"}>{STATUS_LABEL[c.status] ?? c.status}</Badge>
+                    </td>
                     <td className="px-3 py-2">{formatDateTime(c.paidAt)}</td>
                   </tr>
                 ))}

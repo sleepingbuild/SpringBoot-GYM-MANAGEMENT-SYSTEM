@@ -24,8 +24,8 @@ export function CommissionsWorkspace() {
 
   return (
     <div>
-      <PageHeader title="Lương theo buổi" description="Tra cứu, đánh dấu chi trả lương PT và đặt mức lương mỗi buổi." />
-      <div role="tablist" aria-label="Quản lý lương PT" className="mb-5 flex gap-2 border-b border-line">
+      <PageHeader icon="💰" title="Lương theo buổi" description="Tra cứu, đánh dấu chi trả lương PT và đặt mức lương mỗi buổi." />
+      <div role="tablist" aria-label="Quản lý lương PT" className="mb-5 flex flex-wrap gap-2">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -33,7 +33,7 @@ export function CommissionsWorkspace() {
             type="button"
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === t.id ? "border-plate text-plate" : "border-transparent text-steel hover:text-ink"}`}
+            className={tab === t.id ? "pill pill-active" : "pill"}
           >
             {t.label}
           </button>

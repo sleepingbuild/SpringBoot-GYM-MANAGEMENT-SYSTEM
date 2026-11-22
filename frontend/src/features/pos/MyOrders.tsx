@@ -2,6 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
 import { Button, Spinner } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { errorMessage } from "@/lib/api/errors";
@@ -9,7 +10,7 @@ import type { PageResponse } from "@/lib/types";
 import { listMyOrders } from "./api";
 import { formatDateTime, formatVnd, shortId } from "./format";
 import { Pager } from "./Pager";
-import { ORDER_STATUS_LABEL, type PosOrder } from "./types";
+import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE, type PosOrder } from "./types";
 
 /** Lịch sử đơn của chính hội viên. Không có nút huỷ: huỷ và hoàn tiền do lễ tân/admin xử lý. */
 export function MyOrders() {
@@ -70,11 +71,13 @@ export function MyOrders() {
             <tbody>
               {data.content.map((o) => (
                 <Fragment key={o.id}>
-                  <tr className="border-b border-line">
+                  <tr className="border-b border-line hover:bg-raised">
                     <td className="px-3 py-2 font-mono">{shortId(o.id)}</td>
                     <td className="px-3 py-2">{formatDateTime(o.createdAt)}</td>
                     <td className="px-3 py-2 text-right">{formatVnd(o.totalAmount)}</td>
-                    <td className="px-3 py-2">{ORDER_STATUS_LABEL[o.status] ?? o.status}</td>
+                    <td className="px-3 py-2">
+                      <Badge tone={ORDER_STATUS_TONE[o.status] ?? "neutral"}>{ORDER_STATUS_LABEL[o.status] ?? o.status}</Badge>
+                    </td>
                     <td className="whitespace-nowrap px-3 py-2 text-right">
                       <button type="button" className="underline" aria-expanded={openId === o.id} onClick={() => setOpenId(openId === o.id ? null : o.id)}>
                         {openId === o.id ? "Ẩn" : "Chi tiết"}
@@ -82,7 +85,7 @@ export function MyOrders() {
                     </td>
                   </tr>
                   {openId === o.id && (
-                    <tr className="border-b border-line bg-chalk">
+                    <tr className="border-b border-line bg-raised">
                       <td colSpan={5} className="px-3 py-3">
                         <ul className="space-y-1">
                           {o.items.map((i) => (

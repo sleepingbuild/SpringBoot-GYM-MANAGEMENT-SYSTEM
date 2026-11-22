@@ -1,3 +1,4 @@
+import type { BadgeTone } from "@/components/ui/Badge";
 /** Khớp CommissionResponse.java / TrainerPayRateResponse.java (Agent 5). */
 export type CommissionOutcome = "COMPLETED" | "MEMBER_NO_SHOW" | "LATE_CANCEL";
 export type CommissionStatus = "PENDING" | "PAID";
@@ -11,6 +12,11 @@ export const OUTCOME_LABEL: Record<CommissionOutcome, string> = {
 export const STATUS_LABEL: Record<CommissionStatus, string> = {
   PENDING: "Chờ chi trả",
   PAID: "Đã chi trả",
+};
+
+export const STATUS_TONE: Record<CommissionStatus, BadgeTone> = {
+  PENDING: "warning",
+  PAID: "success",
 };
 
 export interface Commission {
