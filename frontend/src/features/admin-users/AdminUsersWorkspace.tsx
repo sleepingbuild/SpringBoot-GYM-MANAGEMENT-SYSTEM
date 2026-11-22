@@ -70,9 +70,9 @@ export function AdminUsersWorkspace() {
 
       <div role="tablist" aria-label="Nhóm tài khoản" className="mb-4 flex gap-2">
         {(Object.keys(GROUP_LABELS) as UserGroup[]).map((g) => (
-          <Button key={g} role="tab" aria-selected={group === g} variant={group === g ? "primary" : "secondary"} onClick={() => changeGroup(g)}>
+          <button key={g} type="button" role="tab" aria-selected={group === g} className={group === g ? "pill pill-active" : "pill"} onClick={() => changeGroup(g)}>
             {GROUP_LABELS[g]}
-          </Button>
+          </button>
         ))}
       </div>
 

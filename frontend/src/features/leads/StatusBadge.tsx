@@ -2,7 +2,7 @@ import { STATUS_LABELS } from "./status";
 import type { LeadStatus } from "./types";
 
 const TONE: Record<LeadStatus, string> = {
-  NEW: "bg-plate-tint text-plate-dark",
+  NEW: "bg-plate-tint text-plate",
   CONTACTED: "bg-amber-tint text-amber",
   CONVERTED: "bg-moss-tint text-moss",
   LOST: "bg-rubber-tint text-rubber",
