@@ -17,7 +17,7 @@ export function LeadsHome() {
 
   return (
     <div>
-      <div role="tablist" aria-label="Công việc của Sales" className="mb-4 flex flex-wrap gap-1 border-b border-line">
+      <div role="tablist" aria-label="Công việc của Sales" className="mb-4 flex flex-wrap gap-2">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -27,7 +27,7 @@ export function LeadsHome() {
             aria-selected={tab === t.id}
             aria-controls={`leads-panel-${t.id}`}
             onClick={() => setTab(t.id)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === t.id ? "border-plate text-plate" : "border-transparent text-steel hover:text-ink"}`}
+            className={tab === t.id ? "pill pill-active" : "pill"}
           >
             {t.label}
           </button>
