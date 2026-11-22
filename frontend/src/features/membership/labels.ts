@@ -39,14 +39,14 @@ export function labelOf(map: Record<string, string>, key: string | null | undefi
 
 export type Tone = "success" | "warning" | "danger" | "info" | "neutral";
 
+/** Tông màu theo ảnh mẫu: đang dùng xanh lá, chờ thanh toán vàng, hết hạn đỏ; sắp bắt đầu và đã huỷ trung tính. */
 export function membershipTone(status: string): Tone {
   switch (status) {
     case "ACTIVE":
       return "success";
     case "PENDING":
-    case "SCHEDULED":
       return "warning";
-    case "CANCELLED":
+    case "EXPIRED":
       return "danger";
     default:
       return "neutral";

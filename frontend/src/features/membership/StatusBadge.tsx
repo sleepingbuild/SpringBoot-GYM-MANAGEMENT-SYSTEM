@@ -1,15 +1,7 @@
+import { Badge } from "@/components/ui/Badge";
 import type { Tone } from "./labels";
 
-const TONE_CLASS: Record<Tone, string> = {
-  success: "border-moss bg-moss-tint",
-  warning: "border-amber bg-amber-tint",
-  danger: "border-rubber bg-rubber-tint",
-  info: "border-plate bg-plate-tint",
-  neutral: "border-steel",
-};
-
+/** Giữ nguyên chữ ký cũ để các màn hình trong module không phải sửa; phần hiển thị dùng Badge dùng chung. */
 export function StatusBadge({ tone, children }: { tone: Tone; children: React.ReactNode }) {
-  return (
-    <span className={`inline-flex items-center rounded-control border px-2 py-0.5 text-xs font-medium ${TONE_CLASS[tone]}`}>{children}</span>
-  );
+  return <Badge tone={tone}>{children}</Badge>;
 }
