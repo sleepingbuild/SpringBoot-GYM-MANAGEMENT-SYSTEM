@@ -34,7 +34,7 @@ export function BookingsWorkspace() {
 
   return (
     <div>
-      <div role="tablist" aria-label="Đặt lịch PT" className="mb-6 flex gap-4 border-b">
+      <div role="tablist" aria-label="Đặt lịch PT" className="mb-6 flex flex-wrap gap-2">
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -42,11 +42,7 @@ export function BookingsWorkspace() {
             role="tab"
             aria-selected={active === t.key}
             onClick={() => setTab(t.key)}
-            className={
-              active === t.key
-                ? "-mb-px border-b-2 border-current px-1 pb-2 text-sm font-semibold"
-                : "px-1 pb-2 text-sm text-steel"
-            }
+            className={active === t.key ? "pill pill-active" : "pill"}
           >
             {t.label}
           </button>

@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
 import { Button, Spinner } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { errorMessage } from "@/lib/api/errors";
 import { useToast } from "@/lib/toast";
+import { bookingStatusTone } from "@/features/bookings/statusTone";
 import { cancelBooking, completeBooking, confirmBooking, listMyBookings } from "./bookingsApi";
 import type { Booking } from "./bookingTypes";
 import {
@@ -65,12 +67,12 @@ function BookingCard({ booking: b, now, busy, draft, onDraft, onConfirm, onCompl
     <li className="panel p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-medium">
+          <p className="text-sm font-semibold">
             {dateLabel(b.bookingDate)} · {hhmm(b.startTime)} - {hhmm(b.endTime)}
           </p>
           <p className="text-sm text-steel">Học viên: {b.memberName ?? "Không rõ"}</p>
         </div>
-        <span className="rounded border px-2 py-0.5 text-xs">{STATUS_LABEL[b.status] ?? b.status}</span>
+        <Badge tone={bookingStatusTone(b.status)}>{STATUS_LABEL[b.status] ?? b.status}</Badge>
       </div>
 
       {showTimes && (
@@ -91,7 +93,7 @@ function BookingCard({ booking: b, now, busy, draft, onDraft, onConfirm, onCompl
       )}
 
       {b.status === "CONFIRMED" && (plan.reasonRequired || plan.reasonSuggested) && (
-        <div className="mt-3 space-y-2 border-t pt-3">
+        <div className="mt-3 space-y-2 border-t border-line pt-3">
           <p className="text-sm">
             {plan.reasonRequired
               ? `Buổi mới được ${Math.max(plan.minutes, 0)} phút, chưa đủ ${MIN_COMPLETE_MINUTES} phút. Nhập lý do để hoàn thành.`
@@ -110,18 +112,18 @@ function BookingCard({ booking: b, now, busy, draft, onDraft, onConfirm, onCompl
       {isOpen(b) && (
         <div className="mt-3 flex flex-wrap items-center gap-3">
           {b.status === "PENDING" && (
-            <Button type="button" loading={busy} onClick={onConfirm}>
+            <Button loading={busy} onClick={onConfirm}>
               Xác nhận
             </Button>
           )}
           {b.status === "CONFIRMED" && (
-            <Button type="button" loading={busy} disabled={!memberScanned} onClick={onComplete}>
+            <Button loading={busy} disabled={!memberScanned} onClick={onComplete}>
               Hoàn thành buổi
             </Button>
           )}
-          <button type="button" className="text-sm underline disabled:opacity-50" disabled={busy} onClick={onCancel}>
+          <Button variant="danger" disabled={busy} onClick={onCancel}>
             Huỷ buổi
-          </button>
+          </Button>
           {b.status === "CONFIRMED" && !memberScanned && (
             <p className="text-sm text-steel">Chỉ hoàn thành được khi học viên đã quét mặt vào.</p>
           )}
@@ -225,6 +227,7 @@ export function TrainerBookings() {
   return (
     <div>
       <PageHeader
+        icon="🏋️"
         title="Buổi dạy"
         description="Xác nhận buổi do học viên đặt ngoài giờ, và hoàn thành buổi sau khi học viên đã quét mặt. Không cần quét mặt ra: buổi dưới 45 phút thì nhập lý do."
       />

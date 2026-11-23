@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ApiError } from "@/lib/api/errors";
 import { useToast } from "@/lib/toast";
+import { getMyMembership } from "@/features/membership/api";
+import type { MemberPackage } from "@/features/membership/types";
 import {
   createBooking,
   listAvailableSlots,
@@ -18,15 +21,15 @@ import {
 import { bookingErrorMessage } from "./bookingErrors";
 import { buildCreateInput, missingMemberHint } from "./createBookingRules";
 import { addDays, toIsoDate } from "./dates";
-import { getMyMembership } from "@/features/membership/api";
-import type { MemberPackage } from "@/features/membership/types";
 import { MemberPicker } from "./MemberPicker";
 import { bookedMessage, slotLabel, toTrainerChoices } from "./offHoursRules";
 import { SessionBanner } from "./SessionBanner";
 import { sessionSummary } from "./sessionRules";
 import type { AvailableSlot, BranchOption, MemberOption, TrainerChoice } from "./types";
 
-const INPUT_CLASS = "w-full rounded border px-3 py-2 text-sm";
+/** O khung gio: ba trang thai (thuong, hover, khoa). */
+const SLOT_CLASS =
+  "rounded-control border border-line-strong px-3 py-2 text-sm transition-colors hover:border-plate hover:bg-plate-tint disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-line-strong disabled:hover:bg-transparent";
 
 /**
  * Chon ngay, huan luyen vien, khung gio roi dat.
@@ -173,7 +176,7 @@ export function BookingCreate({
 
   return (
     <div>
-      <PageHeader title={title} description={description} />
+      <PageHeader icon={offHours ? "🌙" : "📅"} title={title} description={description} />
 
       {staff && <MemberPicker value={member} onChange={setMember} />}
       {summary && <SessionBanner summary={summary} />}
@@ -191,12 +194,7 @@ export function BookingCreate({
             <label htmlFor="booking-branch" className="mb-1 block text-sm font-medium">
               Chi nhánh (không bắt buộc)
             </label>
-            <select
-              id="booking-branch"
-              className={INPUT_CLASS}
-              value={branchId}
-              onChange={(e) => setBranchId(e.target.value)}
-            >
+            <select id="booking-branch" className="input" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
               <option value="">Không chọn</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -210,13 +208,7 @@ export function BookingCreate({
           <label htmlFor="booking-notes" className="mb-1 block text-sm font-medium">
             Ghi chú (không bắt buộc)
           </label>
-          <textarea
-            id="booking-notes"
-            className={INPUT_CLASS}
-            rows={2}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
+          <textarea id="booking-notes" className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
       </div>
 
@@ -259,13 +251,15 @@ export function BookingCreate({
                   }}
                   className={
                     selectedId === t.trainerId
-                      ? "panel border-current px-4 py-3 text-left text-sm font-semibold"
-                      : "panel px-4 py-3 text-left text-sm"
+                      ? "panel border-plate bg-plate-tint px-4 py-3 text-left text-sm font-semibold"
+                      : "panel px-4 py-3 text-left text-sm transition-colors hover:border-line-strong hover:bg-raised"
                   }
                 >
                   <span className="block">{t.trainerName ?? "Huấn luyện viên"}</span>
                   {t.availableSlotCount !== undefined && (
-                    <span className="block text-xs font-normal text-steel">{t.availableSlotCount} khung giờ trống</span>
+                    <Badge tone="success" className="mt-1">
+                      {t.availableSlotCount} khung giờ trống
+                    </Badge>
                   )}
                 </button>
               ))}
@@ -296,7 +290,7 @@ export function BookingCreate({
                       type="button"
                       disabled={busyStart !== null || memberHint !== null || sessionBlocked}
                       onClick={() => void book(s)}
-                      className="rounded border px-3 py-2 text-sm disabled:opacity-50"
+                      className={SLOT_CLASS}
                     >
                       {slotLabel(s.startTime, s.endTime)}
                     </button>

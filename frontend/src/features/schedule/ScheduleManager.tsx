@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
 import { Button, Spinner } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -139,6 +140,7 @@ export function ScheduleManager({ trainerId, trainerName }: { trainerId?: string
   return (
     <div>
       <PageHeader
+        icon="🗓️"
         title={adminMode ? `Ca làm việc của ${trainerName ?? "huấn luyện viên"}` : "Lịch dạy"}
         description={
           adminMode
@@ -148,7 +150,7 @@ export function ScheduleManager({ trainerId, trainerName }: { trainerId?: string
       />
 
       <form onSubmit={onAdd} className="panel mb-6 max-w-xl space-y-4 p-5" noValidate>
-        <p className="text-sm font-medium">Thêm ca làm việc</p>
+        <p className="text-sm font-semibold">Thêm ca làm việc</p>
         {error && <Alert tone="error">{error}</Alert>}
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="Ngày" type="date" value={workDate} onChange={(e) => setWorkDate(e.target.value)} />
@@ -182,32 +184,22 @@ export function ScheduleManager({ trainerId, trainerName }: { trainerId?: string
           {groups.map(([date, list]) => (
             <section key={date} className="panel p-4">
               <h2 className="mb-2 text-sm font-semibold capitalize">{dayLabel(date)}</h2>
-              <ul className="divide-y">
+              <ul className="divide-y divide-line">
                 {list.map((s) => (
                   <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                    <div className="text-sm">
+                    <div className="flex items-center gap-2 text-sm">
                       <span className="font-medium">
                         {hhmm(s.startTime)} - {hhmm(s.endTime)}
                       </span>
-                      {!s.active && <span className="ml-2 text-steel">(đang tắt)</span>}
+                      {!s.active && <Badge tone="neutral">Đang tắt</Badge>}
                     </div>
-                    <div className="flex gap-3 text-sm">
-                      <button
-                        type="button"
-                        className="underline disabled:opacity-50"
-                        disabled={busyId === s.id}
-                        onClick={() => onToggle(s)}
-                      >
+                    <div className="flex gap-2">
+                      <Button variant="secondary" disabled={busyId === s.id} onClick={() => void onToggle(s)}>
                         {s.active ? "Tạm tắt" : "Bật lại"}
-                      </button>
-                      <button
-                        type="button"
-                        className="underline disabled:opacity-50"
-                        disabled={busyId === s.id}
-                        onClick={() => onDelete(s)}
-                      >
+                      </Button>
+                      <Button variant="danger" disabled={busyId === s.id} onClick={() => void onDelete(s)}>
                         Xoá
-                      </button>
+                      </Button>
                     </div>
                   </li>
                 ))}
