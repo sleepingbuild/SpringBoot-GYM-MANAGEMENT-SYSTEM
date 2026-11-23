@@ -181,13 +181,27 @@ export function EnrollPanel({ member }: { member: MemberSummary }) {
 
       {(profile.status === "none" || profile.status === "registered") && (
         <div className="panel space-y-4 px-4 py-4">
-          <div className="flex flex-wrap gap-2">
-            <Button variant={mode === "image" ? "primary" : "secondary"} onClick={() => switchMode("image")} disabled={busy}>
+          <div role="tablist" aria-label="Cách lấy khuôn mặt" className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "image"}
+              className={`${mode === "image" ? "pill pill-active" : "pill"} disabled:cursor-not-allowed disabled:opacity-60`}
+              onClick={() => switchMode("image")}
+              disabled={busy}
+            >
               Chọn ảnh
-            </Button>
-            <Button variant={mode === "camera" ? "primary" : "secondary"} onClick={() => switchMode("camera")} disabled={busy}>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "camera"}
+              className={`${mode === "camera" ? "pill pill-active" : "pill"} disabled:cursor-not-allowed disabled:opacity-60`}
+              onClick={() => switchMode("camera")}
+              disabled={busy}
+            >
               Dùng camera
-            </Button>
+            </button>
           </div>
 
           {mode === "image" && (
@@ -195,7 +209,7 @@ export function EnrollPanel({ member }: { member: MemberSummary }) {
               <label htmlFor="face-image" className="block text-sm font-semibold">
                 Ảnh chụp thẳng mặt (chỉ một người)
               </label>
-              <input id="face-image" type="file" accept="image/*" onChange={onFile} disabled={busy} className="block text-sm" />
+              <input id="face-image" type="file" accept="image/*" onChange={onFile} disabled={busy} className="block w-full text-sm text-steel file:mr-3 file:cursor-pointer file:rounded-control file:border file:border-line-strong file:bg-transparent file:px-3 file:py-2 file:text-sm file:font-semibold file:text-ink hover:file:bg-raised" />
               <p className="text-xs text-steel">Ảnh chỉ được xử lý trong trình duyệt, không gửi lên máy chủ.</p>
               {extracting && (
                 <div className="flex items-center gap-2 text-sm text-steel" role="status">

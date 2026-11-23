@@ -6,6 +6,7 @@ export default function Page() {
   return (
     <div>
       <PageHeader
+        icon="📅"
         title="Lịch sử check-in"
         description="Các lượt vào phòng tập và buổi tập với PT của bạn, mới nhất trước."
       />

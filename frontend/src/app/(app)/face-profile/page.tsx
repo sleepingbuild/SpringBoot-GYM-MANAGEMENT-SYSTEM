@@ -6,6 +6,7 @@ export default function Page() {
   return (
     <div>
       <PageHeader
+        icon="🙂"
         title="Đăng ký khuôn mặt"
         description="Đăng ký khuôn mặt một lần để điểm danh nhanh bằng camera."
       />

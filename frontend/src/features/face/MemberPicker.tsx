@@ -64,7 +64,7 @@ export function MemberPicker({ selectedId, onSelect }: { selectedId: string | nu
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Tên, số điện thoại hoặc email"
-          className="w-full rounded-control border border-plate px-3 py-2 text-sm"
+          className="input"
           autoComplete="off"
         />
       </div>
@@ -100,8 +100,8 @@ export function MemberPicker({ selectedId, onSelect }: { selectedId: string | nu
                   type="button"
                   onClick={() => onSelect(m)}
                   aria-pressed={m.id === selectedId}
-                  className={`w-full rounded-control border px-3 py-2 text-left text-sm ${
-                    m.id === selectedId ? "border-plate bg-plate-tint" : "border-plate/40"
+                  className={`w-full rounded-control border px-3 py-2 text-left text-sm transition-colors ${
+                    m.id === selectedId ? "border-plate bg-plate-tint" : "border-line hover:bg-raised"
                   }`}
                 >
                   <span className="block font-semibold">{m.fullName}</span>
@@ -125,10 +125,10 @@ export function MemberPicker({ selectedId, onSelect }: { selectedId: string | nu
             aria-label="Mã người dùng (UUID)"
             value={uuid}
             onChange={(e) => setUuid(e.target.value)}
-            className="w-full rounded-control border border-plate px-3 py-2 text-sm"
+            className="input"
             placeholder="123e4567-e89b-12d3-a456-426614174000"
           />
-          {uuidError && <p className="text-xs">{uuidError}</p>}
+          {uuidError && <p className="text-xs text-rubber">{uuidError}</p>}
           <Button variant="secondary" onClick={confirmUuid}>
             Dùng mã này
           </Button>

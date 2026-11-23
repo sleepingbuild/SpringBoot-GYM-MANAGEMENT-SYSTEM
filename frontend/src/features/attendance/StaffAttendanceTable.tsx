@@ -1,20 +1,18 @@
+import { Badge } from "@/components/ui/Badge";
+import type { BadgeTone } from "@/components/ui/Badge";
 import { attendanceStatusLabel, attendanceStatusTone, formatDate, formatDateTime, methodLabel } from "./format";
 import type { StatusTone } from "./format";
 import type { StaffAttendanceItem } from "./types";
 
-const TONE_CLASS: Record<StatusTone, string> = {
-  success: "border-moss bg-moss-tint",
-  warning: "border-amber bg-amber-tint",
-  error: "border-rubber bg-rubber-tint",
-  neutral: "border-plate bg-plate-tint",
+const BADGE_TONE: Record<StatusTone, BadgeTone> = {
+  success: "success",
+  warning: "warning",
+  error: "danger",
+  neutral: "neutral",
 };
 
 function StatusBadge({ status }: { status: string }) {
-  return (
-    <span className={`inline-block rounded-control border px-2 py-0.5 text-xs font-medium ${TONE_CLASS[attendanceStatusTone(status)]}`}>
-      {attendanceStatusLabel(status)}
-    </span>
-  );
+  return <Badge tone={BADGE_TONE[attendanceStatusTone(status)]}>{attendanceStatusLabel(status)}</Badge>;
 }
 
 /**
@@ -27,16 +25,16 @@ export function StaffAttendanceTable({ rows, mode }: { rows: StaffAttendanceItem
       <table className="w-full text-left text-sm">
         <thead>
           <tr className="border-b">
-            <th className="px-4 py-3 font-semibold">{mode === "mine" ? "Ngày" : "Nhân sự"}</th>
-            <th className="px-4 py-3 font-semibold">Giờ vào</th>
-            <th className="px-4 py-3 font-semibold">Giờ ra</th>
-            <th className="px-4 py-3 font-semibold">Trạng thái</th>
-            <th className="px-4 py-3 font-semibold">Cách điểm danh</th>
+            <th className="px-4 py-3 font-semibold text-steel">{mode === "mine" ? "Ngày" : "Nhân sự"}</th>
+            <th className="px-4 py-3 font-semibold text-steel">Giờ vào</th>
+            <th className="px-4 py-3 font-semibold text-steel">Giờ ra</th>
+            <th className="px-4 py-3 font-semibold text-steel">Trạng thái</th>
+            <th className="px-4 py-3 font-semibold text-steel">Cách điểm danh</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-b last:border-b-0">
+            <tr key={row.id} className="border-b last:border-b-0 hover:bg-raised">
               <td className="px-4 py-3">
                 {mode === "mine" ? formatDate(row.date) : row.staffName}
                 {row.notes && <div className="text-steel">{row.notes}</div>}

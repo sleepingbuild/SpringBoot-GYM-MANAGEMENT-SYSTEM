@@ -42,7 +42,7 @@ export function EarlyLeaveForm({ bookingId, onDone }: { bookingId: string; onDon
         onChange={(e) => setReason(e.target.value)}
         maxLength={255}
         rows={3}
-        className="w-full rounded-control border px-3 py-2 text-sm"
+        className="input"
       />
       {error && <Alert tone="error">{error}</Alert>}
       <Button type="submit" loading={submitting}>
