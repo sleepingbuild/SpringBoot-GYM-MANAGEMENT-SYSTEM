@@ -13,7 +13,7 @@ export function PaymentsDesk() {
   const [tab, setTab] = useState<TabId>("pending");
   return (
     <div>
-      <PageHeader title="Thanh toán" description="Xác nhận đã thu tiền tại quầy, tra cứu và đổi gói hộ hội viên, bán gói cho hội viên." />
+      <PageHeader icon="💳" title="Thanh toán" description="Xác nhận đã thu tiền tại quầy, tra cứu và đổi gói hộ hội viên, bán gói cho hội viên." />
       <Tabs
         label="Thanh toán"
         value={tab}

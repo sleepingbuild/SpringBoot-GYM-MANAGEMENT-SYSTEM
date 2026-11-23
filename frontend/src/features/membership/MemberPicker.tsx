@@ -107,7 +107,7 @@ export function MemberPicker({
         <ul className="panel divide-y text-sm">
           {results.map((m) => (
             <li key={m.id}>
-              <button type="button" className="w-full px-3 py-2 text-left hover:bg-plate-tint" onClick={() => onChange(m)}>
+              <button type="button" className="w-full px-3 py-2 text-left hover:bg-raised" onClick={() => onChange(m)}>
                 <span className="font-medium">{m.fullName}</span>
                 <span className="block text-xs text-steel">{[m.phone, m.email].filter(Boolean).join(" · ")}</span>
               </button>
