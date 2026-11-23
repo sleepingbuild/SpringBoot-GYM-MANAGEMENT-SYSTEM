@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
 import { Button, Spinner } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -139,6 +140,7 @@ export function ScheduleManager({ trainerId, trainerName }: { trainerId?: string
   return (
     <div>
       <PageHeader
+        icon="🗓️"
         title={adminMode ? `Ca làm việc của ${trainerName ?? "huấn luyện viên"}` : "Lịch dạy"}
         description={
           adminMode
@@ -147,75 +149,69 @@ export function ScheduleManager({ trainerId, trainerName }: { trainerId?: string
         }
       />
 
-      <form onSubmit={onAdd} className="panel mb-6 max-w-xl space-y-4 p-5" noValidate>
-        <p className="text-sm font-medium">Thêm ca làm việc</p>
-        {error && <Alert tone="error">{error}</Alert>}
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Ngày" type="date" value={workDate} onChange={(e) => setWorkDate(e.target.value)} />
-          <Field label="Từ giờ" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-          <Field label="Đến giờ" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-        </div>
-        <Button type="submit" loading={saving}>
-          Thêm ca
-        </Button>
-      </form>
+      <div className="page-split">
+        <form onSubmit={onAdd} className="panel space-y-4 p-5" noValidate>
+          <p className="text-sm font-semibold">Thêm ca làm việc</p>
+          {error && <Alert tone="error">{error}</Alert>}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="Ngày" type="date" value={workDate} onChange={(e) => setWorkDate(e.target.value)} />
+            <Field label="Từ giờ" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            <Field label="Đến giờ" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+          </div>
+          <Button type="submit" loading={saving}>
+            Thêm ca
+          </Button>
+        </form>
 
-      {loadError ? (
-        <Alert tone="error">{loadError}</Alert>
-      ) : items === null ? (
-        <div className="flex justify-center py-16 text-steel" role="status" aria-label="Đang tải lịch dạy">
-          <Spinner />
+        <div>
+          {loadError ? (
+            <Alert tone="error">{loadError}</Alert>
+          ) : items === null ? (
+            <div className="flex justify-center py-16 text-steel" role="status" aria-label="Đang tải lịch dạy">
+              <Spinner />
+            </div>
+          ) : groups.length === 0 ? (
+            <div className="panel p-8 text-center">
+              <p className="text-sm font-medium">
+                {adminMode
+                  ? `Huấn luyện viên này chưa có ca làm việc nào trong ${RANGE_DAYS} ngày tới.`
+                  : `Bạn chưa khai ca làm việc nào trong ${RANGE_DAYS} ngày tới.`}
+              </p>
+              <p className="mt-1 text-sm text-steel">
+                Dùng biểu mẫu bên cạnh để thêm ca đầu tiên. Học viên chỉ đặt được trong các ca này.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {groups.map(([date, list]) => (
+                <section key={date} className="panel p-4">
+                  <h2 className="mb-2 text-sm font-semibold capitalize">{dayLabel(date)}</h2>
+                  <ul className="divide-y divide-line">
+                    {list.map((s) => (
+                      <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium">
+                            {hhmm(s.startTime)} - {hhmm(s.endTime)}
+                          </span>
+                          {!s.active && <Badge tone="neutral">Đang tắt</Badge>}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="secondary" disabled={busyId === s.id} onClick={() => void onToggle(s)}>
+                            {s.active ? "Tạm tắt" : "Bật lại"}
+                          </Button>
+                          <Button variant="danger" disabled={busyId === s.id} onClick={() => void onDelete(s)}>
+                            Xoá
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          )}
         </div>
-      ) : groups.length === 0 ? (
-        <div className="panel p-8 text-center">
-          <p className="text-sm font-medium">
-            {adminMode
-              ? `Huấn luyện viên này chưa có ca làm việc nào trong ${RANGE_DAYS} ngày tới.`
-              : `Bạn chưa khai ca làm việc nào trong ${RANGE_DAYS} ngày tới.`}
-          </p>
-          <p className="mt-1 text-sm text-steel">
-            Dùng biểu mẫu phía trên để thêm ca đầu tiên. Học viên chỉ đặt được trong các ca này.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {groups.map(([date, list]) => (
-            <section key={date} className="panel p-4">
-              <h2 className="mb-2 text-sm font-semibold capitalize">{dayLabel(date)}</h2>
-              <ul className="divide-y">
-                {list.map((s) => (
-                  <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                    <div className="text-sm">
-                      <span className="font-medium">
-                        {hhmm(s.startTime)} - {hhmm(s.endTime)}
-                      </span>
-                      {!s.active && <span className="ml-2 text-steel">(đang tắt)</span>}
-                    </div>
-                    <div className="flex gap-3 text-sm">
-                      <button
-                        type="button"
-                        className="underline disabled:opacity-50"
-                        disabled={busyId === s.id}
-                        onClick={() => onToggle(s)}
-                      >
-                        {s.active ? "Tạm tắt" : "Bật lại"}
-                      </button>
-                      <button
-                        type="button"
-                        className="underline disabled:opacity-50"
-                        disabled={busyId === s.id}
-                        onClick={() => onDelete(s)}
-                      >
-                        Xoá
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
