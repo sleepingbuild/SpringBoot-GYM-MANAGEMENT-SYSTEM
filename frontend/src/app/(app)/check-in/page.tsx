@@ -6,7 +6,6 @@ export default function Page() {
   return (
     <div>
       <PageHeader
-        icon="📷"
         title="Tự điểm danh"
         description="Quét khuôn mặt để ghi nhận giờ vào hoặc giờ ra. Cần đăng ký khuôn mặt trước."
       />

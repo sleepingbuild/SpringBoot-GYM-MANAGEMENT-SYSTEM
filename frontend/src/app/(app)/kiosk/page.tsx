@@ -6,7 +6,6 @@ export default function Page() {
   return (
     <div>
       <PageHeader
-        icon="🖥️"
         title="Kiosk điểm danh"
         description="Đặt camera hướng về cửa. Hệ thống tự nhận diện hội viên, huấn luyện viên và nhân viên."
       />

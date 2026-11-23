@@ -40,7 +40,7 @@ export function DailyAttendanceReport() {
           onChange={(e) => {
             if (e.target.value) setDate(e.target.value);
           }}
-          className="input w-auto"
+          className="rounded-control border px-3 py-2"
         />
       </div>
       <LoadGate

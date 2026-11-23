@@ -14,7 +14,7 @@ export function FaceCameraView({ camera }: { camera: FaceCamera }) {
   const overlay = STATUS_TEXT[camera.status];
   return (
     <div className="space-y-3">
-      <div className="relative mx-auto aspect-[4/3] w-full max-w-xl overflow-hidden rounded-panel border border-line-strong bg-black">
+      <div className="relative mx-auto aspect-[4/3] w-full max-w-xl overflow-hidden rounded-control bg-black">
         <video ref={camera.videoRef} className="h-full w-full -scale-x-100 object-cover" playsInline muted />
         {overlay && (
           <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/60 px-4 text-center text-sm text-white" role="status">

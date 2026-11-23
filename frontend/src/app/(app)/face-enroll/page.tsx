@@ -6,7 +6,6 @@ export default function Page() {
   return (
     <div>
       <PageHeader
-        icon="🧑"
         title="Đăng ký khuôn mặt hộ"
         description="Tìm hội viên rồi đăng ký, xem hoặc xóa hồ sơ khuôn mặt của họ bằng ảnh hoặc camera."
       />
