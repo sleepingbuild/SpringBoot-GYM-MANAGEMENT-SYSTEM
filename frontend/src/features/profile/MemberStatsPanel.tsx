@@ -60,9 +60,9 @@ export function MemberStatsPanel() {
   const { stats, membership } = data;
   const next = stats.nextBooking;
   return (
-    <section aria-label="Thống kê cá nhân" className="mt-8">
+    <section aria-label="Thống kê cá nhân">
       <h2 className="mb-3 text-lg font-semibold">Thống kê cá nhân</h2>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Stat
           label="Số buổi còn lại"
           value={!membership ? "—" : membership.remainingSessions === null ? "Không giới hạn" : String(membership.remainingSessions)}

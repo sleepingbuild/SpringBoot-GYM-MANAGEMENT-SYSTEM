@@ -112,13 +112,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-control focus:bg-paper focus:px-3 focus:py-2">
         Bỏ qua menu, tới nội dung
       </a>
 
       <header ref={headerRef} className="sticky top-0 z-40 border-b border-line bg-chalk/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 2xl:max-w-[90rem]">
           <Logo />
 
           {/* Màn hình lớn: menu ngang */}
@@ -195,9 +195,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <main id="main" className="mx-auto max-w-6xl min-w-0 px-4 py-8 sm:px-6">
+      <main id="main" className="mx-auto w-full max-w-7xl min-w-0 flex-1 px-4 py-8 sm:px-6 2xl:max-w-[90rem]">
         {children}
       </main>
+
+      <footer className="border-t border-line">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 py-4 text-xs text-steel sm:px-6 2xl:max-w-[90rem]">
+          <span>GMS · Hệ thống quản lý phòng tập</span>
+          <span>Đăng nhập với vai trò: {roleText}</span>
+        </div>
+      </footer>
     </div>
   );
 }

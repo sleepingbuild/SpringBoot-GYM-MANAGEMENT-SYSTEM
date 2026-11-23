@@ -18,7 +18,7 @@ export function PageHeader({ title, description, actions, icon }: Props) {
           )}
           {title}
         </h1>
-        {description && <p className="mt-1 max-w-prose text-sm text-steel">{description}</p>}
+        {description && <p className="mt-1 max-w-3xl text-sm text-steel">{description}</p>}
       </div>
       {actions && <div className="flex gap-2">{actions}</div>}
     </div>

@@ -63,6 +63,23 @@
   .pill-active {
     @apply bg-plate-dark text-white hover:bg-plate-dark;
   }
+  /* Lưới thẻ tự chia cột theo bề rộng: 2 cột ở khoảng 1100px, 3 cột từ 1280px trở lên. Dùng cho danh sách thẻ (gói tập, sản phẩm...). */
+  .card-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  }
+  /* Bố cục 2 cột: cột chính (biểu mẫu) bên trái, cột phụ (thông tin liên quan) bên phải; 1 cột trên màn hình nhỏ. */
+  .page-split {
+    display: grid;
+    gap: 1.5rem;
+    align-items: start;
+  }
+  @media (min-width: 1024px) {
+    .page-split {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    }
+  }
   /* Nền trang đăng nhập: vạch làn sàn mờ + quầng sáng cam và xanh rất nhẹ. */
   .floor-lanes {
     background-color: #0b0f19;
