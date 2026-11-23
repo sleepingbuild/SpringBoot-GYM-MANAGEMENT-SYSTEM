@@ -118,7 +118,7 @@ export function ProductManager() {
             <Spinner />
           </div>
         ) : data.content.length === 0 ? (
-          <EmptyState title="Chưa có sản phẩm">Thêm sản phẩm đầu tiên ở khung bên phải.</EmptyState>
+          <EmptyState icon="📦" title="Chưa có sản phẩm">Thêm sản phẩm đầu tiên ở khung bên phải.</EmptyState>
         ) : (
           <div className="panel overflow-x-auto">
             <table className="w-full text-sm">

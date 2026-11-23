@@ -8,6 +8,7 @@ import { ApiError, errorMessage } from "@/lib/api/errors";
 import { formatVnd } from "@/features/pos/format";
 import { useToast } from "@/lib/toast";
 import { getPayRate, setPayRate } from "./api";
+import { PayRateOverview } from "./PayRateOverview";
 import { trainerLabel } from "./trainers";
 import { useTrainers } from "./useTrainers";
 
@@ -23,6 +24,7 @@ export function PayRateManager() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [version, setVersion] = useState(0);
 
   const amountNumber = Number(amount);
   const amountError = amount.trim() !== "" && (!Number.isFinite(amountNumber) || amountNumber <= 0) ? "Số tiền phải lớn hơn 0." : null;
@@ -64,6 +66,7 @@ export function PayRateManager() {
     try {
       const rate = await setPayRate(loaded.trainerId, amountNumber);
       setLoaded({ trainerId: loaded.trainerId, amount: rate.amountPerSession });
+      setVersion((v) => v + 1);
       toast.success("Đã lưu mức lương mỗi buổi.");
     } catch (e) {
       setError(errorMessage(e));
@@ -73,7 +76,8 @@ export function PayRateManager() {
   }
 
   return (
-    <div className="panel max-w-xl space-y-4 p-5">
+    <div className="page-split">
+    <div className="panel space-y-4 p-5">
       <p className="text-sm text-steel">
         Mức lương mỗi buổi áp dụng cho các buổi chốt từ lúc đặt. Đổi mức mới không sửa các dòng lương đã ghi trước đó. PT chưa có mức lương thì buổi dạy chưa được ghi lương.
       </p>
@@ -119,6 +123,8 @@ export function PayRateManager() {
           </Button>
         </div>
       )}
+    </div>
+    <PayRateOverview trainers={trainers} version={version} selectedId={trainerId} onSelect={setTrainerId} />
     </div>
   );
 }
