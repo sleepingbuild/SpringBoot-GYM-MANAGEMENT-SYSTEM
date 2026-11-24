@@ -12,7 +12,8 @@ Backend được tạo lại để lộ endpoint số liệu; các dịch vụ k
 | Địa chỉ | Dùng để |
 |---|---|
 | http://localhost:3001 | Grafana. Dashboard mở sẵn, xem không cần đăng nhập. Muốn sửa: `admin` / `admin12345` |
-| http://localhost:9090 | Prometheus. Menu Status, Targets: `gms-backend` phải là `UP` |
+| http://localhost:9090 | Prometheus. Menu Status, Targets: `gms-backend`, `cadvisor`, `alertmanager`, `prometheus` phải là `UP` |
+| http://localhost:9093 | Alertmanager. Xem cảnh báo đang bắn, nhóm cảnh báo, tạm tắt tiếng (Silence) |
 | http://localhost:8082/actuator/prometheus | Số liệu thô của backend |
 
 ## Tạo lưu lượng để dashboard có số
@@ -42,7 +43,11 @@ cAdvisor (`http://localhost:8083`) đo CPU, RAM, mạng, ổ đĩa của từng 
 
 ## Cảnh báo (alert)
 
-Luật cảnh báo nằm ở `monitoring/prometheus/alerts.yml`, xem tại Prometheus, trang **Alerts** (`http://localhost:9090/alerts`). Chưa nối Alertmanager nên không gửi mail hay tin nhắn, chỉ hiện trên Prometheus.
+Luật cảnh báo nằm ở `monitoring/prometheus/alerts.yml`, xem tại Prometheus, trang **Alerts** (`http://localhost:9090/alerts`). Cảnh báo đang bắn được Prometheus gửi sang **Alertmanager** (`http://localhost:9093`), nơi gom nhóm và cho tạm tắt tiếng.
+
+**Mặc định chưa gửi mail hay tin nhắn:** receiver `default` trong `monitoring/alertmanager/alertmanager.yml` chưa có đích nhận, nên cảnh báo chỉ hiện trên giao diện Prometheus và Alertmanager. Muốn nhận thông báo thật, thêm `email_configs` hoặc `webhook_configs` vào receiver đó (có ví dụ ngay trong file) rồi chạy `docker compose -f docker-compose.demo.yml -f docker-compose.monitoring.yml up -d alertmanager`. Đặt mật khẩu thật qua file bí mật, không commit.
+
+Kiểm tra chuỗi cảnh báo: `docker compose -f docker-compose.demo.yml -f docker-compose.monitoring.yml stop backend`, khoảng 1 phút sau `BackendDown` chuyển **Firing** ở Prometheus và xuất hiện ở Alertmanager. Bật lại bằng `start backend`.
 
 | Cảnh báo | Điều kiện | Mức |
 |---|---|---|

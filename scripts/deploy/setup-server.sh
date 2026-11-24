@@ -21,7 +21,7 @@ sudo usermod -aG docker "$(whoami)"
 
 if command -v ufw >/dev/null 2>&1 && sudo ufw status | grep -q "Status: active"; then
   echo "== Mo cong tuong lua (ufw)"
-  for p in 22 3000 8082 3001 9090; do sudo ufw allow "$p/tcp"; done
+  for p in 22 3000 8082 3001 9090 9093; do sudo ufw allow "$p/tcp"; done
 fi
 
 echo
