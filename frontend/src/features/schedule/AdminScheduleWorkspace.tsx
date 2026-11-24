@@ -54,11 +54,11 @@ export function AdminScheduleWorkspace() {
         title="Quản lý huấn luyện viên"
         description="Chọn một huấn luyện viên để xem và khai ca làm việc thay họ."
       />
-      <div className="panel mb-6 max-w-md p-5">
-        <label htmlFor="admin-trainer" className="mb-1 block text-sm font-medium">
+      <div className="panel mb-6 flex flex-wrap items-end gap-4 p-4">
+        <label htmlFor="admin-trainer" className="text-sm font-medium">
           Huấn luyện viên
         </label>
-        <select id="admin-trainer" className="input" value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
+        <select id="admin-trainer" className="input sm:w-80" value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
           <option value="">Chọn huấn luyện viên</option>
           {trainers.map((t) => (
             <option key={t.id} value={t.id}>

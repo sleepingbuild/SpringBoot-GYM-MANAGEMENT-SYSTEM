@@ -259,7 +259,7 @@ export function TrainerBookings() {
             {upcoming.length === 0 ? (
               <p className="text-sm text-steel">Không có buổi nào đang chờ.</p>
             ) : (
-              <ul className="space-y-3">{upcoming.map(renderCard)}</ul>
+              <ul className="card-grid">{upcoming.map(renderCard)}</ul>
             )}
           </section>
           <section>
@@ -267,7 +267,7 @@ export function TrainerBookings() {
             {past.length === 0 ? (
               <p className="text-sm text-steel">Chưa có buổi nào kết thúc.</p>
             ) : (
-              <ul className="space-y-3">{past.map(renderCard)}</ul>
+              <ul className="card-grid">{past.map(renderCard)}</ul>
             )}
           </section>
         </div>

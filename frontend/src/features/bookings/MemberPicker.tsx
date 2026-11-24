@@ -49,7 +49,7 @@ export function MemberPicker({
 
   if (value) {
     return (
-      <div className="panel mb-6 flex max-w-md items-start justify-between gap-3 p-5">
+      <div className="panel flex items-start justify-between gap-3 p-5">
         <div>
           <p className="text-sm text-steel">Đặt hộ cho hội viên</p>
           <p className="text-sm font-semibold">{memberLabel(value)}</p>
@@ -71,7 +71,7 @@ export function MemberPicker({
   const searching = query.trim().length >= MIN_QUERY_LENGTH && results === null && error === null;
 
   return (
-    <div className="panel mb-6 max-w-md p-5">
+    <div className="panel p-5">
       <Field
         label="Tìm hội viên"
         type="search"

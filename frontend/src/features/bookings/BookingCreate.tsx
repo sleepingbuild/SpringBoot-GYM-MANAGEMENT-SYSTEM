@@ -174,43 +174,47 @@ export function BookingCreate({
     ? `${staff ? "Chọn hội viên, ngày" : "Chọn ngày"}, huấn luyện viên và khung giờ ngoài giờ làm việc (cuối ngày). Buổi sẽ chờ huấn luyện viên xác nhận.`
     : `${staff ? "Chọn hội viên, ngày" : "Chọn ngày"} và huấn luyện viên còn chỗ trống rồi chọn khung giờ. Đặt trong ca làm việc của huấn luyện viên thì buổi được xác nhận ngay.`;
 
+  const slotsPanel = (
+    <section className="panel p-5">
+      <h2 className="mb-3 text-sm font-semibold">{offHours ? "Khung giờ ngoài giờ còn trống" : "Khung giờ trống"}</h2>
+      {memberHint && <p className="mb-2 text-sm text-steel">{memberHint}</p>}
+      {!selectedId ? (
+        <p className="text-sm text-steel">Chọn huấn luyện viên để xem khung giờ trống.</p>
+      ) : slotsError ? (
+        <Alert tone="error">{slotsError}</Alert>
+      ) : slots === null ? (
+        <div className="flex justify-center py-8 text-steel" role="status" aria-label="Đang tải khung giờ">
+          <Spinner />
+        </div>
+      ) : slots.length === 0 ? (
+        <p className="text-sm text-steel">
+          {offHours
+            ? "Huấn luyện viên này không còn khung giờ ngoài giờ nào trống trong ngày. Chọn người khác hoặc ngày khác."
+            : "Huấn luyện viên này vừa hết chỗ. Chọn người khác hoặc ngày khác."}
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {slots.map((s) => (
+            <button
+              key={s.startTime}
+              type="button"
+              disabled={busyStart !== null || memberHint !== null || sessionBlocked}
+              onClick={() => void book(s)}
+              className={SLOT_CLASS}
+            >
+              {slotLabel(s.startTime, s.endTime)}
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+
   return (
     <div>
       <PageHeader icon={offHours ? "🌙" : "📅"} title={title} description={description} />
 
-      {staff && <MemberPicker value={member} onChange={setMember} />}
       {summary && <SessionBanner summary={summary} />}
-
-      <div className="panel mb-6 max-w-md space-y-4 p-5">
-        <Field
-          label="Ngày tập"
-          type="date"
-          min={toIsoDate(new Date())}
-          value={date}
-          onChange={(e) => changeDate(e.target.value)}
-        />
-        {branches.length > 0 && (
-          <div>
-            <label htmlFor="booking-branch" className="mb-1 block text-sm font-medium">
-              Chi nhánh (không bắt buộc)
-            </label>
-            <select id="booking-branch" className="input" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-              <option value="">Không chọn</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        <div>
-          <label htmlFor="booking-notes" className="mb-1 block text-sm font-medium">
-            Ghi chú (không bắt buộc)
-          </label>
-          <textarea id="booking-notes" className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
-        </div>
-      </div>
 
       {error && (
         <div className="mb-4">
@@ -218,89 +222,94 @@ export function BookingCreate({
         </div>
       )}
 
-      {trainersError ? (
-        <Alert tone="error">{trainersError}</Alert>
-      ) : trainers === null ? (
-        <div className="flex justify-center py-12 text-steel" role="status" aria-label="Đang tải huấn luyện viên">
-          <Spinner />
-        </div>
-      ) : trainers.length === 0 ? (
-        <div className="panel p-8 text-center">
-          <p className="text-sm font-medium">
-            {offHours
-              ? "Chưa có huấn luyện viên nào đang hoạt động."
-              : "Không có huấn luyện viên nào còn chỗ trống trong ngày này."}
-          </p>
-          {!offHours && <p className="mt-1 text-sm text-steel">Thử chọn một ngày khác, hoặc đặt ngoài giờ.</p>}
-        </div>
-      ) : (
+      <div className="page-split">
+        {/* Cot chinh: hoi vien (le tan), ngay, chi nhanh, ghi chu, chon PT */}
         <div className="space-y-6">
-          <section>
-            <h2 className="mb-2 text-sm font-semibold">
-              {offHours ? "Huấn luyện viên" : `Huấn luyện viên còn chỗ (${trainers.length})`}
-            </h2>
-            <div className="flex flex-wrap gap-3">
-              {trainers.map((t) => (
-                <button
-                  key={t.trainerId}
-                  type="button"
-                  aria-pressed={selectedId === t.trainerId}
-                  onClick={() => {
-                    setSelectedId(t.trainerId);
-                    setError(null);
-                  }}
-                  className={
-                    selectedId === t.trainerId
-                      ? "panel border-plate bg-plate-tint px-4 py-3 text-left text-sm font-semibold"
-                      : "panel px-4 py-3 text-left text-sm transition-colors hover:border-line-strong hover:bg-raised"
-                  }
-                >
-                  <span className="block">{t.trainerName ?? "Huấn luyện viên"}</span>
-                  {t.availableSlotCount !== undefined && (
-                    <Badge tone="success" className="mt-1">
-                      {t.availableSlotCount} khung giờ trống
-                    </Badge>
-                  )}
-                </button>
-              ))}
-            </div>
-          </section>
+          {staff && <MemberPicker value={member} onChange={setMember} />}
 
-          {selectedId && (
-            <section>
-              <h2 className="mb-2 text-sm font-semibold">{offHours ? "Khung giờ ngoài giờ còn trống" : "Khung giờ trống"}</h2>
-              {memberHint && <p className="mb-2 text-sm text-steel">{memberHint}</p>}
-              {slotsError ? (
-                <Alert tone="error">{slotsError}</Alert>
-              ) : slots === null ? (
-                <div className="flex justify-center py-8 text-steel" role="status" aria-label="Đang tải khung giờ">
-                  <Spinner />
-                </div>
-              ) : slots.length === 0 ? (
-                <p className="text-sm text-steel">
-                  {offHours
-                    ? "Huấn luyện viên này không còn khung giờ ngoài giờ nào trống trong ngày. Chọn người khác hoặc ngày khác."
-                    : "Huấn luyện viên này vừa hết chỗ. Chọn người khác hoặc ngày khác."}
-                </p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {slots.map((s) => (
-                    <button
-                      key={s.startTime}
-                      type="button"
-                      disabled={busyStart !== null || memberHint !== null || sessionBlocked}
-                      onClick={() => void book(s)}
-                      className={SLOT_CLASS}
-                    >
-                      {slotLabel(s.startTime, s.endTime)}
-                    </button>
+          <div className="panel space-y-4 p-5">
+            <Field
+              label="Ngày tập"
+              type="date"
+              min={toIsoDate(new Date())}
+              value={date}
+              onChange={(e) => changeDate(e.target.value)}
+            />
+            {branches.length > 0 && (
+              <div>
+                <label htmlFor="booking-branch" className="mb-1 block text-sm font-medium">
+                  Chi nhánh (không bắt buộc)
+                </label>
+                <select id="booking-branch" className="input" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+                  <option value="">Không chọn</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
                   ))}
-                </div>
-              )}
+                </select>
+              </div>
+            )}
+            <div>
+              <label htmlFor="booking-notes" className="mb-1 block text-sm font-medium">
+                Ghi chú (không bắt buộc)
+              </label>
+              <textarea id="booking-notes" className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </div>
+          </div>
+
+          {trainersError ? (
+            <Alert tone="error">{trainersError}</Alert>
+          ) : trainers === null ? (
+            <div className="flex justify-center py-12 text-steel" role="status" aria-label="Đang tải huấn luyện viên">
+              <Spinner />
+            </div>
+          ) : trainers.length === 0 ? (
+            <div className="panel p-8 text-center">
+              <p className="text-sm font-medium">
+                {offHours
+                  ? "Chưa có huấn luyện viên nào đang hoạt động."
+                  : "Không có huấn luyện viên nào còn chỗ trống trong ngày này."}
+              </p>
+              {!offHours && <p className="mt-1 text-sm text-steel">Thử chọn một ngày khác, hoặc đặt ngoài giờ.</p>}
+            </div>
+          ) : (
+            <section>
+              <h2 className="mb-2 text-sm font-semibold">
+                {offHours ? "Huấn luyện viên" : `Huấn luyện viên còn chỗ (${trainers.length})`}
+              </h2>
+              <div className="flex flex-wrap gap-3">
+                {trainers.map((t) => (
+                  <button
+                    key={t.trainerId}
+                    type="button"
+                    aria-pressed={selectedId === t.trainerId}
+                    onClick={() => {
+                      setSelectedId(t.trainerId);
+                      setError(null);
+                    }}
+                    className={
+                      selectedId === t.trainerId
+                        ? "panel border-plate bg-plate-tint px-4 py-3 text-left text-sm font-semibold"
+                        : "panel px-4 py-3 text-left text-sm transition-colors hover:border-line-strong hover:bg-raised"
+                    }
+                  >
+                    <span className="block">{t.trainerName ?? "Huấn luyện viên"}</span>
+                    {t.availableSlotCount !== undefined && (
+                      <Badge tone="success" className="mt-1">
+                        {t.availableSlotCount} khung giờ trống
+                      </Badge>
+                    )}
+                  </button>
+                ))}
+              </div>
             </section>
           )}
         </div>
-      )}
+
+        {/* Cot phu: khung gio trong cua PT da chon */}
+        {slotsPanel}
+      </div>
     </div>
   );
 }

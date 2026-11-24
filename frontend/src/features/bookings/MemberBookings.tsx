@@ -118,7 +118,7 @@ export function MemberBookings() {
             {upcoming.length === 0 ? (
               <p className="text-sm text-steel">Không có buổi nào sắp tới.</p>
             ) : (
-              <ul className="space-y-3">{upcoming.map(renderCard)}</ul>
+              <ul className="card-grid">{upcoming.map(renderCard)}</ul>
             )}
           </section>
           <section>
@@ -126,7 +126,7 @@ export function MemberBookings() {
             {past.length === 0 ? (
               <p className="text-sm text-steel">Chưa có buổi nào kết thúc.</p>
             ) : (
-              <ul className="space-y-3">{past.map(renderCard)}</ul>
+              <ul className="card-grid">{past.map(renderCard)}</ul>
             )}
           </section>
         </div>
