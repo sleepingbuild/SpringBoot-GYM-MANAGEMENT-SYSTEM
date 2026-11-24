@@ -43,6 +43,9 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    # Du lieu Redis (token bi chan, chong quet dup) nam trong volume co ten, khong con la volume an danh cua anh.
+    volumes:
+      - redis-data:/data
 
   backend:
     build:
@@ -119,3 +122,4 @@ services:
 volumes:
   sqlserver-data:
   uploads:
+  redis-data:

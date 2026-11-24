@@ -62,7 +62,7 @@ if [ -z "$("${COMPOSE[@]}" ps -aq sqlserver 2>/dev/null)" ]; then
   "${COMPOSE[@]}" up -d --build
 else
   log "Cap nhat backend, frontend, Prometheus, Grafana (giu nguyen SQL Server, Redis, du lieu)"
-  "${COMPOSE[@]}" up -d --build backend frontend prometheus grafana cadvisor
+  "${COMPOSE[@]}" up -d --build backend frontend prometheus alertmanager grafana cadvisor
 fi
 
 # 4. Cho tat ca san sang

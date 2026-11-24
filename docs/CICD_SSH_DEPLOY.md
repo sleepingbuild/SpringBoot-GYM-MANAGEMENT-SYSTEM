@@ -21,7 +21,7 @@ Jenkins (Windows)  Checkout → Restore → Build → Test → Publish → Deplo
 
 - Chỉ nhánh `master` được triển khai. Jenkins đỏ ở bất kỳ stage nào thì máy chủ giữ nguyên bản cũ.
 - Máy chủ lấy **đúng commit** Jenkins vừa kiểm tra (không phải "bản mới nhất"), nên không có chuyện deploy nhầm.
-- Hệ thống trên máy chủ gồm: SQL Server, Redis, backend (API), frontend (web), Prometheus, Grafana. Dữ liệu nằm trong volume Docker và được giữ nguyên qua các lần deploy.
+- Hệ thống trên máy chủ gồm: SQL Server, Redis, backend (API), frontend (web), Prometheus, Alertmanager, Grafana, cAdvisor. Dữ liệu nằm trong volume Docker và được giữ nguyên qua các lần deploy.
 - Stage `Deploy SSH` **tự bỏ qua** khi chưa đặt `GMS_SSH_HOST`, nên pipeline vẫn xanh trong lúc bạn chưa chuẩn bị máy chủ.
 
 ## 2. Chuẩn bị máy chủ Linux (làm một lần)
@@ -50,7 +50,7 @@ docker run --rm hello-world
 hostname -I          # ghi lại địa chỉ IP, ví dụ 192.168.1.50
 ```
 
-Mở cổng trên tường lửa nếu có: **22** (SSH), **3000** (web), **8082** (API), **3001** (Grafana), **9090** (Prometheus). Script đã tự mở nếu `ufw` đang bật.
+Mở cổng trên tường lửa nếu có: **22** (SSH), **3000** (web), **8082** (API), **3001** (Grafana), **9090** (Prometheus), **9093** (Alertmanager). Script đã tự mở nếu `ufw` đang bật.
 
 ### Bí mật trên máy chủ (nên làm trước lần deploy đầu)
 
@@ -163,6 +163,7 @@ Lần đầu mất 5 đến 10 phút (tải image, build, nạp dữ liệu mẫ
 | API / Swagger | `http://<máy-chủ>:8082/swagger-ui.html` |
 | Grafana | `http://<máy-chủ>:3001` (tài khoản `admin`, mật khẩu `GMS_GRAFANA_PASSWORD`, mặc định `admin12345`) |
 | Prometheus | `http://<máy-chủ>:9090` (xem Targets và Alerts) |
+| Alertmanager | `http://<máy-chủ>:9093` (cảnh báo đang bắn, tạm tắt tiếng) |
 
 Tài khoản mẫu để đăng nhập web: xem `docs/DOCKER_DEMO.md`.
 
@@ -196,5 +197,5 @@ Tài khoản mẫu để đăng nhập web: xem `docs/DOCKER_DEMO.md`.
 
 - Khóa SSH không passphrase chỉ dùng cho việc deploy; chỉ để trên máy Jenkins, không đưa vào repo.
 - Tài khoản `gms` trên máy chủ chỉ cần chạy Docker. Không dùng root, không mở đăng nhập SSH bằng mật khẩu nếu máy chủ ra Internet (`PasswordAuthentication no` trong `/etc/ssh/sshd_config`).
-- Đổi mật khẩu mặc định (`~/.gms.env`), đừng để cổng 9090 (Prometheus) lộ ra Internet.
+- Đổi mật khẩu mặc định (`~/.gms.env`), đừng để cổng 9090 (Prometheus) và 9093 (Alertmanager) lộ ra Internet.
 - `StrictHostKeyChecking=accept-new` chấp nhận khóa máy chủ ở lần kết nối đầu và từ chối nếu khóa đổi sau đó.
