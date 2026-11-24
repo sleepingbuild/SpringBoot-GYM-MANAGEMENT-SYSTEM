@@ -121,7 +121,7 @@ function PackageCard({ mp, live, price, today, renewable, onChanged }: CardProps
   const bookable = live?.bookableSessions;
 
   return (
-    <article className={changing ? "panel p-5 md:col-span-2" : "panel p-5"}>
+    <article className={changing ? "panel p-5 col-span-full" : "panel p-5"}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg">{mp.packageName}</h2>
@@ -236,7 +236,7 @@ function PackagesTab({ tab }: { tab: MembershipTab }) {
   if (shown.length === 0) {
     return (
       <EmptyState
-        title={EMPTY_TEXT[tab].title}
+        icon="💪" title={EMPTY_TEXT[tab].title}
         action={
           <Link href="/packages" className="btn-primary">
             Xem các gói tập
@@ -250,7 +250,7 @@ function PackagesTab({ tab }: { tab: MembershipTab }) {
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="card-grid">
         {shown.map((m) => (
           <PackageCard
             key={m.id}
@@ -275,7 +275,7 @@ function PaymentsTab() {
   if (state.status === "loading" && !state.data) return <LoadingBlock />;
   if (state.status === "error") return <ErrorBlock error={state.error} onRetry={state.reload} />;
   if (!state.data || state.data.content.length === 0) {
-    return <EmptyState title="Chưa có giao dịch thanh toán">Các giao dịch của bạn sẽ hiện ở đây.</EmptyState>;
+    return <EmptyState icon="💳" title="Chưa có giao dịch thanh toán">Các giao dịch của bạn sẽ hiện ở đây.</EmptyState>;
   }
   return (
     <>

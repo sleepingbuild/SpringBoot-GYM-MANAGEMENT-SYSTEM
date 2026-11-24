@@ -41,18 +41,18 @@ export function PackageList() {
 
   return (
     <div>
-      <PageHeader title="Gói tập" description="Các gói đang mở bán. Chọn một gói để xem chi tiết và đăng ký." />
+      <PageHeader icon="🏋" title="Gói tập" description="Các gói đang mở bán. Chọn một gói để xem chi tiết và đăng ký." />
 
       {state.status === "loading" && !state.data && <LoadingBlock text="Đang tải danh sách gói…" />}
       {state.status === "error" && <ErrorBlock error={state.error} onRetry={state.reload} />}
 
       {state.data && state.data.content.length === 0 && (
-        <EmptyState title="Chưa có gói tập nào đang mở bán">Liên hệ quản trị viên hoặc lễ tân để được tư vấn gói phù hợp.</EmptyState>
+        <EmptyState icon="🏋" title="Chưa có gói tập nào đang mở bán">Liên hệ quản trị viên hoặc lễ tân để được tư vấn gói phù hợp.</EmptyState>
       )}
 
       {state.data && state.data.content.length > 0 && (
         <>
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="card-grid">
             {state.data.content.map((p) => (
               <PackageCard key={p.id} p={p} />
             ))}

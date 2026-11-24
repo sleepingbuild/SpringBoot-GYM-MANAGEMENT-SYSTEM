@@ -44,7 +44,7 @@ export function AdminPackages() {
   if (mode.kind !== "list") {
     return (
       <div>
-        <PageHeader title="Quản trị gói" />
+        <PageHeader icon="🛠" title="Quản trị gói" />
         <PackageForm
           editing={mode.kind === "edit" ? mode.item : null}
           onCancel={() => setMode({ kind: "list" })}
@@ -60,7 +60,7 @@ export function AdminPackages() {
 
   return (
     <div>
-      <PageHeader
+      <PageHeader icon="🛠"
         title="Quản trị gói"
         description="Danh sách đầy đủ, kể cả gói đã ngừng bán. Ngừng bán chỉ ẩn gói khỏi danh sách mua, hội viên đang dùng gói đó không bị ảnh hưởng."
         actions={<Button onClick={() => setMode({ kind: "create" })}>Tạo gói mới</Button>}
