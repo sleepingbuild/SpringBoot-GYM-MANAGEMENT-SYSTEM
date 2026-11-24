@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
-import { Spinner } from "@/components/ui/Button";
+import { Button, Spinner } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { errorMessage } from "@/lib/api/errors";
 import { searchMembers } from "./api";
@@ -55,16 +55,15 @@ export function MemberPicker({
           <p className="text-sm font-semibold">{memberLabel(value)}</p>
           {memberDetail(value) && <p className="text-sm text-steel">{memberDetail(value)}</p>}
         </div>
-        <button
-          type="button"
-          className="text-sm underline"
+        <Button
+          variant="secondary"
           onClick={() => {
             onChange(null);
             setQuery("");
           }}
         >
           Đổi hội viên
-        </button>
+        </Button>
       </div>
     );
   }
@@ -97,7 +96,7 @@ export function MemberPicker({
               <li key={m.id}>
                 <button
                   type="button"
-                  className="w-full rounded border px-3 py-2 text-left text-sm"
+                  className="w-full rounded-control border border-line-strong px-3 py-2 text-left text-sm hover:border-plate hover:bg-plate-tint"
                   onClick={() => onChange(m)}
                 >
                   <span className="block font-medium">{memberLabel(m)}</span>

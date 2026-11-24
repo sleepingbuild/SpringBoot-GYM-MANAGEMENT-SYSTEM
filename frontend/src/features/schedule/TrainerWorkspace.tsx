@@ -16,7 +16,7 @@ export function TrainerWorkspace() {
 
   return (
     <div>
-      <div role="tablist" aria-label="Lịch dạy" className="mb-6 flex gap-4 border-b">
+      <div role="tablist" aria-label="Lịch dạy" className="mb-6 flex flex-wrap gap-2">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -24,11 +24,7 @@ export function TrainerWorkspace() {
             role="tab"
             aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
-            className={
-              tab === t.key
-                ? "-mb-px border-b-2 border-current px-1 pb-2 text-sm font-semibold"
-                : "px-1 pb-2 text-sm text-steel"
-            }
+            className={tab === t.key ? "pill pill-active" : "pill"}
           >
             {t.label}
           </button>

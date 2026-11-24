@@ -2,13 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
-import { Spinner } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Button, Spinner } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { errorMessage } from "@/lib/api/errors";
 import { useToast } from "@/lib/toast";
 import { cancelBooking, listMyBookings } from "@/features/schedule/bookingsApi";
 import type { Booking } from "@/features/schedule/bookingTypes";
 import { MEMBER_STATUS_LABEL, cancelDoneMessage, cancelNotice, isOpenBooking, splitMemberBookings } from "./memberBookingRules";
+import { bookingStatusTone } from "./statusTone";
 
 const hhmm = (t: string) => t.slice(0, 5);
 
@@ -66,24 +68,19 @@ export function MemberBookings() {
     <li key={b.id} className="panel p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-medium">
+          <p className="text-sm font-semibold">
             {dateLabel(b.bookingDate)} · {hhmm(b.startTime)} - {hhmm(b.endTime)}
           </p>
           <p className="text-sm text-steel">Huấn luyện viên: {b.trainerName ?? "Không rõ"}</p>
           {b.notes && <p className="text-sm text-steel">Ghi chú: {b.notes}</p>}
         </div>
-        <span className="rounded border px-2 py-0.5 text-xs">{MEMBER_STATUS_LABEL[b.status] ?? b.status}</span>
+        <Badge tone={bookingStatusTone(b.status)}>{MEMBER_STATUS_LABEL[b.status] ?? b.status}</Badge>
       </div>
       {isOpenBooking(b) && (
         <div className="mt-3">
-          <button
-            type="button"
-            className="text-sm underline disabled:opacity-50"
-            disabled={busyId === b.id}
-            onClick={() => void onCancel(b)}
-          >
+          <Button variant="danger" loading={busyId === b.id} onClick={() => void onCancel(b)}>
             Huỷ buổi
-          </button>
+          </Button>
         </div>
       )}
     </li>
@@ -92,6 +89,7 @@ export function MemberBookings() {
   return (
     <div>
       <PageHeader
+        icon="📅"
         title="Buổi tập của tôi"
         description="Các buổi tập với huấn luyện viên bạn đã đặt. Buổi chờ PT xác nhận huỷ miễn phí; buổi đã xác nhận mà huỷ sát giờ sẽ bị tính."
       />
@@ -111,7 +109,7 @@ export function MemberBookings() {
       ) : items.length === 0 ? (
         <div className="panel p-8 text-center">
           <p className="text-sm font-medium">Bạn chưa đặt buổi tập nào với huấn luyện viên.</p>
-          <p className="mt-1 text-sm text-steel">Chức năng đặt lịch mới sẽ có ở bản cập nhật tới.</p>
+          <p className="mt-1 text-sm text-steel">Vào tab Đặt lịch để đặt buổi đầu tiên.</p>
         </div>
       ) : (
         <div className="space-y-6">

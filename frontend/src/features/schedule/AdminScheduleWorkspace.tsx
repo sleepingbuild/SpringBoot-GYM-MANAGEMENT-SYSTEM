@@ -50,19 +50,15 @@ export function AdminScheduleWorkspace() {
   return (
     <div>
       <PageHeader
-        title="Lịch làm việc của huấn luyện viên"
+        icon="👥"
+        title="Quản lý huấn luyện viên"
         description="Chọn một huấn luyện viên để xem và khai ca làm việc thay họ."
       />
       <div className="panel mb-6 max-w-md p-5">
         <label htmlFor="admin-trainer" className="mb-1 block text-sm font-medium">
           Huấn luyện viên
         </label>
-        <select
-          id="admin-trainer"
-          className="w-full rounded border px-3 py-2 text-sm"
-          value={selectedId}
-          onChange={(e) => setSelectedId(e.target.value)}
-        >
+        <select id="admin-trainer" className="input" value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
           <option value="">Chọn huấn luyện viên</option>
           {trainers.map((t) => (
             <option key={t.id} value={t.id}>
