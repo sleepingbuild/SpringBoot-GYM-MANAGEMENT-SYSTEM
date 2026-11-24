@@ -110,7 +110,7 @@ export function SalesCounter() {
             <Spinner />
           </div>
         ) : visible.length === 0 ? (
-          <EmptyState title="Không có sản phẩm phù hợp">
+          <EmptyState icon="🛍️" title="Không có sản phẩm phù hợp">
             Chưa có sản phẩm nào đang bán, hoặc bộ lọc đang loại hết. Thêm sản phẩm ở thẻ Sản phẩm.
           </EmptyState>
         ) : (

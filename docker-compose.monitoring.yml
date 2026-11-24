@@ -23,6 +23,22 @@ services:
     ports:
       - "${GMS_PROMETHEUS_PORT:-9090}:9090"
 
+  # Alertmanager: nhan canh bao tu Prometheus, gom nhom, cho tam tat (Silence). Giao dien http://localhost:9093.
+  # Mac dinh chua gui mail hay tin nhan (xem monitoring/alertmanager/alertmanager.yml de them dich nhan).
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+      # Chay mot ban duy nhat: tat che do cum (gossip) de khoi dong on dinh tren moi may, ke ca khi khong co IP rieng.
+      - --cluster.listen-address=
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    ports:
+      - "${GMS_ALERTMANAGER_PORT:-9093}:9093"
+
   # cAdvisor: do CPU, RAM, mang, o dia cua TUNG container Docker. Prometheus lay so lieu o job "cadvisor".
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
@@ -61,3 +77,4 @@ services:
 volumes:
   prometheus-data:
   grafana-data:
+  alertmanager-data:

@@ -79,7 +79,7 @@ export function OrderHistory() {
           <Spinner />
         </div>
       ) : data && data.content.length === 0 ? (
-        <EmptyState title="Không có đơn trong khoảng này">Đổi khoảng ngày hoặc tạo đơn ở thẻ Bán hàng.</EmptyState>
+        <EmptyState icon="🧾" title="Không có đơn trong khoảng này">Đổi khoảng ngày hoặc tạo đơn ở thẻ Bán hàng.</EmptyState>
       ) : (
         data && (
           <div className="panel overflow-x-auto">

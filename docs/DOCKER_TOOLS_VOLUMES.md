@@ -6,12 +6,15 @@ Tài liệu này dùng để cài đặt, chạy thử và **trình bày** ba nh
 
 ```
         Trình duyệt ─────────────►  Web (frontend)  :3000 ──► API (backend) :8082 ──► SQL Server (volume sqlserver-data)
-                                                                    │  │                 Redis
+                                                                    │  │                 Redis (volume redis-data)
                                                                     │  └────────────────► volume uploads (ảnh, tệp tải lên)
                                                   /actuator/prometheus│
                                                                     ▼
    cAdvisor :8083 ──(CPU, RAM, mạng từng container)──► Prometheus :9090 ──► Grafana :3001  (2 dashboard + cảnh báo)
                                                       (volume prometheus-data)  (volume grafana-data)
+                                                                │
+                                                                ▼ cảnh báo
+                                                      Alertmanager :9093  (volume alertmanager-data)
 
    Docker Desktop / lệnh docker / Portainer :9443  ──► xem, theo dõi, quản lý container, image, volume
 ```
@@ -24,6 +27,7 @@ Tài liệu này dùng để cài đặt, chạy thử và **trình bày** ba nh
 | **Lệnh `docker`** | Theo dõi nhanh: trạng thái, log, tài nguyên | Đi kèm Docker | PowerShell |
 | **Spring Boot Actuator + Micrometer** | Backend tự xuất số liệu (yêu cầu HTTP, JVM, kết nối DB) | Trong mã backend | `:8082/actuator/health`, `/actuator/prometheus` |
 | **Prometheus** | Thu thập và lưu số liệu, đánh giá luật cảnh báo | `docker-compose.monitoring.yml` | `http://localhost:9090` |
+| **Alertmanager** | Nhận cảnh báo từ Prometheus, gom nhóm, tạm tắt tiếng; chưa gửi mail mặc định | `docker-compose.monitoring.yml` | `http://localhost:9093` |
 | **Grafana** | Vẽ biểu đồ từ số liệu của Prometheus | `docker-compose.monitoring.yml` | `http://localhost:3001` |
 | **cAdvisor** | Đo CPU, RAM, mạng, ổ đĩa của **từng container** | `docker-compose.monitoring.yml` | `http://localhost:8083` |
 | **Portainer** (tùy chọn) | Quản lý Docker bằng giao diện web, xem volume | `docker-compose.portainer.yml` | `https://localhost:9443` |
@@ -31,7 +35,7 @@ Tài liệu này dùng để cài đặt, chạy thử và **trình bày** ba nh
 ### 2.1 Cài đặt và chạy
 
 ```powershell
-# Hệ thống + giám sát (Prometheus, Grafana, cAdvisor) cùng lúc:
+# Hệ thống + giám sát (Prometheus, Alertmanager, Grafana, cAdvisor) cùng lúc:
 docker compose -f docker-compose.demo.yml -f docker-compose.monitoring.yml up -d --build
 
 # Portainer (tùy chọn, bật khi cần trình bày):
@@ -84,6 +88,8 @@ Compose thêm tiền tố tên dự án (`gms-demo_`) vào tên volume.
 | `gms-demo_uploads` | Backend `/app/uploads` | Tệp do người dùng tải lên |
 | `gms-demo_prometheus-data` | Prometheus `/prometheus` | Số liệu giám sát, giữ 7 ngày |
 | `gms-demo_grafana-data` | Grafana `/var/lib/grafana` | Cài đặt và tài khoản Grafana |
+| `gms-demo_alertmanager-data` | Alertmanager `/alertmanager` | Trạng thái cảnh báo và các lần tạm tắt tiếng (Silence) |
+| `gms-demo_redis-data` | Redis `/data` | Dữ liệu tạm của Redis (token bị chặn, chống quét đúp); mất cũng không nghiêm trọng, người dùng chỉ phải đăng nhập lại |
 | `gms-sonar_sonar-db-data`, `sonar-data`, `sonar-extensions`, `sonar-logs` | SonarQube và PostgreSQL | Kết quả phân tích mã |
 | `gms-portainer_portainer-data` | Portainer `/data` | Tài khoản và cấu hình Portainer |
 
@@ -142,11 +148,11 @@ docker cp gms-demo-sqlserver-1:/var/opt/mssql/data/gms_demo.bak D:\gms-backup\gm
 
 ## 4. Kịch bản trình bày (khoảng 10 phút)
 
-1. Chạy `docker compose ... ps`: sáu dịch vụ chính cùng Prometheus, Grafana, cAdvisor đều `Up`, `healthy`.
+1. Chạy `docker compose ... ps`: sáu dịch vụ chính cùng Prometheus, Alertmanager, Grafana, cAdvisor đều `Up`, `healthy`.
 2. `docker stats --no-stream`: tài nguyên từng container, giới thiệu theo dõi bằng lệnh.
 3. `docker logs -f gms-demo-backend-1`, thao tác trên web, thấy log chạy theo thời gian thực.
 4. Mở Docker Desktop (hoặc Portainer): thấy cùng danh sách, tab Volumes có các volume của dự án.
-5. Mở Prometheus `/targets`: `gms-backend`, `cadvisor` đều UP; trang `/alerts` có 5 luật cảnh báo.
+5. Mở Prometheus `/targets`: `gms-backend`, `cadvisor`, `alertmanager` đều UP; trang `/alerts` có 5 luật cảnh báo; Alertmanager `http://localhost:9093` mở được.
 6. Mở Grafana, dashboard **GMS Docker**: CPU, RAM từng container; dashboard **GMS Tổng quan backend**: số yêu cầu, độ trễ.
 7. Tạo tải: thao tác nhiều trên web hoặc `docker exec gms-demo-backend-1 ...`, thấy biểu đồ đổi.
 8. Dừng thử backend: `docker compose ... stop backend`, sau khoảng 1 phút cảnh báo `BackendDown` chuyển Firing; bật lại bằng `start backend`.

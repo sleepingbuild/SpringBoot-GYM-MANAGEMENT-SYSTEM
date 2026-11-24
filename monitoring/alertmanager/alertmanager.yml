@@ -1,0 +1,36 @@
+# Cau hinh Alertmanager cho GMS (Agent 1). Prometheus gui canh bao (monitoring/prometheus/alerts.yml) toi day.
+# Xem giao dien: http://localhost:9093 (canh bao dang ban, nhom, tam tat tieng "Silence").
+#
+# MAC DINH CHI HIEN TREN GIAO DIEN, KHONG GUI MAIL HAY TIN NHAN: receiver "default" khong co dich nao.
+# Muon nhan thong bao that, them cau hinh vao receiver "default" (vi du ben duoi), roi chay lai:
+#   docker compose -f docker-compose.demo.yml -f docker-compose.monitoring.yml up -d alertmanager
+#
+# Vi du gui email qua Gmail (can mat khau ung dung, KHONG dung mat khau that; dat gia tri that qua file bi mat, khong commit):
+#   receivers:
+#     - name: default
+#       email_configs:
+#         - to: "ban@example.com"
+#           from: "gms-alert@example.com"
+#           smarthost: "smtp.gmail.com:587"
+#           auth_username: "gms-alert@example.com"
+#           auth_password: "MAT_KHAU_UNG_DUNG"
+#           send_resolved: true
+#
+# Vi du gui toi webhook (Slack, Discord, Zalo bot... tuy dich):
+#   receivers:
+#     - name: default
+#       webhook_configs:
+#         - url: "https://example.com/hook"
+#           send_resolved: true
+
+route:
+  receiver: default
+  # Gom cac canh bao cung ten thanh mot thong bao, doi 10 giay de gom cho du truoc khi gui.
+  group_by: ["alertname"]
+  group_wait: 10s
+  group_interval: 1m
+  # Canh bao con dang ban thi nhac lai sau 4 gio.
+  repeat_interval: 4h
+
+receivers:
+  - name: default

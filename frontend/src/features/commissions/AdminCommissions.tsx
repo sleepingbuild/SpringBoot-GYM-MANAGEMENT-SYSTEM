@@ -98,7 +98,7 @@ export function AdminCommissions() {
           <Spinner />
         </div>
       ) : data && data.content.length === 0 ? (
-        <EmptyState title="Không có dòng lương phù hợp">Đổi tháng hoặc bỏ lọc PT. Dòng lương chỉ có sau khi PT được đặt mức lương mỗi buổi và buổi dạy được chốt.</EmptyState>
+        <EmptyState icon="💰" title="Không có dòng lương phù hợp">Đổi tháng hoặc bỏ lọc PT. Dòng lương chỉ có sau khi PT được đặt mức lương mỗi buổi và buổi dạy được chốt.</EmptyState>
       ) : (
         data && (
           <>

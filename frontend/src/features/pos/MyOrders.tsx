@@ -55,7 +55,7 @@ export function MyOrders() {
           <Spinner />
         </div>
       ) : data.content.length === 0 ? (
-        <EmptyState title="Bạn chưa có đơn hàng nào">Mua hàng ở thẻ Mua hàng, đơn sẽ hiện ở đây.</EmptyState>
+        <EmptyState icon="🧾" title="Bạn chưa có đơn hàng nào">Mua hàng ở thẻ Mua hàng, đơn sẽ hiện ở đây.</EmptyState>
       ) : (
         <div className="panel overflow-x-auto">
           <table className="w-full text-sm">
