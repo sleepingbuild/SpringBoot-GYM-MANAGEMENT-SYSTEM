@@ -50,7 +50,7 @@ export function MyCommissions() {
           <Spinner />
         </div>
       ) : data.content.length === 0 ? (
-        <EmptyState title="Chưa có dòng lương nào">
+        <EmptyState icon="💰" title="Chưa có dòng lương nào">
           Dòng lương xuất hiện sau khi buổi dạy được chốt. Nếu bạn đã dạy mà chưa thấy, hỏi quản trị viên đã đặt mức lương mỗi buổi cho bạn chưa.
         </EmptyState>
       ) : (

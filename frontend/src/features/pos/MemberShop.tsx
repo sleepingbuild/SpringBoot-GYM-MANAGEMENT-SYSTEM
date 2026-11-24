@@ -103,7 +103,7 @@ export function MemberShop() {
             <Spinner />
           </div>
         ) : visible.length === 0 ? (
-          <EmptyState title="Không có sản phẩm phù hợp">Hiện chưa có sản phẩm nào đang bán, hoặc bộ lọc đang loại hết.</EmptyState>
+          <EmptyState icon="🛍️" title="Không có sản phẩm phù hợp">Hiện chưa có sản phẩm nào đang bán, hoặc bộ lọc đang loại hết.</EmptyState>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {visible.map((p) => {
