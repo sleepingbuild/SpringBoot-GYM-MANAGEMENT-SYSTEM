@@ -27,7 +27,7 @@ function Logo() {
           <path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11" />
         </svg>
       </span>
-      <span className="text-lg font-bold tracking-tight"></span>
+      <span className="text-lg font-bold tracking-tight">GMS</span>
     </Link>
   );
 }
