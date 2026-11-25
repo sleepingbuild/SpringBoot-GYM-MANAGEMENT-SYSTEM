@@ -85,7 +85,14 @@ public class MembershipServiceImpl implements MembershipService {
         }
     }
 
+    /**
+     * Gắn @Transactional để lời gọi getCurrentMembership bên dưới (chạy lazy-check, CÓ ghi DB) nằm trong cùng transaction,
+     * thay vì gọi qua this khiến annotation của nó bị bỏ qua. noRollbackFor: MEMBERSHIP_NOT_FOUND là kết quả nghiệp vụ bình
+     * thường, không được làm rollback các lần chuyển trạng thái gói vừa ghi, cũng không được đánh dấu rollback-only transaction
+     * ngoài của nơi gọi (MyMembershipOverviewService, MemberSelfPurchaseService).
+     */
     @Override
+    @Transactional(noRollbackFor = BusinessException.class)
     public MemberPackageResponse getCurrentMembershipResponse(UUID userId) {
         MemberPackage mp = getCurrentMembership(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBERSHIP_NOT_FOUND, "Bạn hiện không có gói tập nào đang hoạt động"));

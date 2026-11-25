@@ -27,12 +27,13 @@ public class StaffAttendanceServiceImpl implements StaffAttendanceService {
     private final UserRepository userRepository;
 
     // Ca mặc định TOÀN HỆ THỐNG (quyết định A.2, giữ nguyên cho v1) — chưa phân biệt theo
-    // từng nhân sự. Cải tiến sau (không bắt buộc): đọc ca thật từ trainer_schedules qua 1
+    // từng nhân sự. Giá trị mặc định (07:00, 21:00) nằm ở application.yml, không đặt trong @Value vì dấu ":" thứ hai
+    // làm placeholder bị coi là sai cú pháp. Cải tiến sau (không bắt buộc): đọc ca thật từ trainer_schedules qua 1
     // port do Agent 3 cung cấp, hiển thị NOT_SCHEDULED khi không có ca hôm đó.
-    @Value("${gms.face-attendance.default-shift-start:07:00}")
+    @Value("${gms.face-attendance.default-shift-start}")
     private String defaultShiftStart;
 
-    @Value("${gms.face-attendance.default-shift-end:21:00}")
+    @Value("${gms.face-attendance.default-shift-end}")
     private String defaultShiftEnd;
 
     @Override
