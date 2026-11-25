@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { scanKiosk } from "./api";
 import { FaceCameraView } from "./FaceCameraView";
 import { faceErrorMessage } from "./messages";
@@ -86,23 +87,33 @@ export function KioskScanner() {
     phase === "sending" ? "Đang nhận diện..." : phase === "paused" ? "Đã quét xong" : "Đang chờ khuôn mặt, nhìn thẳng vào camera.";
 
   return (
-    <div className="space-y-4">
-      <FaceCameraView camera={camera} />
-      {status === "ready" && (
-        <p className="text-center text-sm text-steel" role="status">
-          {hint ?? phaseText}
-        </p>
-      )}
-      {view && (
-        <Alert tone={view.tone} title={view.title}>
-          {view.detail}
-        </Alert>
-      )}
-      {error && (
-        <Alert tone="error" title="Không ghi nhận được">
-          {error}
-        </Alert>
-      )}
+    <div className="page-split">
+      <div className="space-y-4">
+        <FaceCameraView camera={camera} />
+        {status === "ready" && (
+          <p className="text-center text-sm text-steel lg:text-left" role="status">
+            {hint ?? phaseText}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-4">
+        {!view && !error && (
+          <EmptyState icon="🖥️" title="Đang chờ lượt quét">
+            Kết quả điểm danh gần nhất sẽ hiện ở đây.
+          </EmptyState>
+        )}
+        {view && (
+          <Alert tone={view.tone} title={view.title}>
+            {view.detail}
+          </Alert>
+        )}
+        {error && (
+          <Alert tone="error" title="Không ghi nhận được">
+            {error}
+          </Alert>
+        )}
+      </div>
     </div>
   );
 }

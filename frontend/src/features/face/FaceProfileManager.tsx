@@ -57,30 +57,32 @@ export function FaceProfileManager() {
   }
 
   return (
-    <div className="space-y-4">
-      {profile.kind === "known" && profile.status.registered && (
-        <Alert tone="info" title="Bạn đã đăng ký khuôn mặt">
-          Cập nhật lần cuối: {formatDateTime(profile.status.updatedAt)}. Đăng ký lại sẽ thay thế hồ sơ hiện tại.
-        </Alert>
-      )}
-      {profile.kind === "known" && !profile.status.registered && (
-        <Alert tone="warning" title="Bạn chưa đăng ký khuôn mặt">
-          Cần đăng ký trước khi dùng điểm danh bằng khuôn mặt.
-        </Alert>
-      )}
-
+    <div className="page-split">
       <FaceCameraView camera={camera} />
 
-      <p className="mx-auto max-w-xl text-sm text-steel">
-        Nhìn thẳng vào camera ở nơi đủ sáng, không đeo khẩu trang hoặc kính tối màu. Hệ thống chỉ lưu đặc trưng khuôn mặt, không lưu ảnh.
-      </p>
+      <div className="space-y-4">
+        {profile.kind === "known" && profile.status.registered && (
+          <Alert tone="info" title="Bạn đã đăng ký khuôn mặt">
+            Cập nhật lần cuối: {formatDateTime(profile.status.updatedAt)}. Đăng ký lại sẽ thay thế hồ sơ hiện tại.
+          </Alert>
+        )}
+        {profile.kind === "known" && !profile.status.registered && (
+          <Alert tone="warning" title="Bạn chưa đăng ký khuôn mặt">
+            Cần đăng ký trước khi dùng điểm danh bằng khuôn mặt.
+          </Alert>
+        )}
 
-      {notice && <Alert tone={notice.tone}>{notice.text}</Alert>}
+        <p className="text-sm text-steel">
+          Nhìn thẳng vào camera ở nơi đủ sáng, không đeo khẩu trang hoặc kính tối màu. Hệ thống chỉ lưu đặc trưng khuôn mặt, không lưu ảnh.
+        </p>
 
-      <div className="flex justify-center">
-        <Button onClick={handleRegister} loading={busy} disabled={camera.status !== "ready"}>
-          {profile.kind === "known" && profile.status.registered ? "Chụp và đăng ký lại" : "Chụp và đăng ký"}
-        </Button>
+        {notice && <Alert tone={notice.tone}>{notice.text}</Alert>}
+
+        <div className="flex">
+          <Button onClick={handleRegister} loading={busy} disabled={camera.status !== "ready"}>
+            {profile.kind === "known" && profile.status.registered ? "Chụp và đăng ký lại" : "Chụp và đăng ký"}
+          </Button>
+        </div>
       </div>
     </div>
   );

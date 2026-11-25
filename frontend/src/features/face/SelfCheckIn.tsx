@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { scanSelf } from "./api";
 import { EarlyLeaveForm } from "./EarlyLeaveForm";
 import { FaceCameraView } from "./FaceCameraView";
@@ -45,20 +46,28 @@ export function SelfCheckIn() {
   }
 
   return (
-    <div className="space-y-4">
-      <FaceCameraView camera={camera} />
+    <div className="page-split">
+      <div className="space-y-4">
+        <FaceCameraView camera={camera} />
+        <div className="flex justify-center lg:justify-start">
+          <Button onClick={handleScan} loading={busy} disabled={camera.status !== "ready"}>
+            Quét khuôn mặt
+          </Button>
+        </div>
+      </div>
 
-      {notice && <Alert tone={notice.tone}>{notice.text}</Alert>}
-      {result && <ScanResultCard result={result} />}
-      {result?.reasonRequired && result.bookingId && !reasonSent && (
-        <EarlyLeaveForm bookingId={result.bookingId} onDone={() => setReasonSent(true)} />
-      )}
-      {reasonSent && <Alert tone="success">Đã gửi lý do rời buổi sớm.</Alert>}
-
-      <div className="flex justify-center">
-        <Button onClick={handleScan} loading={busy} disabled={camera.status !== "ready"}>
-          Quét khuôn mặt
-        </Button>
+      <div className="space-y-4">
+        {!notice && !result && (
+          <EmptyState icon="📷" title="Chưa quét lần nào">
+            Nhìn thẳng vào camera rồi bấm nút Quét khuôn mặt. Kết quả điểm danh sẽ hiện ở đây.
+          </EmptyState>
+        )}
+        {notice && <Alert tone={notice.tone}>{notice.text}</Alert>}
+        {result && <ScanResultCard result={result} />}
+        {result?.reasonRequired && result.bookingId && !reasonSent && (
+          <EarlyLeaveForm bookingId={result.bookingId} onDone={() => setReasonSent(true)} />
+        )}
+        {reasonSent && <Alert tone="success">Đã gửi lý do rời buổi sớm.</Alert>}
       </div>
     </div>
   );
